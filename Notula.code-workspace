@@ -1,0 +1,38 @@
+{
+	"folders": [
+		{
+			"path": "backend"
+		},
+		{
+			"path": "frontend"
+		}
+	],
+	"settings": {
+		"java.compile.nullAnalysis.mode": "automatic",
+		"java.configuration.updateBuildConfiguration": "automatic",
+		"java.format.settings.url": "java-formatter.xml",
+		"java.saveActions.organizeImports": true,
+		"editor.detectIndentation": false,
+		"editor.insertSpaces": false,
+		"java.completion.favoriteStaticMembers": [
+			"org.mockito.Mockito.*",
+			"org.mockito.ArgumentMatchers.*",
+			"org.mockito.Answers.*",
+			"org.assertj.core.api.Assertions.*",
+		],
+		"editor.rulers": [
+			80
+		],
+		"java.completion.importOrder": [
+			"#",
+			"java",
+			"javax",
+			"jakarta",
+			"org",
+			"io",
+			"lombok",
+			"com",
+			""
+		]
+	}
+}
