@@ -1,0 +1,145 @@
+.landing-flex {
+	display: flex;
+	min-height: 80vh;
+	align-items: center;
+	justify-content: center;
+	gap: 4rem;
+}
+
+.landing-left {
+	flex: 1;
+	display: flex;
+	flex-direction: column;
+	align-items: flex-start;
+	justify-content: center;
+	min-width: 300px;
+	max-width: 400px;
+	text-align: left;
+}
+
+.landing-right {
+	flex: 1;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	min-width: 300px;
+	max-width: 400px;
+}
+
+.subtitle {
+	color: #666;
+	margin-bottom: 2rem;
+}
+
+.button-group {
+	display: flex;
+	gap: 1.5rem;
+	margin-top: 2rem;
+}
+
+.btn {
+	padding: 0.75rem 2.5rem;
+	border-radius: 6px;
+	font-size: 1.1rem;
+	font-weight: 600;
+	text-decoration: none;
+	transition:
+		background 0.2s,
+		color 0.2s;
+	box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+	cursor: pointer;
+}
+
+.btn.primary {
+	background: #2d7ff9;
+	color: #fff;
+	border: none;
+}
+
+.btn.primary:hover {
+	background: #1a5fcc;
+}
+
+.register-link {
+	margin-top: 1.2rem;
+	text-align: center;
+	font-size: 1rem;
+	color: #444;
+	display: flex;
+	flex-direction: column;
+	gap: 0.2rem;
+}
+
+.register-link a {
+	color: #2d7ff9;
+	text-decoration: underline;
+	font-weight: 500;
+	transition: color 0.2s;
+}
+
+.register-link a:hover {
+	color: #1a5fcc;
+}
+
+.login-form {
+	background: #fff;
+	padding: 2rem 2.5rem;
+	border-radius: 10px;
+	box-shadow: 0 2px 16px rgba(0, 0, 0, 0.07);
+	width: 100%;
+	max-width: 350px;
+	display: flex;
+	flex-direction: column;
+	gap: 1.2rem;
+}
+
+.login-form h2 {
+	margin-bottom: 0.5rem;
+	font-size: 1.5rem;
+	color: #2d7ff9;
+}
+
+.form-group {
+	display: flex;
+	flex-direction: column;
+	gap: 0.3rem;
+	text-align: left;
+}
+
+.form-group label {
+	font-weight: 500;
+	color: #333;
+}
+
+.form-group input {
+	padding: 0.6rem 1rem;
+	border: 1px solid #ccc;
+	border-radius: 5px;
+	font-size: 1rem;
+}
+
+@media (max-width: 900px) {
+	.landing-flex {
+		flex-direction: column;
+		gap: 2rem;
+	}
+
+	.landing-left,
+	.landing-right {
+		align-items: center;
+		text-align: center;
+		max-width: 100%;
+	}
+}
+
+h1 {
+	text-transform: capitalize;
+}
+
+h2 {
+	text-transform: capitalize;
+}
+
+form label {
+	text-transform: capitalize;
+}
