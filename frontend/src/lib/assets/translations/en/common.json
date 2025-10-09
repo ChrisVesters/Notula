@@ -1,0 +1,13 @@
+{
+	"login": "login",
+	"email": "email",
+	"password": "password",
+	"register": "register",
+	"confirmPassword": "confirm password",
+	"alreadyAccountMessage": "Already have an account?",
+	"createAccountMessage": "Create your Notula account",
+	"startTodayMessage": "Start organizing your meetings today.",
+	"passwordLengthErrorMessage": "Password must be at least 8 characters.",
+	"passwordsDoNotMatchErrorMessage": "Passwords do not match.",
+	"invalidEmailErrorMessage": "Please enter a valid email address."
+}
