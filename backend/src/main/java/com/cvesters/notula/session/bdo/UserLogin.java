@@ -1,4 +1,4 @@
-package com.cvesters.notula.user.bdo;
+package com.cvesters.notula.session.bdo;
 
 import java.util.Objects;
 
@@ -7,7 +7,6 @@ import lombok.Getter;
 import com.cvesters.notula.common.domain.Email;
 import com.cvesters.notula.common.domain.Password;
 
-// TODO: fix this bad name
 @Getter
 public class UserLogin {
 	private final Email email;
