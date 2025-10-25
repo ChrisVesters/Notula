@@ -29,7 +29,7 @@ public class PasswordTest {
 		}
 
 		@ParameterizedTest
-		@ValueSource(strings = {"12345678", "abcdefgh", "a_@b%D~ë"})
+		@ValueSource(strings = {"12345678", "abcdefgh", "a_@b%D~ë", "        "})
 		void valid(final String value) {
 			final var password = new Password(value);
 

@@ -27,7 +27,7 @@ public class UserController extends BaseController {
 
 	@PostMapping(consumes = MediaType.APPLICATION_JSON_VALUE, produces = MediaType.APPLICATION_JSON_VALUE)
 	public ResponseEntity<UserInfoDto> create(
-			@Valid @RequestBody CreateUserDto request) {
+			@Valid @RequestBody final CreateUserDto request) {
 
 		final UserInfo user = userService.createUser(request.toBdo());
 		final var response = new UserInfoDto(user);

@@ -80,11 +80,11 @@ class UserControllerTest {
 		}
 
 		@Test
-		void badRequest() throws Exception {
-			final String body = getBody(USER);
-
+		void duplicateEntity() throws Exception {
 			when(userService.createUser(any()))
 					.thenThrow(new DuplicateEntityException());
+
+			final String body = getBody(USER);
 
 			final var builder = post(ENDPOINT).content(body)
 					.contentType(MediaType.APPLICATION_JSON);
@@ -94,7 +94,7 @@ class UserControllerTest {
 
 		@ParameterizedTest
 		@NullAndEmptySource
-		@ValueSource(strings = { "user.test", "@test", "user@" })
+		@ValueSource(strings = { "user.test", "@test", "user@", "     " })
 		void emailInvalid(final String email) throws Exception {
 			final String body = getBody(email, USER.getPassword().value());
 
