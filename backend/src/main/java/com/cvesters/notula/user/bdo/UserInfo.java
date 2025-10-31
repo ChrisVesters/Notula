@@ -9,6 +9,8 @@ import com.cvesters.notula.common.domain.Email;
 @Getter
 public class UserInfo {
 
+	// TODO: id final and non-null!
+	// TOOD: TESTS!!!
 	private Long id;
 	private Email email;
 
