@@ -56,4 +56,20 @@ class UserServiceTest {
 					.isInstanceOf(DuplicateEntityException.class);
 		}
 	}
+
+	@Nested
+	class FindByLogin {
+
+		@Test
+		void found() {
+
+		}
+
+		@Test
+		void notFound() {
+
+		}
+
+		
+	}
 }

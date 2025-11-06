@@ -1,5 +1,7 @@
 package com.cvesters.notula.user.dto;
 
+import static org.assertj.core.api.Assertions.assertThat;
+
 import org.junit.jupiter.api.Test;
 
 import com.cvesters.notula.user.TestUser;
@@ -16,6 +18,7 @@ class CreateUserDtoTest {
 
 		final UserLogin bdo = dto.toBdo();
 
-		USER.assertEquals(bdo);
+		assertThat(bdo.getEmail()).isEqualTo(USER.getEmail());
+		assertThat(bdo.getPassword()).isEqualTo(USER.getPassword());
 	}
 }

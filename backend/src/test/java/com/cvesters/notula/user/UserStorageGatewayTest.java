@@ -14,17 +14,16 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 
 import com.cvesters.notula.common.domain.Email;
 import com.cvesters.notula.user.bdo.UserInfo;
-import com.cvesters.notula.user.bdo.UserLogin;
 import com.cvesters.notula.user.dao.UserDao;
 
 class UserStorageGatewayTest {
 
 	private static final TestUser USER = TestUser.EDUARDO_CHRISTIANSEN;
 
-	private UserRepository userRepository = mock();
-	private PasswordEncoder passwordEncoder = mock();
+	private final UserRepository userRepository = mock();
+	private final PasswordEncoder passwordEncoder = mock();
 
-	private UserStorageGateway gateway = new UserStorageGateway(userRepository,
+	private final UserStorageGateway gateway = new UserStorageGateway(userRepository,
 			passwordEncoder);
 
 	@Nested
@@ -33,8 +32,7 @@ class UserStorageGatewayTest {
 		@Test
 		void success() {
 			final String hashedPassword = "hash";
-			final UserLogin login = USER.login();
-			when(passwordEncoder.encode(login.getPassword().value()))
+			when(passwordEncoder.encode(USER.getPassword().value()))
 					.thenReturn(hashedPassword);
 
 			final UserDao created = mock();
@@ -42,12 +40,13 @@ class UserStorageGatewayTest {
 			when(created.toBdo()).thenReturn(bdo);
 
 			when(userRepository.save(argThat(dao -> {
-				assertThat(dao.getEmail()).isEqualTo(login.getEmail().value());
+				assertThat(dao.getId()).isNull();
+				assertThat(dao.getEmail()).isEqualTo(USER.getEmail().value());
 				assertThat(dao.getPassword()).isEqualTo(hashedPassword);
 				return true;
 			}))).thenReturn(created);
 
-			final UserInfo userInfo = gateway.createUser(login);
+			final UserInfo userInfo = gateway.createUser(USER.login());
 
 			assertThat(userInfo).isEqualTo(bdo);
 		}
