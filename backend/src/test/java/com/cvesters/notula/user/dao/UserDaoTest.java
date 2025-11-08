@@ -1,6 +1,7 @@
 package com.cvesters.notula.user.dao;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.lang.reflect.Field;
 
@@ -24,5 +25,11 @@ class UserDaoTest {
 
 		assertThat(bdo.getId()).isEqualTo(USER.getId());
 		assertThat(bdo.getEmail()).isEqualTo(USER.getEmail());
+	}
+
+	@Test
+	void toBdoWithNullId() {
+		assertThatThrownBy(dao::toBdo)
+				.isInstanceOf(NullPointerException.class);
 	}
 }

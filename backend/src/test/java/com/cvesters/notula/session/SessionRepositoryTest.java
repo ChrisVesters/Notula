@@ -26,13 +26,13 @@ import com.cvesters.notula.session.dao.SessionDao;
 @AutoConfigureTestDatabase(replace = Replace.NONE)
 class SessionRepositoryTest {
 
+	private static final TestSession SESSION = TestSession.EDUARDO_CHRISTIANSEN_DEKSTOP;
+
 	@Autowired
 	private SessionRepository sessionRepository;
 
 	@PersistenceContext
 	private EntityManager entityManager;
-
-	private static final TestSession SESSION = TestSession.EDUARDO_CHRISTIANSEN_DEKSTOP;
 
 	@Nested
 	class Save {
