@@ -12,7 +12,7 @@ import org.junit.jupiter.api.Test;
 
 import com.cvesters.notula.session.TestSession;
 
-public class SessionInfoTest {
+class SessionInfoTest {
 
 	private static final TestSession SESSION = TestSession.EDUARDO_CHRISTIANSEN_DEKSTOP;
 

@@ -8,7 +8,7 @@ import org.junit.jupiter.api.Test;
 
 import com.cvesters.notula.session.TestSession;
 
-public class SessionTokensTest {
+class SessionTokensTest {
 
 	private static final TestSession SESSION = TestSession.EDUARDO_CHRISTIANSEN_DEKSTOP;
 	private static final String ACCESS_TOKEN = "access_token";
