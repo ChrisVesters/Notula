@@ -1,6 +1,7 @@
 package com.cvesters.notula.user;
 
 import java.util.Objects;
+import java.util.Optional;
 
 import org.springframework.stereotype.Service;
 
@@ -25,6 +26,11 @@ public class UserService {
 		}
 
 		return userStorageGateway.createUser(userLogin);
+	}
+
+	public Optional<UserInfo> findByLogin(UserLogin request) {
+		// TODO Auto-generated method stub
+		throw new UnsupportedOperationException("Unimplemented method 'findByLogin'");
 	}
 
 }
