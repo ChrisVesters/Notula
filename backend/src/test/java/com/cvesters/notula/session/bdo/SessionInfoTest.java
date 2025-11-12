@@ -27,11 +27,10 @@ class SessionInfoTest {
 			assertThat(sessionInfo.getUserId())
 					.isEqualTo(SESSION.getUser().getId());
 			assertThat(sessionInfo.getRefreshToken())
-					.isEqualTo(SESSION.getRefreshToken());
-					// TODO: matches a certain pattern.
-			assertThat(sessionInfo.getActiveUntil())
-					.isCloseTo(OffsetDateTime.now(),
-							within(Duration.ofSeconds(1)));
+					.matches("[\\p{Alnum}-_]{86}");
+			assertThat(sessionInfo.getActiveUntil()).isCloseTo(
+					OffsetDateTime.now().plus(Duration.ofDays(7)),
+					within(Duration.ofSeconds(1)));
 		}
 
 		@Test

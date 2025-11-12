@@ -28,7 +28,6 @@ public class SessionService {
 		this.sessionStorageGateway = sessionStorageGateway;
 	}
 
-	// TODO: test!!!!
 	public SessionTokens create(final UserLogin request) {
 		Objects.requireNonNull(request);
 

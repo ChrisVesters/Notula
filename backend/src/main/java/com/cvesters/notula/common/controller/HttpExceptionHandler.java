@@ -7,6 +7,7 @@ import org.springframework.web.bind.annotation.ControllerAdvice;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 
 import com.cvesters.notula.common.exception.DuplicateEntityException;
+import com.cvesters.notula.common.exception.EntityNotFoundException;
 
 // TODO: make sure all exceptions are handled properly
 @ControllerAdvice
@@ -34,6 +35,11 @@ public class HttpExceptionHandler { // extends ResponseEntityExceptionHandler {
 
 	@ExceptionHandler(DuplicateEntityException.class)
 	public ResponseEntity<Void> handle(final DuplicateEntityException e) {
+		return ResponseEntity.badRequest().build();
+	}
+
+	@ExceptionHandler(EntityNotFoundException.class)
+	public ResponseEntity<Void> handle(final EntityNotFoundException e) {
 		return ResponseEntity.badRequest().build();
 	}
 

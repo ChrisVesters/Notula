@@ -5,6 +5,7 @@ import java.util.List;
 
 import javax.crypto.SecretKey;
 
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
@@ -19,7 +20,11 @@ import io.jsonwebtoken.security.Keys;
 @EnableWebSecurity
 public class WebSecurityConfig {
 
-	private static final String SECRET_KEY = "very-long-key-that-is-good-enough-for-spring";
+	private final String secretKey;
+
+	public WebSecurityConfig(final @Value("${jwt.secret.key}") String secretKey) {
+		this.secretKey = secretKey;
+	}
 
 	@Bean
 	SecurityFilterChain securityFilterChain(final HttpSecurity http)
@@ -48,7 +53,7 @@ public class WebSecurityConfig {
 
 	@Bean
 	SecretKey jwtSecretKey() {
-		return Keys.hmacShaKeyFor(SECRET_KEY.getBytes(StandardCharsets.UTF_8));
+		return Keys.hmacShaKeyFor(secretKey.getBytes(StandardCharsets.UTF_8));
 	}
 
 	// @Bean

@@ -6,6 +6,8 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
+import java.util.Optional;
+
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 
@@ -61,15 +63,20 @@ class UserServiceTest {
 	class FindByLogin {
 
 		@Test
-		void found() {
+		void success() {
+			final UserLogin login = USER.login();
+			final Optional<UserInfo> result = Optional.of(USER.info());
+			when(userStorageGateway.findByLogin(login)).thenReturn(result);
 
+			final Optional<UserInfo> foundUser = userService.findByLogin(login);
+
+			assertThat(foundUser).isEqualTo(result);
 		}
 
 		@Test
-		void notFound() {
-
+		void loginNull() {
+			assertThatThrownBy(() -> userService.findByLogin(null))
+					.isInstanceOf(NullPointerException.class);
 		}
-
-		
 	}
 }

@@ -20,14 +20,10 @@ public class SessionInfo {
 	private OffsetDateTime activeUntil;
 
 	public SessionInfo(final long userId) {
-		// final String token = generateToken();
-		// final OffsetDateTime activeUntil = OffsetDateTime.now().plus(DURATION);
+		final String token = generateToken();
+		final OffsetDateTime activeUntil = OffsetDateTime.now().plus(DURATION);
 
-		// this(null, userId, token, activeUntil);
-		this.id = null;
-		this.userId = userId;
-		this.refreshToken = generateToken();
-		this.activeUntil = OffsetDateTime.now().plus(DURATION);
+		this(null, userId, token, activeUntil);
 	}
 
 	public SessionInfo(final Long id, final long userId,
@@ -42,7 +38,6 @@ public class SessionInfo {
 	}
 
 	private static String generateToken() {
-		// TODO: why not just a UUID?
 		final byte[] bytes = new byte[64];
 		RANDOM.nextBytes(bytes);
 
@@ -51,6 +46,4 @@ public class SessionInfo {
 				.encodeToString(bytes);
 		return token;
 	}
-
-	// TODO: refresh method
 }

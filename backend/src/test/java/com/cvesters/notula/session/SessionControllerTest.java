@@ -1,6 +1,8 @@
 package com.cvesters.notula.session;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
@@ -21,6 +23,7 @@ import org.springframework.test.web.servlet.MockMvc;
 
 import com.cvesters.notula.common.WebSecurityConfig;
 import com.cvesters.notula.common.exception.DuplicateEntityException;
+import com.cvesters.notula.session.bdo.SessionTokens;
 import com.cvesters.notula.user.TestUser;
 
 @WebMvcTest(SessionController.class)
@@ -30,8 +33,11 @@ class SessionControllerTest {
 	private static final String SERVER = "http://localhost";
 	private static final String ENDPOINT = "/api/sessions";
 
-	private static final TestUser USER = TestUser.EDUARDO_CHRISTIANSEN;
-	// private static final TestSession SESSION;
+	private static final String REFRESH_TOKEN_COOKIE = "refreshToken";
+
+	private static final TestSession SESSION = TestSession.EDUARDO_CHRISTIANSEN_DEKSTOP;
+	private static final TestUser USER = SESSION.getUser();
+	private static final String ACCESS_TOKEN = "access";
 
 	@Autowired
 	protected MockMvc mockMvc;
@@ -44,11 +50,15 @@ class SessionControllerTest {
 
 		@Test
 		void success() throws Exception {
-			// TODO: check arguments
-			when(sessionService.create(any())).thenReturn(null);
+			final var tokens = new SessionTokens(SESSION.info(), ACCESS_TOKEN);
+			when(sessionService.create(argThat(login -> {
+				assertThat(login.getEmail()).isEqualTo(USER.getEmail());
+				assertThat(login.getPassword()).isEqualTo(USER.getPassword());
+				return true;
+			}))).thenReturn(tokens);
 
 			final String body = getBody(USER);
-			final String expectedResponse = getResponse(USER);
+			final String expectedResponse = getResponse(SESSION, ACCESS_TOKEN);
 
 			final var builder = post(ENDPOINT).content(body)
 					.contentType(MediaType.APPLICATION_JSON);
@@ -58,6 +68,14 @@ class SessionControllerTest {
 					.andExpect(header().string("location",
 							SERVER + ENDPOINT + "/" + USER.getId()))
 					.andExpect(content().json(expectedResponse));
+					// .andExpectAll(
+					// 		cookie().value(REFRESH_TOKEN_COOKIE,
+					// 				tokens.getRefreshToken()),
+					// 		cookie().httpOnly(REFRESH_TOKEN_COOKIE, true),
+					// 		cookie().secure(REFRESH_TOKEN_COOKIE, true),
+					// 		cookie().path(REFRESH_TOKEN_COOKIE, "/refresh"),
+					// 		cookie().maxAge(REFRESH_TOKEN_COOKIE,
+					// 				(int) Duration.ofDays(7).toMillis()));
 		}
 
 		@Test
@@ -129,16 +147,16 @@ class SessionControllerTest {
 					""".formatted(formattedEmail, formattedPassword);
 		}
 
-		private String getResponse(final TestUser user) {
-			return "{}";
-			// return """
-			// {
-			// "id": "%s",
-			// "email": "%s",
-			// "name": "%s"
-			// }
-			// """.formatted(user.getId(), user.getEmail().value(),
-			// user.getName());
+		private String getResponse(final TestSession session,
+				final String accessToken) {
+			return """
+					{
+						"id": %s,
+						"accessToken": "%s",
+						"activeUntil": "%s"
+					}
+					""".formatted(session.getId(), accessToken,
+					session.getActiveUntil().toString());
 		}
 	}
 }

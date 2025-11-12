@@ -28,9 +28,10 @@ public class UserService {
 		return userStorageGateway.createUser(userLogin);
 	}
 
-	public Optional<UserInfo> findByLogin(UserLogin request) {
-		// TODO Auto-generated method stub
-		throw new UnsupportedOperationException("Unimplemented method 'findByLogin'");
+	public Optional<UserInfo> findByLogin(final UserLogin userLogin) {
+		Objects.requireNonNull(userLogin);
+
+		return userStorageGateway.findByLogin(userLogin);
 	}
 
 }

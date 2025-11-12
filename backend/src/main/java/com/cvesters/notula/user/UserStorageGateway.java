@@ -1,6 +1,7 @@
 package com.cvesters.notula.user;
 
 import java.util.Objects;
+import java.util.Optional;
 
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -27,6 +28,17 @@ public class UserStorageGateway {
 		Objects.requireNonNull(email);
 
 		return userRepository.existsByEmail(email.value());
+	}
+
+	public Optional<UserInfo> findByLogin(final UserLogin login) {
+		Objects.requireNonNull(login);
+
+		final String email = login.getEmail().value();
+		final String password = login.getPassword().value();
+
+		return userRepository.findByEmail(email)
+				.filter(u -> passwordEncoder.matches(password, u.getPassword()))
+				.map(UserDao::toBdo);
 	}
 
 	public UserInfo createUser(final UserLogin login) {

@@ -3,6 +3,8 @@ package com.cvesters.notula.user;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
+import java.util.Optional;
+
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.PersistenceContext;
 
@@ -56,9 +58,44 @@ class UserRepositoryTest {
 		}
 
 		@ParameterizedTest
-		@ValueSource(strings = { "x'; DROP TABLE users; --", "' OR '1'='1", "'; SELECT * FROM users WHERE 'a'='a" })
+		@ValueSource(strings = { "x'; DROP TABLE users; --", "' OR '1'='1",
+				"'; SELECT * FROM users WHERE 'a'='a" })
 		void sqlInjection(final String sqlInjection) {
 			assertThat(userRepository.existsByEmail(sqlInjection)).isFalse();
+		}
+	}
+
+	@Nested
+	class FindByEmail {
+
+		@Test
+		void found() {
+			final Optional<UserDao> dao = userRepository
+					.findByEmail(USER.getEmail().value());
+
+			final UserDao expected = entityManager.find(UserDao.class,
+					USER.getId());
+			assertThat(dao).contains(expected);
+		}
+
+		@Test
+		void notFound() {
+			final Optional<UserDao> dao = userRepository
+					.findByEmail("user@test");
+
+			assertThat(dao).isEmpty();
+		}
+
+		@Test
+		void emailNull() {
+			assertThat(userRepository.findByEmail(null)).isEmpty();
+		}
+
+		@ParameterizedTest
+		@ValueSource(strings = { "x'; DROP TABLE users; --", "' OR '1'='1",
+				"'; SELECT * FROM users WHERE 'a'='a" })
+		void sqlInjection(final String sqlInjection) {
+			assertThat(userRepository.findByEmail(sqlInjection)).isEmpty();
 		}
 	}
 

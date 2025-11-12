@@ -9,7 +9,7 @@ import com.cvesters.notula.common.domain.Email;
 @Getter
 public class UserInfo {
 
-	private long id;
+	private final long id;
 	private Email email;
 
 	public UserInfo(final long id, final Email email) {
