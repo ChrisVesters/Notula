@@ -1,6 +1,7 @@
 package com.cvesters.notula.user;
 
 import java.util.Objects;
+import java.util.Optional;
 
 import org.springframework.stereotype.Service;
 
@@ -25,6 +26,12 @@ public class UserService {
 		}
 
 		return userStorageGateway.createUser(userLogin);
+	}
+
+	public Optional<UserInfo> findByLogin(final UserLogin userLogin) {
+		Objects.requireNonNull(userLogin);
+
+		return userStorageGateway.findByLogin(userLogin);
 	}
 
 }

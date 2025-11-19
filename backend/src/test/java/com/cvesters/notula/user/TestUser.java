@@ -1,7 +1,5 @@
 package com.cvesters.notula.user;
 
-import static org.assertj.core.api.Assertions.assertThat;
-
 import lombok.Getter;
 
 import com.cvesters.notula.common.domain.Email;
@@ -31,15 +29,5 @@ public enum TestUser {
 
 	public UserInfo info() {
 		return new UserInfo(id, email);
-	}
-
-	public void assertEquals(final UserLogin login) {
-		assertThat(login.getEmail()).isEqualTo(email);
-		assertThat(login.getPassword()).isEqualTo(password);
-	}
-
-	public void assertEquals(final UserInfo info) {
-		assertThat(info.getId()).isEqualTo(id);
-		assertThat(info.getEmail()).isEqualTo(email);
 	}
 }
