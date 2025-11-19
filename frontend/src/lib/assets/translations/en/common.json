@@ -9,5 +9,6 @@
 	"startTodayMessage": "Start organizing your meetings today.",
 	"passwordLengthErrorMessage": "Password must be at least 8 characters.",
 	"passwordsDoNotMatchErrorMessage": "Passwords do not match.",
-	"invalidEmailErrorMessage": "Please enter a valid email address."
+	"invalidEmailErrorMessage": "Please enter a valid email address.",
+	"requiredFieldErrorMessage": "This field is required."
 }
