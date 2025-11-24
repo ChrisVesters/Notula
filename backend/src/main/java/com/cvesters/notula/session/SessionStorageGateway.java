@@ -19,8 +19,7 @@ public class SessionStorageGateway {
 	public SessionInfo create(final SessionInfo sessionInfo) {
 		Objects.requireNonNull(sessionInfo);
 		
-		final var dao = new SessionDao(sessionInfo.getUserId(),
-				sessionInfo.getRefreshToken(), sessionInfo.getActiveUntil());
+		final var dao = new SessionDao(sessionInfo);
 		final SessionDao created = sessionRepository.save(dao);
 		return created.toBdo();
 	}

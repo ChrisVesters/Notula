@@ -1,12 +1,15 @@
 package com.cvesters.notula.session.dao;
 
 import java.time.OffsetDateTime;
+import java.util.Objects;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
+
+import org.apache.commons.lang3.Validate;
 
 import lombok.AccessLevel;
 import lombok.Getter;
@@ -36,14 +39,17 @@ public class SessionDao {
 	@Column(name = "active_until", nullable = false)
 	private OffsetDateTime activeUntil;
 
-	public SessionDao(final long userId, final String refreshToken,
-			final OffsetDateTime activeUntil) {
-		this.userId = userId;
-		this.refreshToken = refreshToken;
-		this.activeUntil = activeUntil;
+	public SessionDao(final SessionInfo bdo) {
+		Objects.requireNonNull(bdo);
+
+		this.userId = bdo.getUserId();
+		this.refreshToken = bdo.getRefreshToken();
+		this.activeUntil = bdo.getActiveUntil();
 	}
 
 	public SessionInfo toBdo() {
+		Validate.validState(id != null);
+
 		return new SessionInfo(id, userId, refreshToken, activeUntil);
 	}
 }
