@@ -6,6 +6,8 @@ import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 
+import org.apache.commons.lang3.Validate;
+
 import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -37,6 +39,8 @@ public class UserDao {
 	}
 
 	public UserInfo toBdo() {
+		Validate.validState(id != null);
+
 		final var validatedEmail = new Email(email);
 		return new UserInfo(id, validatedEmail);
 	}

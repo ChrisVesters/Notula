@@ -18,6 +18,7 @@ import org.springframework.dao.InvalidDataAccessApiUsageException;
 import org.springframework.test.context.jdbc.Sql;
 
 import com.cvesters.notula.TestContainerConfig;
+import com.cvesters.notula.session.bdo.SessionInfo;
 import com.cvesters.notula.session.dao.SessionDao;
 
 @Sql({ "/db/users.sql", "/db/sessions.sql" })
@@ -37,52 +38,32 @@ class SessionRepositoryTest {
 	@Nested
 	class Save {
 
-		private static final String REFRESH_TOKEN = "aaaa";
-
 		@Test
 		void success() {
-			final var dao = new SessionDao(SESSION.getUser().getId(),
-					REFRESH_TOKEN, SESSION.getActiveUntil());
+			final var bdo = new SessionInfo(SESSION.getUser().getId());
+			final var dao = new SessionDao(bdo);
 			final SessionDao saved = sessionRepository.save(dao);
 
 			assertThat(saved.getId()).isNotNull();
 			assertThat(saved.getUserId()).isEqualTo(SESSION.getUser().getId());
-			assertThat(saved.getRefreshToken()).isEqualTo(REFRESH_TOKEN);
-			assertThat(saved.getActiveUntil())
-					.isEqualTo(SESSION.getActiveUntil());
+			assertThat(saved.getRefreshToken())
+					.isEqualTo(bdo.getRefreshToken());
+			assertThat(saved.getActiveUntil()).isEqualTo(bdo.getActiveUntil());
 
 			final SessionDao found = entityManager.find(SessionDao.class,
 					saved.getId());
 			assertThat(found).isNotNull();
 			assertThat(found.getId()).isEqualTo(saved.getId());
 			assertThat(found.getUserId()).isEqualTo(SESSION.getUser().getId());
-			assertThat(found.getRefreshToken()).isEqualTo(REFRESH_TOKEN);
-			assertThat(found.getActiveUntil())
-					.isEqualTo(SESSION.getActiveUntil());
-		}
-
-		@Test
-		void refreshTokenNull() {
-			final var dao = new SessionDao(SESSION.getUser().getId(), null,
-					SESSION.getActiveUntil());
-
-			assertThatThrownBy(() -> sessionRepository.save(dao))
-					.isInstanceOf(DataIntegrityViolationException.class);
+			assertThat(found.getRefreshToken())
+					.isEqualTo(bdo.getRefreshToken());
+			assertThat(found.getActiveUntil()).isEqualTo(bdo.getActiveUntil());
 		}
 
 		@Test
 		void refreshTokenDuplicate() {
-			final var dao = new SessionDao(SESSION.getUser().getId(),
-					SESSION.getRefreshToken(), SESSION.getActiveUntil());
-
-			assertThatThrownBy(() -> sessionRepository.save(dao))
-					.isInstanceOf(DataIntegrityViolationException.class);
-		}
-
-		@Test
-		void activeUntilNull() {
-			final var dao = new SessionDao(SESSION.getUser().getId(),
-					REFRESH_TOKEN, null);
+			final var bdo = SESSION.info();
+			final var dao = new SessionDao(bdo);
 
 			assertThatThrownBy(() -> sessionRepository.save(dao))
 					.isInstanceOf(DataIntegrityViolationException.class);

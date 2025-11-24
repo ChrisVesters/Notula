@@ -10,7 +10,7 @@ public interface UserRepository extends Repository<UserDao, Long> {
 
 	boolean existsByEmail(final String email);
 
-	Optional<UserDao> findByEmail(String value);
+	Optional<UserDao> findByEmail(final String value);
 
 	UserDao save(final UserDao user);
 
