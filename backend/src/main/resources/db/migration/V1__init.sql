@@ -17,6 +17,18 @@ CREATE TABLE organisations(
 );
 
 
+CREATE TABLE organisation_users(
+	id BIGINT NOT NULL GENERATED ALWAYS AS IDENTITY,
+	organisation_id BIGINT NOT NULL,
+	user_id BIGINT NOT NULL,
+
+	PRIMARY KEY(id),
+	FOREIGN KEY(organisation_id) REFERENCES organisations(id) ON DELETE CASCADE,
+	FOREIGN KEY(user_id) REFERENCES users(id) ON DELETE CASCADE,
+	UNIQUE(organisation_id, user_id)
+);
+
+
 CREATE TABLE sessions(
 	id BIGINT NOT NULL GENERATED ALWAYS AS IDENTITY,
 	user_id BIGINT NOT NULL,
