@@ -16,27 +16,20 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.NullAndEmptySource;
 import org.junit.jupiter.params.provider.ValueSource;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
-import org.springframework.context.annotation.Import;
 import org.springframework.http.MediaType;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
-import org.springframework.test.web.servlet.MockMvc;
 
-import com.cvesters.notula.common.WebSecurityConfig;
 import com.cvesters.notula.common.exception.DuplicateEntityException;
+import com.cvesters.notula.test.ControllerTest;
 
 @WebMvcTest(UserController.class)
-@Import(WebSecurityConfig.class)
-class UserControllerTest {
+class UserControllerTest extends ControllerTest {
 
 	private static final String SERVER = "http://localhost";
 	private static final String ENDPOINT = "/api/users";
 
 	private static final TestUser USER = TestUser.EDUARDO_CHRISTIANSEN;
-
-	@Autowired
-	protected MockMvc mockMvc;
 
 	@MockitoBean
 	private UserService userService;

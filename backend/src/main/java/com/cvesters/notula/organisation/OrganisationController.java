@@ -10,6 +10,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.cvesters.notula.common.controller.BaseController;
+import com.cvesters.notula.common.domain.Principal;
 import com.cvesters.notula.organisation.bdo.OrganisationInfo;
 import com.cvesters.notula.organisation.dto.CreateOrganisationDto;
 import com.cvesters.notula.organisation.dto.OrganisationInfoDto;
@@ -28,8 +29,10 @@ public class OrganisationController extends BaseController {
 	@PostMapping(consumes = MediaType.APPLICATION_JSON_VALUE, produces = MediaType.APPLICATION_JSON_VALUE)
 	public ResponseEntity<OrganisationInfoDto> create(
 			@Valid @RequestBody CreateOrganisationDto request) {
+		final Principal principal = getPrincipal();
+
 		final OrganisationInfo organisation = organisationService
-				.create(request.toBdo());
+				.create(principal, request.toBdo());
 		final var dto = new OrganisationInfoDto(organisation);
 
 		return ResponseEntity

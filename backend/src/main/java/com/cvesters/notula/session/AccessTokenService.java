@@ -2,15 +2,15 @@ package com.cvesters.notula.session;
 
 import java.time.Duration;
 import java.time.Instant;
-import java.util.Date;
 import java.util.Objects;
 
-import javax.crypto.SecretKey;
-
+import org.springframework.security.oauth2.jwt.JwsHeader;
+import org.springframework.security.oauth2.jwt.JwtClaimsSet;
+import org.springframework.security.oauth2.jwt.JwtEncoder;
+import org.springframework.security.oauth2.jwt.JwtEncoderParameters;
 import org.springframework.stereotype.Service;
 
-import io.jsonwebtoken.Jwts;
-
+import com.cvesters.notula.common.JwtConfig;
 import com.cvesters.notula.session.bdo.SessionInfo;
 
 @Service
@@ -18,10 +18,10 @@ public class AccessTokenService {
 
 	private static final Duration ACCESS_EXPIRATION = Duration.ofMinutes(30);
 
-	private final SecretKey jwtSecretKey;
+	private final JwtEncoder jwtEncoder;
 
-	public AccessTokenService(final SecretKey jwSecretKey) {
-		this.jwtSecretKey = jwSecretKey;
+	public AccessTokenService(final JwtEncoder jwtEncoder) {
+		this.jwtEncoder = jwtEncoder;
 	}
 
 	public String create(final SessionInfo session) {
@@ -29,11 +29,15 @@ public class AccessTokenService {
 
 		final var now = Instant.now();
 
-		return Jwts.builder()
+		final var claims = JwtClaimsSet.builder()
 				.subject(String.valueOf(session.getUserId()))
-				.issuedAt(Date.from(now))
-				.expiration(Date.from(now.plus(ACCESS_EXPIRATION)))
-				.signWith(jwtSecretKey)
-				.compact();
+				.issuedAt(now)
+				.expiresAt(now.plus(ACCESS_EXPIRATION))
+				.build();
+
+		final var header = JwsHeader.with(JwtConfig.MAC_ALGORITHM).build();
+
+		return jwtEncoder.encode(JwtEncoderParameters.from(header, claims))
+				.getTokenValue();
 	}
 }

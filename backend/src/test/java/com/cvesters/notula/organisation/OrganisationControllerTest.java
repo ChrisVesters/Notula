@@ -3,6 +3,7 @@ package com.cvesters.notula.organisation;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.argThat;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
@@ -18,17 +19,26 @@ import org.junit.jupiter.params.provider.NullAndEmptySource;
 import org.junit.jupiter.params.provider.ValueSource;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.http.MediaType;
+import org.springframework.security.test.context.support.WithAnonymousUser;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 
+import com.cvesters.notula.common.domain.Principal;
 import com.cvesters.notula.organisation.bdo.OrganisationInfo;
+import com.cvesters.notula.session.TestSession;
 import com.cvesters.notula.test.ControllerTest;
+import com.cvesters.notula.test.WithSession;
+import com.cvesters.notula.user.TestUser;
 
 @WebMvcTest(OrganisationController.class)
+@WithSession(TestSession.EDUARDO_CHRISTIANSEN_DEKSTOP)
 class OrganisationControllerTest extends ControllerTest {
 
 	private static final String ENDPOINT = "/api/organisations";
 
+	private static final TestSession SESSION = TestSession.EDUARDO_CHRISTIANSEN_DEKSTOP;
+	// TODO: organisation to be taken from session.
 	private static final TestOrganisation ORGANISATION = TestOrganisation.SPORER;
+	private static final TestUser USER = SESSION.getUser();
 
 	@MockitoBean
 	private OrganisationService organisationService;
@@ -38,8 +48,10 @@ class OrganisationControllerTest extends ControllerTest {
 
 		@Test
 		void success() throws Exception {
+			final Principal principal = USER.principal();
 			final OrganisationInfo info = ORGANISATION.info();
-			when(organisationService.create(argThat(org -> {
+
+			when(organisationService.create(eq(principal), argThat(org -> {
 				assertThat(org.getId()).isNull();
 				assertThat(org.getName()).isEqualTo(ORGANISATION.getName());
 				return true;
@@ -59,8 +71,17 @@ class OrganisationControllerTest extends ControllerTest {
 		}
 
 		@Test
+		@WithAnonymousUser
+		void unauthorized() throws Exception {
+			final var builder = post(ENDPOINT).content(getBody(ORGANISATION))
+					.contentType(MediaType.APPLICATION_JSON);
+
+			mockMvc.perform(builder).andExpect(status().isUnauthorized());
+		}
+
+		@Test
 		void serverError() throws Exception {
-			when(organisationService.create(any()))
+			when(organisationService.create(any(), any()))
 					.thenThrow(new RuntimeException());
 
 			final String body = getBody(ORGANISATION);
