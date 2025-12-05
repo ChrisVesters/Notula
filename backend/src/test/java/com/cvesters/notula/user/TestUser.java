@@ -4,6 +4,7 @@ import lombok.Getter;
 
 import com.cvesters.notula.common.domain.Email;
 import com.cvesters.notula.common.domain.Password;
+import com.cvesters.notula.common.domain.Principal;
 import com.cvesters.notula.user.bdo.UserInfo;
 import com.cvesters.notula.user.bdo.UserLogin;
 
@@ -29,5 +30,9 @@ public enum TestUser {
 
 	public UserInfo info() {
 		return new UserInfo(id, email);
+	}
+
+	public Principal principal() {
+		return new Principal(id);
 	}
 }

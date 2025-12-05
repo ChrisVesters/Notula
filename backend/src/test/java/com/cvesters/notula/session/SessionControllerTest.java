@@ -14,21 +14,17 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.NullAndEmptySource;
 import org.junit.jupiter.params.provider.ValueSource;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
-import org.springframework.context.annotation.Import;
 import org.springframework.http.MediaType;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
-import org.springframework.test.web.servlet.MockMvc;
 
-import com.cvesters.notula.common.WebSecurityConfig;
 import com.cvesters.notula.common.exception.DuplicateEntityException;
 import com.cvesters.notula.session.bdo.SessionTokens;
+import com.cvesters.notula.test.ControllerTest;
 import com.cvesters.notula.user.TestUser;
 
 @WebMvcTest(SessionController.class)
-@Import(WebSecurityConfig.class)
-class SessionControllerTest {
+class SessionControllerTest extends ControllerTest {
 
 	private static final String SERVER = "http://localhost";
 	private static final String ENDPOINT = "/api/sessions";
@@ -38,9 +34,6 @@ class SessionControllerTest {
 	private static final TestSession SESSION = TestSession.EDUARDO_CHRISTIANSEN_DEKSTOP;
 	private static final TestUser USER = SESSION.getUser();
 	private static final String ACCESS_TOKEN = "access";
-
-	@Autowired
-	protected MockMvc mockMvc;
 
 	@MockitoBean
 	private SessionService sessionService;
