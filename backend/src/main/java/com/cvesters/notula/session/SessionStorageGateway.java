@@ -19,6 +19,7 @@ public class SessionStorageGateway {
 	public SessionInfo create(final SessionInfo sessionInfo) {
 		Objects.requireNonNull(sessionInfo);
 		
+		// TODO: refresh token needs to be encoded/hashed.
 		final var dao = new SessionDao(sessionInfo);
 		final SessionDao created = sessionRepository.save(dao);
 		return created.toBdo();
