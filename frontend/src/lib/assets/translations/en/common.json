@@ -10,5 +10,12 @@
 	"passwordLengthErrorMessage": "Password must be at least 8 characters.",
 	"passwordsDoNotMatchErrorMessage": "Passwords do not match.",
 	"invalidEmailErrorMessage": "Please enter a valid email address.",
-	"requiredFieldErrorMessage": "This field is required."
+	"requiredFieldErrorMessage": "This field is required.",
+	"welcomeMessage": "Welcome to Notula",
+	"effectiveMeetingsMessage": "Your meetings, more organised and effective than ever before.",
+	"noAccountMessage": "Don't have an account?",
+	"name": "name",
+	"selectOrganisation": "select organisation",
+	"createOrganisation": "create organisation",
+	"create": "create"
 }

@@ -1,11 +1,24 @@
 <script lang="ts">
-	import favicon from '$lib/assets/favicon.svg';
+	import { onMount } from "svelte";
+
+	import favicon from "$lib/assets/favicon.svg";
+	import Auth from "$lib/auth/Auth";
 
 	let { children } = $props();
+
+	let loaded: boolean = $state(false);
+
+	onMount(() => {
+		Auth.loadPrincipal();
+
+		loaded = true;
+	});
 </script>
 
 <svelte:head>
 	<link rel="icon" href={favicon} />
 </svelte:head>
 
-{@render children?.()}
+{#if loaded}
+	{@render children?.()}
+{/if}
