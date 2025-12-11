@@ -2,10 +2,9 @@ package com.cvesters.notula.session;
 
 import java.util.Objects;
 
-import jakarta.persistence.EntityNotFoundException;
-
 import org.springframework.stereotype.Service;
 
+import com.cvesters.notula.common.exception.MissingEntityException;
 import com.cvesters.notula.session.bdo.SessionInfo;
 import com.cvesters.notula.session.bdo.SessionTokens;
 import com.cvesters.notula.user.UserService;
@@ -32,7 +31,7 @@ public class SessionService {
 		Objects.requireNonNull(request);
 
 		final UserInfo user = userService.findByLogin(request)
-				.orElseThrow(() -> new EntityNotFoundException());
+				.orElseThrow( MissingEntityException::new);
 
 		final var newSession = new SessionInfo(user.getId());
 		final var createdSession = sessionStorageGateway.create(newSession);

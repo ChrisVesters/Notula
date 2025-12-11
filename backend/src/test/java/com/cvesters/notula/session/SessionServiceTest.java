@@ -8,11 +8,10 @@ import static org.mockito.Mockito.when;
 
 import java.util.Optional;
 
-import jakarta.persistence.EntityNotFoundException;
-
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 
+import com.cvesters.notula.common.exception.MissingEntityException;
 import com.cvesters.notula.session.bdo.SessionInfo;
 import com.cvesters.notula.session.bdo.SessionTokens;
 import com.cvesters.notula.user.TestUser;
@@ -77,7 +76,7 @@ class SessionServiceTest {
 			when(userService.findByLogin(login)).thenReturn(Optional.empty());
 
 			assertThatThrownBy(() -> sessionService.create(login))
-					.isInstanceOf(EntityNotFoundException.class);
+					.isInstanceOf(MissingEntityException.class);
 		}
 	}
 }
