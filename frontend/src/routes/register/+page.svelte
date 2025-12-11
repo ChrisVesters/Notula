@@ -1,4 +1,6 @@
 <script lang="ts">
+	import { goto } from "$app/navigation";
+
 	import { t } from "$lib/assets/translations/index";
 
 	import PasswordField from "$lib/form/PasswordField.svelte";
@@ -38,7 +40,7 @@
 		UserClient.create({ email, password })
 			.then(() => {
 				// TODO: redirect?
-				window.location.href = "/";
+				goto("/");
 			})
 			.catch(error => {
 				// TODO: better error handling
