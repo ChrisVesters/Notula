@@ -6,6 +6,10 @@ import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
+
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 
@@ -26,6 +30,76 @@ class OrganisationUserStorageGatewayTest {
 			organisationUserRepository);
 
 	@Nested
+	class FindAllByUserId {
+
+		@Test
+		void single() {
+			final long userId = TestUser.EDUARDO_CHRISTIANSEN.getId();
+			final List<TestOrganisationUser> found = List
+					.of(TestOrganisationUser.SPORER_EDUARDO_CHRISTIANSEN);
+
+			final var daos = new ArrayList<OrganisationUserDao>();
+			final var bdos = new ArrayList<OrganisationUserInfo>();
+			for (final TestOrganisationUser user : found) {
+				final OrganisationUserDao dao = mock();
+				final OrganisationUserInfo bdo = mock();
+				when(dao.toBdo()).thenReturn(bdo);
+
+				daos.add(dao);
+				bdos.add(bdo);
+			}
+
+			when(organisationUserRepository.findAllByUserId(userId))
+					.thenReturn(daos);
+
+			final List<OrganisationUserInfo> result = gateway
+					.findAllByUserId(userId);
+
+			assertThat(result).isEqualTo(bdos);
+		}
+
+		@Test
+		void multiple() {
+			final long userId = TestUser.ALISON_DACH.getId();
+			final List<TestOrganisationUser> found = List.of(
+					TestOrganisationUser.GLOVER_ALISON_DACH,
+					TestOrganisationUser.HEUL_ALISON_DACH);
+
+			final var daos = new ArrayList<OrganisationUserDao>();
+			final var bdos = new ArrayList<OrganisationUserInfo>();
+			for (final TestOrganisationUser user : found) {
+				final OrganisationUserDao dao = mock();
+				final OrganisationUserInfo bdo = mock();
+				when(dao.toBdo()).thenReturn(bdo);
+
+				daos.add(dao);
+				bdos.add(bdo);
+			}
+
+			when(organisationUserRepository.findAllByUserId(userId))
+					.thenReturn(daos);
+
+			final List<OrganisationUserInfo> result = gateway
+					.findAllByUserId(userId);
+
+			assertThat(result).isEqualTo(bdos);
+		}
+
+		@Test
+		void notFound() {
+			final long id = Long.MAX_VALUE;
+
+			when(organisationUserRepository.findAllByUserId(id))
+					.thenReturn(Collections.emptyList());
+
+			final List<OrganisationUserInfo> result = gateway
+					.findAllByUserId(id);
+
+			assertThat(result).isEmpty();
+		}
+	}
+
+	@Nested
 	class Create {
 
 		@Test
@@ -44,7 +118,7 @@ class OrganisationUserStorageGatewayTest {
 
 			final OrganisationUserInfo organisationUserInfo = gateway
 					.create(ORGANISATION_USER.info());
-			
+
 			assertThat(organisationUserInfo).isEqualTo(bdo);
 		}
 

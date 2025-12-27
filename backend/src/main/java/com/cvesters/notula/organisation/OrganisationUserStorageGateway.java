@@ -1,5 +1,7 @@
 package com.cvesters.notula.organisation;
 
+import java.util.List;
+
 import org.springframework.stereotype.Service;
 
 import com.cvesters.notula.organisation.bdo.OrganisationUserInfo;
@@ -13,6 +15,11 @@ public class OrganisationUserStorageGateway {
 	public OrganisationUserStorageGateway(
 			final OrganisationUserRepository repository) {
 		this.repository = repository;
+	}
+
+	public List<OrganisationUserInfo> findAllByUserId(final long userId) {
+		final var daos = repository.findAllByUserId(userId);
+		return daos.stream().map(OrganisationUserDao::toBdo).toList();
 	}
 
 	public OrganisationUserInfo create(final OrganisationUserInfo organisationUser) {

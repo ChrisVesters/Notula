@@ -12,7 +12,9 @@ import com.cvesters.notula.user.bdo.UserLogin;
 public enum TestUser {
 	EDUARDO_CHRISTIANSEN(1L, "eduardo.christiansen@sporer.com",
 			"bbkpHh_hKk6KMwv"),
-	JUDY_HARBER(2L, "judy.harber@sporer.com", "wLITAlWOYY5J8ms");
+	KRISTINA_THIEL(2L, "kristina.thiel@sporer.com", "wLITAlWOYY5J8ms"),
+	DAPHNEE_LESCH(3L, "daphnee.lesch@sporer.com", "VIz3jmembRtsuoo"),
+	ALISON_DACH(4L, "alison_dach@glover-group.co.uk", "YIHS3bbkpHh_hKk");
 
 	private final long id;
 	private final Email email;

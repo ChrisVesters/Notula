@@ -1,9 +1,12 @@
 package com.cvesters.notula.organisation;
 
+import java.util.List;
+
 import jakarta.validation.Valid;
 
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -24,6 +27,19 @@ public class OrganisationController extends BaseController {
 	public OrganisationController(
 			final OrganisationService organisationService) {
 		this.organisationService = organisationService;
+	}
+
+	@GetMapping
+	public ResponseEntity<List<OrganisationInfoDto>> getAll() {
+		final Principal principal = getPrincipal();
+
+		final List<OrganisationInfo> organisations = organisationService
+				.getAll(principal);
+		final List<OrganisationInfoDto> dto = organisations.stream()
+				.map(OrganisationInfoDto::new)
+				.toList();
+
+		return ResponseEntity.ok(dto);
 	}
 
 	@PostMapping(consumes = MediaType.APPLICATION_JSON_VALUE, produces = MediaType.APPLICATION_JSON_VALUE)
