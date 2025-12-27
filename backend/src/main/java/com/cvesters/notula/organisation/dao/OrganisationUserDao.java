@@ -12,6 +12,7 @@ import org.apache.commons.lang3.Validate;
 
 import lombok.AccessLevel;
 import lombok.Getter;
+import lombok.NoArgsConstructor;
 import lombok.Setter;
 
 import com.cvesters.notula.organisation.bdo.OrganisationUserInfo;
@@ -19,6 +20,7 @@ import com.cvesters.notula.organisation.bdo.OrganisationUserInfo;
 @Setter
 @Getter
 @Entity(name = "organisation_users")
+@NoArgsConstructor(access = AccessLevel.PRIVATE)
 public class OrganisationUserDao {
 	
 	@Id
@@ -27,10 +29,10 @@ public class OrganisationUserDao {
 	private Long id;
 
 	@Column(name = "organisation_id", nullable = false)
-	private Long organisationId;
+	private long organisationId;
 
 	@Column(name = "user_id", nullable = false)
-	private Long userId;
+	private long userId;
 
 	public OrganisationUserDao(
 			final OrganisationUserInfo organisationUserInfo) {

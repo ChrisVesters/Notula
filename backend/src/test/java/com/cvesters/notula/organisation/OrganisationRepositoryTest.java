@@ -3,6 +3,9 @@ package com.cvesters.notula.organisation;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
+import java.util.Collections;
+import java.util.List;
+
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.PersistenceContext;
 
@@ -26,13 +29,93 @@ import com.cvesters.notula.organisation.dao.OrganisationDao;
 @AutoConfigureTestDatabase(replace = Replace.NONE)
 class OrganisationRepositoryTest {
 
-	private static final TestOrganisation ORGANISATION = TestOrganisation.SPORER;
-
 	@Autowired
 	private OrganisationRepository organisationRepository;
 
 	@PersistenceContext
 	private EntityManager entityManager;
+
+	@Nested
+	class FindAllById {
+
+		@Test
+		void single() {
+			final List<Long> ids = List.of(TestOrganisation.SPORER.getId());
+
+			final List<OrganisationDao> result = organisationRepository
+					.findAllById(ids);
+
+			assertThat(result).hasSize(1).anySatisfy(org -> {
+				final var expectedOrg = TestOrganisation.SPORER;
+				assertThat(org.getId()).isEqualTo(expectedOrg.getId());
+				assertThat(org.getName()).isEqualTo(expectedOrg.getName());
+			});
+		}
+
+		@Test
+		void multiple() {
+			final List<Long> ids = List.of(TestOrganisation.SPORER.getId(),
+					TestOrganisation.GLOVER.getId());
+
+			final List<OrganisationDao> result = organisationRepository
+					.findAllById(ids);
+
+			assertThat(result).hasSize(2).anySatisfy(org -> {
+				final var expectedOrg = TestOrganisation.SPORER;
+				assertThat(org.getId()).isEqualTo(expectedOrg.getId());
+				assertThat(org.getName()).isEqualTo(expectedOrg.getName());
+			}).anySatisfy(org -> {
+				final var expectedOrg = TestOrganisation.GLOVER;
+				assertThat(org.getId()).isEqualTo(expectedOrg.getId());
+				assertThat(org.getName()).isEqualTo(expectedOrg.getName());
+			});
+		}
+
+		@Test
+		void notFound() {
+			final List<Long> ids = List.of(Long.MAX_VALUE);
+
+			final List<OrganisationDao> result = organisationRepository
+					.findAllById(ids);
+
+			assertThat(result).isEmpty();
+		}
+
+		@Test
+		void someNotFound() {
+			final List<Long> ids = List.of(TestOrganisation.SPORER.getId(),
+					Long.MAX_VALUE, TestOrganisation.GLOVER.getId());
+
+			final List<OrganisationDao> result = organisationRepository
+					.findAllById(ids);
+
+			assertThat(result).hasSize(2).anySatisfy(org -> {
+				final var expectedOrg = TestOrganisation.SPORER;
+				assertThat(org.getId()).isEqualTo(expectedOrg.getId());
+				assertThat(org.getName()).isEqualTo(expectedOrg.getName());
+			}).anySatisfy(org -> {
+				final var expectedOrg = TestOrganisation.GLOVER;
+				assertThat(org.getId()).isEqualTo(expectedOrg.getId());
+				assertThat(org.getName()).isEqualTo(expectedOrg.getName());
+			});
+		}
+
+		@Test
+		void idsEmpty() {
+			final List<Long> ids = Collections.emptyList();
+
+			final List<OrganisationDao> result = organisationRepository
+					.findAllById(ids);
+
+			assertThat(result).isEmpty();
+		}
+
+		@Test
+		void idsNull() {
+			assertThatThrownBy(() -> organisationRepository.findAllById(null))
+					.isInstanceOf(InvalidDataAccessApiUsageException.class);
+		}
+	}
 
 	@Nested
 	class Save {
@@ -47,8 +130,8 @@ class OrganisationRepositoryTest {
 			assertThat(saved.getId()).isNotNull();
 			assertThat(saved.getName()).isEqualTo(name);
 
-			final OrganisationDao found = entityManager.find(OrganisationDao.class,
-					saved.getId());
+			final OrganisationDao found = entityManager
+					.find(OrganisationDao.class, saved.getId());
 			assertThat(found).isNotNull();
 			assertThat(found.getId()).isEqualTo(saved.getId());
 			assertThat(found.getName()).isEqualTo(name);
