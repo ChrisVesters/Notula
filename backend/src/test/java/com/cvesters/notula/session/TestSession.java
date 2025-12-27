@@ -12,8 +12,6 @@ import com.cvesters.notula.user.TestUser;
 public enum TestSession {
 	EDUARDO_CHRISTIANSEN_DEKSTOP(1L, TestUser.EDUARDO_CHRISTIANSEN, "abc7775",
 			OffsetDateTime.now().plus(Period.ofDays(7))),
-	JUDY_HARBER_MOBILE(2L, TestUser.JUDY_HARBER, "eff74def",
-			OffsetDateTime.now().plus(Period.ofDays(30))),
 	EDUARDO_CHRISTIANSEN_MOBILE(7L, TestUser.EDUARDO_CHRISTIANSEN, "ddef741",
 			OffsetDateTime.now().minus(Period.ofDays(1)));
 

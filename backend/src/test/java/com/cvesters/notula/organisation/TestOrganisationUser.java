@@ -8,7 +8,9 @@ import com.cvesters.notula.user.TestUser;
 @Getter
 public enum TestOrganisationUser {
 	SPORER_EDUARDO_CHRISTIANSEN(1L, TestOrganisation.SPORER,
-			TestUser.EDUARDO_CHRISTIANSEN);
+			TestUser.EDUARDO_CHRISTIANSEN),
+	GLOVER_ALISON_DACH(3L, TestOrganisation.GLOVER, TestUser.ALISON_DACH),
+	HEUL_ALISON_DACH(4L, TestOrganisation.HEUL, TestUser.ALISON_DACH);
 
 	private final long id;
 	private final TestOrganisation organisation;
