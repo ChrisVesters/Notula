@@ -5,12 +5,16 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.when;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
+import java.util.Collections;
+import java.util.List;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -42,6 +46,90 @@ class OrganisationControllerTest extends ControllerTest {
 
 	@MockitoBean
 	private OrganisationService organisationService;
+
+	@Nested
+	class GetAll {
+
+		@Test
+		void single() throws Exception {
+			final Principal principal = USER.principal();
+			final List<TestOrganisation> organisations = List.of(ORGANISATION);
+			final List<OrganisationInfo> info = organisations.stream()
+					.map(TestOrganisation::info)
+					.collect(Collectors.toList());
+
+			when(organisationService.getAll(principal)).thenReturn(info);
+
+			final String expectedResponse = getResponse(organisations);
+
+			final var builder = get(ENDPOINT);
+
+			mockMvc.perform(builder)
+					.andExpect(status().isOk())
+					.andExpect(content().json(expectedResponse));
+		}
+
+		@Test
+		void multiple() throws Exception {
+			final Principal principal = USER.principal();
+			final List<TestOrganisation> organisations = List
+					.of(TestOrganisation.SPORER, TestOrganisation.GLOVER);
+			final List<OrganisationInfo> info = organisations.stream()
+					.map(TestOrganisation::info)
+					.collect(Collectors.toList());
+
+			when(organisationService.getAll(principal)).thenReturn(info);
+
+			final String expectedResponse = getResponse(organisations);
+
+			final var builder = get(ENDPOINT);
+
+			mockMvc.perform(builder)
+					.andExpect(status().isOk())
+					.andExpect(content().json(expectedResponse));
+		}
+
+		@Test
+		void none() throws Exception {
+			final Principal principal = USER.principal();
+			final List<TestOrganisation> organisations = Collections
+					.emptyList();
+			final List<OrganisationInfo> info = organisations.stream()
+					.map(TestOrganisation::info)
+					.collect(Collectors.toList());
+
+			when(organisationService.getAll(principal)).thenReturn(info);
+
+			final var builder = get(ENDPOINT);
+
+			mockMvc.perform(builder)
+					.andExpect(status().isOk())
+					.andExpect(content().json("[]"));
+		}
+
+		@Test
+		@WithAnonymousUser
+		void unauthorized() throws Exception {
+			final var builder = get(ENDPOINT);
+
+			mockMvc.perform(builder).andExpect(status().isUnauthorized());
+		}
+
+		private String getResponse(final List<TestOrganisation> organisations) {
+			return organisations.stream()
+					.map(organisation -> getResponse(organisation))
+					.collect(Collectors.joining(",", "[", "]"));
+		}
+
+		private String getResponse(final TestOrganisation organisation) {
+			return """
+					{
+						"id": %s,
+						"name": "%s"
+					}
+					""".formatted(organisation.getId(), organisation.getName());
+		}
+	}
 
 	@Nested
 	class Create {

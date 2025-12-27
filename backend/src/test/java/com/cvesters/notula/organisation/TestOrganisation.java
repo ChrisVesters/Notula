@@ -6,7 +6,9 @@ import com.cvesters.notula.organisation.bdo.OrganisationInfo;
 
 @Getter
 public enum TestOrganisation {
-	SPORER(1L, "Sporer LLC");
+	SPORER(1L, "Sporer LLC"),
+	GLOVER(2L, "Glover Group"),
+	HEUL(3L, "Heul");
 
 	private final long id;
 	private final String name;

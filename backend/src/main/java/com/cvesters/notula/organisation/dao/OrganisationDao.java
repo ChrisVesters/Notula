@@ -12,6 +12,7 @@ import org.apache.commons.lang3.Validate;
 
 import lombok.AccessLevel;
 import lombok.Getter;
+import lombok.NoArgsConstructor;
 import lombok.Setter;
 
 import com.cvesters.notula.organisation.bdo.OrganisationInfo;
@@ -19,6 +20,7 @@ import com.cvesters.notula.organisation.bdo.OrganisationInfo;
 @Setter
 @Getter
 @Entity(name = "organisations")
+@NoArgsConstructor(access = AccessLevel.PRIVATE)
 public class OrganisationDao {
 
 	@Id
