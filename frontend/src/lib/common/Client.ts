@@ -1,4 +1,16 @@
 export default abstract class Client {
+	public static async get<Response>(
+		endpoint: string,
+		token?: string
+	): Promise<Response> {
+		return fetch(endpoint, {
+			method: "GET",
+			headers: {
+				"Authorization": `Bearer ${token}`
+			}
+		}).then(res => res.json());
+	}
+
 	public static async post<Request, Response>(
 		endpoint: string,
 		request: Request,
