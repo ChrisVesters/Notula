@@ -1,13 +1,23 @@
 <script lang="ts">
+	import { onMount } from "svelte";
 	import { goto } from "$app/navigation";
 	import { t } from "$lib/assets/translations";
 
 	import TextField from "$lib/form/TextField.svelte";
 	import OrganisationClient from "$lib/organisation/OrganisationClient";
-	import type { CreateOrganisationRequest } from "$lib/organisation/OrganisationTypes";
+	import type { OrganisationInfo } from "$lib/organisation/OrganisationTypes";
 
 	let name = $state("");
 	let nameError = $state("");
+	let organisations: Array<OrganisationInfo> = $state([]);
+
+	onMount(async () => {
+		organisations = await OrganisationClient.getAll();
+	});
+
+	function selectOrganisation(organisationId: number) {
+		console.log("TODO");
+	}
 
 	function createOrganisation(event: SubmitEvent) {
 		event.preventDefault();
@@ -35,8 +45,14 @@
 
 <main class="container">
 	<section class="card">
-		<h2 class="card-title">{$t("common.createOrganisation")}</h2>
+		<h2 class="card-title">{$t("common.selectOrganisation")}</h2>
+		{#each organisations as organisation}
+			<button onclick={() => selectOrganisation(organisation.id)}
+				>{organisation.name}</button
+			>
+		{/each}
 
+		<h2 class="card-title">{$t("common.createOrganisation")}</h2>
 		<form novalidate onsubmit={createOrganisation}>
 			<TextField
 				bind:value={name}

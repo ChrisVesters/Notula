@@ -7,6 +7,15 @@ import type {
 } from "./OrganisationTypes";
 
 export default class OrganisationClient extends Client {
+	public static async getAll(): Promise<OrganisationInfo[]> {
+		const token = DataStorage.getItem("accessToken");
+		if (token == null) {
+			return Promise.reject("No access token");
+		}
+
+		return this.get(getEndpoint(), token);
+	}
+
 	public static async create(
 		request: CreateOrganisationRequest
 	): Promise<OrganisationInfo> {
