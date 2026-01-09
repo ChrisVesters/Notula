@@ -43,7 +43,8 @@ class SessionControllerTest extends ControllerTest {
 
 		@Test
 		void success() throws Exception {
-			final var tokens = new SessionTokens(SESSION.info(), ACCESS_TOKEN);
+			final var tokens = new SessionTokens(SESSION.info(), ACCESS_TOKEN,
+					SESSION.getRefreshToken());
 			when(sessionService.create(argThat(login -> {
 				assertThat(login.getEmail()).isEqualTo(USER.getEmail());
 				assertThat(login.getPassword()).isEqualTo(USER.getPassword());
@@ -61,14 +62,14 @@ class SessionControllerTest extends ControllerTest {
 					.andExpect(header().string("location",
 							SERVER + ENDPOINT + "/" + USER.getId()))
 					.andExpect(content().json(expectedResponse));
-					// .andExpectAll(
-					// 		cookie().value(REFRESH_TOKEN_COOKIE,
-					// 				tokens.getRefreshToken()),
-					// 		cookie().httpOnly(REFRESH_TOKEN_COOKIE, true),
-					// 		cookie().secure(REFRESH_TOKEN_COOKIE, true),
-					// 		cookie().path(REFRESH_TOKEN_COOKIE, "/refresh"),
-					// 		cookie().maxAge(REFRESH_TOKEN_COOKIE,
-					// 				(int) Duration.ofDays(7).toMillis()));
+			// .andExpectAll(
+			// cookie().value(REFRESH_TOKEN_COOKIE,
+			// tokens.getRefreshToken()),
+			// cookie().httpOnly(REFRESH_TOKEN_COOKIE, true),
+			// cookie().secure(REFRESH_TOKEN_COOKIE, true),
+			// cookie().path(REFRESH_TOKEN_COOKIE, "/refresh"),
+			// cookie().maxAge(REFRESH_TOKEN_COOKIE,
+			// (int) Duration.ofDays(7).toMillis()));
 		}
 
 		@Test

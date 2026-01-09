@@ -21,13 +21,15 @@ class SessionInfoDtoTest {
 
 		@Test
 		void success() {
-			final var bdo = new SessionTokens(SESSION.info(), ACCESS_TOKEN);
+			final var bdo = new SessionTokens(SESSION.info(), ACCESS_TOKEN,
+					SESSION.getRefreshToken());
 
 			final var dto = new SessionInfoDto(bdo);
 
 			assertThat(dto.id()).isEqualTo(SESSION.getId());
 			assertThat(dto.accessToken()).isEqualTo(ACCESS_TOKEN);
-			assertThat(OffsetDateTime.parse(dto.activeUntil())).isEqualTo(SESSION.getActiveUntil());
+			assertThat(OffsetDateTime.parse(dto.activeUntil()))
+					.isEqualTo(SESSION.getActiveUntil());
 		}
 
 		@Test

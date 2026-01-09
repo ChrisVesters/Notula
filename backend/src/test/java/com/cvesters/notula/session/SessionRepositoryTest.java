@@ -13,12 +13,11 @@ import org.springframework.boot.test.autoconfigure.jdbc.AutoConfigureTestDatabas
 import org.springframework.boot.test.autoconfigure.jdbc.AutoConfigureTestDatabase.Replace;
 import org.springframework.boot.test.autoconfigure.orm.jpa.DataJpaTest;
 import org.springframework.context.annotation.Import;
-import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.dao.InvalidDataAccessApiUsageException;
 import org.springframework.test.context.jdbc.Sql;
 
 import com.cvesters.notula.TestContainerConfig;
-import com.cvesters.notula.session.bdo.SessionInfo;
+import com.cvesters.notula.session.bdo.SessionCreateAction;
 import com.cvesters.notula.session.dao.SessionDao;
 
 @Sql({ "/db/users.sql", "/db/sessions.sql" })
@@ -28,6 +27,7 @@ import com.cvesters.notula.session.dao.SessionDao;
 class SessionRepositoryTest {
 
 	private static final TestSession SESSION = TestSession.EDUARDO_CHRISTIANSEN_DEKSTOP;
+	private static final String HASHED_REFRESH_TOKEN = "hash";
 
 	@Autowired
 	private SessionRepository sessionRepository;
@@ -40,14 +40,14 @@ class SessionRepositoryTest {
 
 		@Test
 		void success() {
-			final var bdo = new SessionInfo(SESSION.getUser().getId());
-			final var dao = new SessionDao(bdo);
+			final var bdo = new SessionCreateAction(SESSION.getUser().info());
+			final var dao = new SessionDao(bdo, HASHED_REFRESH_TOKEN);
 			final SessionDao saved = sessionRepository.save(dao);
 
 			assertThat(saved.getId()).isNotNull();
 			assertThat(saved.getUserId()).isEqualTo(SESSION.getUser().getId());
 			assertThat(saved.getRefreshToken())
-					.isEqualTo(bdo.getRefreshToken());
+					.isEqualTo(HASHED_REFRESH_TOKEN);
 			assertThat(saved.getActiveUntil()).isEqualTo(bdo.getActiveUntil());
 
 			final SessionDao found = entityManager.find(SessionDao.class,
@@ -56,17 +56,8 @@ class SessionRepositoryTest {
 			assertThat(found.getId()).isEqualTo(saved.getId());
 			assertThat(found.getUserId()).isEqualTo(SESSION.getUser().getId());
 			assertThat(found.getRefreshToken())
-					.isEqualTo(bdo.getRefreshToken());
+					.isEqualTo(HASHED_REFRESH_TOKEN);
 			assertThat(found.getActiveUntil()).isEqualTo(bdo.getActiveUntil());
-		}
-
-		@Test
-		void refreshTokenDuplicate() {
-			final var bdo = SESSION.info();
-			final var dao = new SessionDao(bdo);
-
-			assertThatThrownBy(() -> sessionRepository.save(dao))
-					.isInstanceOf(DataIntegrityViolationException.class);
 		}
 
 		@Test

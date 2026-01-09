@@ -5,7 +5,7 @@ import java.util.Objects;
 import org.springframework.stereotype.Service;
 
 import com.cvesters.notula.common.exception.MissingEntityException;
-import com.cvesters.notula.session.bdo.SessionInfo;
+import com.cvesters.notula.session.bdo.SessionCreateAction;
 import com.cvesters.notula.session.bdo.SessionTokens;
 import com.cvesters.notula.user.UserService;
 import com.cvesters.notula.user.bdo.UserInfo;
@@ -31,12 +31,13 @@ public class SessionService {
 		Objects.requireNonNull(request);
 
 		final UserInfo user = userService.findByLogin(request)
-				.orElseThrow( MissingEntityException::new);
+				.orElseThrow(MissingEntityException::new);
 
-		final var newSession = new SessionInfo(user.getId());
-		final var createdSession = sessionStorageGateway.create(newSession);
+		final var action = new SessionCreateAction(user);
+		final String refreshToken = action.getRefreshToken();
+		final var createdSession = sessionStorageGateway.create(action);
 		final String accessToken = accessTokenService.create(createdSession);
 
-		return new SessionTokens(createdSession, accessToken);
+		return new SessionTokens(createdSession, accessToken, refreshToken);
 	}
 }

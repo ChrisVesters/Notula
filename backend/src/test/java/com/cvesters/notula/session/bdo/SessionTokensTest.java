@@ -12,13 +12,15 @@ class SessionTokensTest {
 
 	private static final TestSession SESSION = TestSession.EDUARDO_CHRISTIANSEN_DEKSTOP;
 	private static final String ACCESS_TOKEN = "access_token";
+	private static final String REFRESH_TOKEN = SESSION.getRefreshToken();
 
 	@Nested
 	class Constructor {
 
 		@Test
 		void success() {
-			final var tokens = new SessionTokens(SESSION.info(), ACCESS_TOKEN);
+			final var tokens = new SessionTokens(SESSION.info(), ACCESS_TOKEN,
+					REFRESH_TOKEN);
 
 			assertThat(tokens.getId()).isEqualTo(SESSION.getId());
 			assertThat(tokens.getAccessToken()).isEqualTo(ACCESS_TOKEN);
@@ -30,26 +32,25 @@ class SessionTokensTest {
 
 		@Test
 		void sessionNull() {
-			assertThatThrownBy(() -> new SessionTokens(null, ACCESS_TOKEN))
-					.isInstanceOf(NullPointerException.class);
-		}
-
-		@Test
-		void sessionIdNull() {
-			final var sessionInfo = new SessionInfo(null,
-					SESSION.getUser().getId(), SESSION.getRefreshToken(),
-					SESSION.getActiveUntil());
-
 			assertThatThrownBy(
-					() -> new SessionTokens(sessionInfo, ACCESS_TOKEN))
+					() -> new SessionTokens(null, ACCESS_TOKEN, REFRESH_TOKEN))
 							.isInstanceOf(NullPointerException.class);
 		}
 
 		@Test
 		void accessTokenNull() {
 			final var sessionInfo = SESSION.info();
-			assertThatThrownBy(() -> new SessionTokens(sessionInfo, null))
-					.isInstanceOf(NullPointerException.class);
+			assertThatThrownBy(
+					() -> new SessionTokens(sessionInfo, null, REFRESH_TOKEN))
+							.isInstanceOf(NullPointerException.class);
+		}
+
+		@Test
+		void refreshTokenNull() {
+			final var sessionInfo = SESSION.info();
+			assertThatThrownBy(
+					() -> new SessionTokens(sessionInfo, ACCESS_TOKEN, null))
+							.isInstanceOf(NullPointerException.class);
 		}
 	}
 }
