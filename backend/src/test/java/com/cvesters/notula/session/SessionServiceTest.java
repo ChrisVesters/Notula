@@ -43,11 +43,10 @@ class SessionServiceTest {
 					.thenReturn(Optional.of(userInfo));
 
 			final SessionInfo createdSession = SESSION.info();
-			when(sessionStorageGateway.create(argThat(sessionInfo -> {
-				assertThat(sessionInfo.getId()).isNull();
-				assertThat(sessionInfo.getUserId()).isEqualTo(USER.getId());
-				assertThat(sessionInfo.getRefreshToken()).isNotNull();
-				assertThat(sessionInfo.getActiveUntil()).isNotNull();
+			when(sessionStorageGateway.create(argThat(create -> {
+				assertThat(create.getUserId()).isEqualTo(USER.getId());
+				assertThat(create.getRefreshToken()).isNotNull();
+				assertThat(create.getActiveUntil()).isNotNull();
 				return true;
 			}))).thenReturn(createdSession);
 

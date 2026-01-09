@@ -16,6 +16,7 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
+import com.cvesters.notula.session.bdo.SessionCreateAction;
 import com.cvesters.notula.session.bdo.SessionInfo;
 
 @Getter
@@ -33,23 +34,26 @@ public class SessionDao {
 	@Column(name = "user_id", nullable = false)
 	private long userId;
 
-	@Column(name = "refresh_token", unique = true, nullable = false)
+	// TODO: org id
+
+	@Column(name = "refresh_token", nullable = false)
 	private String refreshToken;
 
 	@Column(name = "active_until", nullable = false)
 	private OffsetDateTime activeUntil;
 
-	public SessionDao(final SessionInfo bdo) {
+	public SessionDao(final SessionCreateAction bdo, final String refreshToken) {
 		Objects.requireNonNull(bdo);
+		Objects.requireNonNull(refreshToken);
 
 		this.userId = bdo.getUserId();
-		this.refreshToken = bdo.getRefreshToken();
+		this.refreshToken = refreshToken;
 		this.activeUntil = bdo.getActiveUntil();
 	}
 
 	public SessionInfo toBdo() {
 		Validate.validState(id != null);
 
-		return new SessionInfo(id, userId, refreshToken, activeUntil);
+		return new SessionInfo(id, userId, activeUntil);
 	}
 }

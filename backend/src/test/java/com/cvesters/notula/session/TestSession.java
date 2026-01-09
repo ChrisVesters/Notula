@@ -29,6 +29,6 @@ public enum TestSession {
 	}
 
 	public SessionInfo info() {
-		return new SessionInfo(id, user.getId(), refreshToken, activeUntil);
+		return new SessionInfo(id, user.getId(), activeUntil);
 	}
 }
