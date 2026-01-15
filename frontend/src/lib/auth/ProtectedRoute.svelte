@@ -29,6 +29,8 @@
 		const isLoggedIn: boolean = $principal?.isValid() ?? false;
 		const isScoped = $principal?.isScoped() ?? false;
 
+		console.log($principal, isLoggedIn, isScoped);
+
 		if (isScoped) {
 			if (visiblity !== Visibility.PUBLIC) {
 				allowed = true;

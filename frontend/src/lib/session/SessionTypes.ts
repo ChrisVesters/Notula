@@ -8,3 +8,7 @@ export type CreateSessionRequest = {
 	email: string;
 	password: string;
 };
+
+export type SessionUpdateRequest = {
+	organisationId: number;
+}
