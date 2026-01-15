@@ -20,7 +20,22 @@ export default abstract class Client {
 			method: "POST",
 			headers: {
 				"Content-Type": "application/json",
-				"Authorization": `Bearer ${token}` 
+				Authorization: `Bearer ${token}`
+			},
+			body: JSON.stringify(request)
+		}).then(res => res.json());
+	}
+
+	public static async put<Request, Response>(
+		endpoint: string,
+		request: Request,
+		token?: string
+	): Promise<Response> {
+		return fetch(endpoint, {
+			method: "PUT",
+			headers: {
+				"Content-Type": "application/json",
+				"Authorization": `Bearer ${token}`
 			},
 			body: JSON.stringify(request)
 		}).then(res => res.json());

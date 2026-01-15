@@ -54,7 +54,7 @@ public class SessionService {
 		Objects.requireNonNull(update);
 
 		sessionStorageGateway.findById(update.sessionId())
-				.filter(session -> session.getId() == principal.userId())
+				.filter(session -> session.getUserId() == principal.userId())
 				.orElseThrow(MissingEntityException::new);
 
 		organisationUserService.getAll(principal)

@@ -1,11 +1,15 @@
 <script lang="ts">
 	import { onMount } from "svelte";
+
 	import { goto } from "$app/navigation";
 	import { t } from "$lib/assets/translations";
 
+	import Auth from "$lib/auth/Auth";
+	import DataStorage from "$lib/common/DataStorage";
 	import TextField from "$lib/form/TextField.svelte";
 	import OrganisationClient from "$lib/organisation/OrganisationClient";
 	import type { OrganisationInfo } from "$lib/organisation/OrganisationTypes";
+	import SessionClient from "$lib/session/SessionClient";
 
 	let name = $state("");
 	let nameError = $state("");
@@ -16,7 +20,17 @@
 	});
 
 	function selectOrganisation(organisationId: number) {
-		console.log("TODO");
+		const sessionId = Number(DataStorage.getItem("sessionId"));
+
+		SessionClient.update(sessionId, { organisationId })
+			.then(session => {
+				Auth.updatePrincipal(session.accessToken);
+				goto("/dashboard");
+			})
+			.catch(error => {
+				// TODO: better error handling
+				alert("Switching organisation failed. Please try again.");
+			});
 	}
 
 	function createOrganisation(event: SubmitEvent) {
@@ -46,9 +60,9 @@
 	<section class="card">
 		<h2 class="card-title">{$t("common.selectOrganisation")}</h2>
 		{#each organisations as organisation}
-			<button onclick={() => selectOrganisation(organisation.id)}
-				>{organisation.name}</button
-			>
+			<button onclick={() => selectOrganisation(organisation.id)}>
+				{organisation.name}
+			</button>
 		{/each}
 
 		<h2 class="card-title">{$t("common.createOrganisation")}</h2>

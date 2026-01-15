@@ -5,12 +5,19 @@ import DataStorage from "$lib/common/DataStorage";
 
 export class Principal {
 	readonly userId: number;
-	readonly organisationId?: number;
+	readonly organisationId: number | null;
 	readonly expiresAt: Date;
 
-	constructor(userId: number, expiresAt: Date) {
+	constructor(
+		userId: number,
+		organisationId: number | null,
+		expiresAt: Date
+	) {
 		this.userId = userId;
+		this.organisationId = organisationId;
 		this.expiresAt = expiresAt;
+
+		console.log(this.organisationId, organisationId);
 	}
 
 	public isValid(): boolean {
@@ -18,7 +25,7 @@ export class Principal {
 	}
 
 	public isScoped(): boolean {
-		return this.isValid() && this.organisationId !== undefined;
+		return this.isValid() && this.organisationId !== null;
 	}
 }
 
@@ -26,6 +33,8 @@ type JwtPayload = {
 	sub: string;
 	exp: number;
 	iat: number;
+
+	organisation_id?: number;
 };
 
 const principal = writable<Principal | null>(null);
@@ -60,8 +69,9 @@ export default class Auth {
 		const payload: JwtPayload = JSON.parse(window.atob(base64Payload));
 
 		const userId = parseInt(payload.sub, 10);
+		const organisationId = payload.organisation_id ?? null;
 		const expiresAt = new Date(payload.exp * 1000);
 
-		principal.set(new Principal(userId, expiresAt));
+		principal.set(new Principal(userId, organisationId, expiresAt));
 	}
 }
