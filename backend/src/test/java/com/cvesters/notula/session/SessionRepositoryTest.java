@@ -3,6 +3,8 @@ package com.cvesters.notula.session;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
+import java.util.Optional;
+
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.PersistenceContext;
 
@@ -17,7 +19,7 @@ import org.springframework.dao.InvalidDataAccessApiUsageException;
 import org.springframework.test.context.jdbc.Sql;
 
 import com.cvesters.notula.TestContainerConfig;
-import com.cvesters.notula.session.bdo.SessionCreateAction;
+import com.cvesters.notula.session.bdo.SessionCreate;
 import com.cvesters.notula.session.dao.SessionDao;
 
 @Sql({ "/db/users.sql", "/db/sessions.sql" })
@@ -36,11 +38,33 @@ class SessionRepositoryTest {
 	private EntityManager entityManager;
 
 	@Nested
+	class FindById {
+
+		@Test
+		void found() {
+			final Optional<SessionDao> dao = sessionRepository
+					.findById(SESSION.getId());
+
+			final SessionDao expected = entityManager.find(SessionDao.class,
+					SESSION.getId());
+			assertThat(dao).contains(expected);
+		}
+
+		@Test
+		void notFound() {
+			final Optional<SessionDao> dao = sessionRepository
+					.findById(Long.MAX_VALUE);
+
+			assertThat(dao).isEmpty();
+		}
+	}
+
+	@Nested
 	class Save {
 
 		@Test
 		void success() {
-			final var bdo = new SessionCreateAction(SESSION.getUser().info());
+			final var bdo = new SessionCreate(SESSION.getUser().info());
 			final var dao = new SessionDao(bdo, HASHED_REFRESH_TOKEN);
 			final SessionDao saved = sessionRepository.save(dao);
 

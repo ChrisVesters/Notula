@@ -1,19 +1,27 @@
 package com.cvesters.notula.session;
 
+import java.time.Duration;
+
 import jakarta.validation.Valid;
 
 import org.springframework.http.MediaType;
+import org.springframework.http.ResponseCookie;
 import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
 
 import com.cvesters.notula.common.controller.BaseController;
+import com.cvesters.notula.common.domain.Principal;
 import com.cvesters.notula.session.bdo.SessionTokens;
+import com.cvesters.notula.session.bdo.SessionUpdate;
 import com.cvesters.notula.session.dto.CreateSessionDto;
 import com.cvesters.notula.session.dto.SessionInfoDto;
+import com.cvesters.notula.session.dto.SessionUpdateDto;
 import com.cvesters.notula.user.bdo.UserLogin;
 
 @RestController
@@ -33,20 +41,37 @@ public class SessionController extends BaseController {
 		final SessionTokens session = sessionService.create(login);
 		final var dto = new SessionInfoDto(session);
 
-		// TODO: set refresh token as http secure cookie only
-	// 	    ResponseCookie refreshCookie = ResponseCookie.from("refreshToken", refreshToken)
-    //     .httpOnly(true)
-    //     .secure(true)
-    //     .path("/api/auth/refresh")
-    //     .maxAge(Duration.ofDays(7))
-    //     .build();
-    // response.addHeader(HttpHeaders.SET_COOKIE, refreshCookie.toString());
+		// final ResponseCookie refreshCookie = createRefreshCookie(
+		// 		session.getId(), session.getRefreshToken());
 
 		return ResponseEntity
 				.created(ServletUriComponentsBuilder.fromCurrentRequest()
 						.path("/{id}")
 						.buildAndExpand(session.getId())
 						.toUri())
+				// .header(HttpHeaders.SET_COOKIE, refreshCookie.toString())
 				.body(dto);
+	}
+
+	@PutMapping(path = "/{id}", consumes = MediaType.APPLICATION_JSON_VALUE)
+	public ResponseEntity<SessionInfoDto> update(@PathVariable final long id,
+			@Valid @RequestBody final SessionUpdateDto request) {
+		final Principal principal = getPrincipal();
+
+		final SessionUpdate update = request.toBdo(id);
+		final SessionTokens session = sessionService.update(principal, update);
+		final var dto = new SessionInfoDto(session);
+
+		return ResponseEntity.ok(dto);
+	}
+
+	private ResponseCookie createRefreshCookie(final long sessionId,
+			final String refreshToken) {
+		return ResponseCookie.from("refreshToken", refreshToken)
+				.httpOnly(true)
+				.secure(true)
+				.path("/api/sessions/" + sessionId + "/refresh")
+				.maxAge(Duration.ofDays(7)) // TODO: Duration.between(now, session.getActiveUntil())
+				.build();
 	}
 }

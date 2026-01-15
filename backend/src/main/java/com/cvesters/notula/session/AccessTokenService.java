@@ -29,12 +29,16 @@ public class AccessTokenService {
 
 		final var now = Instant.now();
 
-		final var claims = JwtClaimsSet.builder()
+		final JwtClaimsSet.Builder builder = JwtClaimsSet.builder()
 				.subject(String.valueOf(session.getUserId()))
 				.issuedAt(now)
-				.expiresAt(now.plus(ACCESS_EXPIRATION))
-				.build();
+				.expiresAt(now.plus(ACCESS_EXPIRATION));
 
+		session.getOrganisationId()
+				.ifPresent(organisationId -> builder.claim("organisation_id",
+						organisationId));
+
+		final var claims = builder.build();
 		final var header = JwsHeader.with(JwtConfig.MAC_ALGORITHM).build();
 
 		return jwtEncoder.encode(JwtEncoderParameters.from(header, claims))

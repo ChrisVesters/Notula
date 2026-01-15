@@ -12,7 +12,7 @@ import org.junit.jupiter.api.Test;
 
 import com.cvesters.notula.session.TestSession;
 
-class SessionCreateActionTest {
+class SessionCreateTest {
 
 	private static final TestSession SESSION = TestSession.EDUARDO_CHRISTIANSEN_DEKSTOP;
 
@@ -21,7 +21,7 @@ class SessionCreateActionTest {
 
 		@Test
 		void success() {
-			final var action = new SessionCreateAction(
+			final var action = new SessionCreate(
 					SESSION.getUser().info());
 
 			assertThat(action.getUserId()).isEqualTo(SESSION.getUser().getId());
@@ -33,7 +33,7 @@ class SessionCreateActionTest {
 
 		@Test
 		void userNull() {
-			assertThatThrownBy(() -> new SessionCreateAction(null))
+			assertThatThrownBy(() -> new SessionCreate(null))
 					.isInstanceOf(NullPointerException.class);
 		}
 	}

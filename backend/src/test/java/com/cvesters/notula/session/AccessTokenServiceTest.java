@@ -31,7 +31,7 @@ class AccessTokenServiceTest {
 
 		@Test
 		void success() throws Exception {
-			final SessionInfo session = SESSION.info();
+			final SessionInfo sessionInfo = SESSION.info();
 
 			final var now = Instant.now();
 
@@ -46,6 +46,8 @@ class AccessTokenServiceTest {
 				final var claims = params.getClaims();
 				assertThat(claims.getSubject())
 						.isEqualTo(String.valueOf(SESSION.getUser().getId()));
+				assertThat(claims.getClaimAsString("organisation_id"))
+						.isEqualTo(Long.toString(SESSION.getOrganisation().getId()));
 				assertThat(claims.getIssuedAt()).isCloseTo(now,
 						within(Duration.ofSeconds(1)));
 				assertThat(claims.getExpiresAt()).isCloseTo(
@@ -54,7 +56,39 @@ class AccessTokenServiceTest {
 				return true;
 			}))).thenReturn(token);
 
-			final String result = accessTokenService.create(session);
+			final String result = accessTokenService.create(sessionInfo);
+
+			assertThat(result).isEqualTo(tokenValue);
+		}
+
+		@Test
+		void withoutOrganisation() {
+			final TestSession session = TestSession.EDUARDO_CHRISTIANSEN_MOBILE;
+			final SessionInfo sessionInfo = session.info();
+
+			final var now = Instant.now();
+
+			final Jwt token = mock();
+			final String tokenValue = "JWT";
+			when((token).getTokenValue()).thenReturn(tokenValue);
+
+			when(jwtEncoder.encode(argThat(params -> {
+				final var header = params.getJwsHeader();
+				assertThat(header.getAlgorithm().getName()).isEqualTo("HS512");
+
+				final var claims = params.getClaims();
+				assertThat(claims.getSubject())
+						.isEqualTo(String.valueOf(session.getUser().getId()));
+				assertThat(claims.hasClaim("organisation_id")).isFalse();
+				assertThat(claims.getIssuedAt()).isCloseTo(now,
+						within(Duration.ofSeconds(1)));
+				assertThat(claims.getExpiresAt()).isCloseTo(
+						now.plus(Duration.ofMinutes(30)),
+						within(Duration.ofSeconds(1)));
+				return true;
+			}))).thenReturn(token);
+
+			final String result = accessTokenService.create(sessionInfo);
 
 			assertThat(result).isEqualTo(tokenValue);
 		}
