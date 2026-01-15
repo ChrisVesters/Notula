@@ -23,7 +23,7 @@ class UserServiceTest {
 	private final UserService userService = new UserService(userStorageGateway);
 
 	@Nested
-	class CreateUser {
+	class Create {
 
 		@Test
 		void success() {
@@ -32,7 +32,7 @@ class UserServiceTest {
 
 			when(userStorageGateway.existsByEmail(userLogin.getEmail()))
 					.thenReturn(false);
-			when(userStorageGateway.createUser(userLogin)).thenReturn(userInfo);
+			when(userStorageGateway.create(userLogin)).thenReturn(userInfo);
 
 			final UserInfo info = userService.createUser(userLogin);
 

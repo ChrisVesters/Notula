@@ -1,19 +1,21 @@
-package com.cvesters.notula.user.dto;
+package com.cvesters.notula.session.dto;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
 import org.junit.jupiter.api.Test;
 
+import com.cvesters.notula.session.TestSession;
 import com.cvesters.notula.user.TestUser;
 import com.cvesters.notula.user.bdo.UserLogin;
 
-class CreateUserDtoTest {
+class SessionCreateDtoTest {
 
-	private static final TestUser USER = TestUser.EDUARDO_CHRISTIANSEN;
+	private static final TestSession SESSION = TestSession.EDUARDO_CHRISTIANSEN_DEKSTOP;
+	private static final TestUser USER = SESSION.getUser();
 
 	@Test
 	void toBdo() {
-		final var dto = new CreateUserDto(USER.getEmail().value(),
+		final var dto = new SessionCreateDto(USER.getEmail().value(),
 				USER.getPassword().value());
 
 		final UserLogin bdo = dto.toBdo();

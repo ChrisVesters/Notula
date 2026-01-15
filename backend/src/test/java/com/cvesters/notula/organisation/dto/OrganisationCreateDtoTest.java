@@ -6,13 +6,13 @@ import org.junit.jupiter.api.Test;
 
 import com.cvesters.notula.organisation.TestOrganisation;
 
-class CreateOrganisationDtoTest {
+class OrganisationCreateDtoTest {
 
 	private static final TestOrganisation ORGANISATION = TestOrganisation.SPORER;
 
 	@Test
 	void toBdo() {
-		final var dto = new CreateOrganisationDto(ORGANISATION.getName());
+		final var dto = new OrganisationCreateDto(ORGANISATION.getName());
 		final var bdo = dto.toBdo();
 		
 		assertThat(bdo.getId()).isNull();

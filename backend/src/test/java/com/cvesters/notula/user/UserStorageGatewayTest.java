@@ -49,14 +49,14 @@ class UserStorageGatewayTest {
 				return true;
 			}))).thenReturn(created);
 
-			final UserInfo userInfo = gateway.createUser(USER.login());
+			final UserInfo userInfo = gateway.create(USER.login());
 
 			assertThat(userInfo).isEqualTo(bdo);
 		}
 
 		@Test
 		void userLoginNull() {
-			assertThatThrownBy(() -> gateway.createUser(null))
+			assertThatThrownBy(() -> gateway.create(null))
 					.isInstanceOf(NullPointerException.class);
 		}
 	}

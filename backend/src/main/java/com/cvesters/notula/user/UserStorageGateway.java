@@ -41,7 +41,7 @@ public class UserStorageGateway {
 				.map(UserDao::toBdo);
 	}
 
-	public UserInfo createUser(final UserLogin login) {
+	public UserInfo create(final UserLogin login) {
 		Objects.requireNonNull(login);
 
 		final String passwordHash = passwordEncoder
