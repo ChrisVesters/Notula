@@ -4,16 +4,24 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
+import java.util.List;
 import java.util.Optional;
 
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 
+import com.cvesters.notula.common.domain.Principal;
 import com.cvesters.notula.common.exception.MissingEntityException;
+import com.cvesters.notula.organisation.OrganisationUserService;
+import com.cvesters.notula.organisation.TestOrganisation;
+import com.cvesters.notula.organisation.TestOrganisationUser;
+import com.cvesters.notula.organisation.bdo.OrganisationUserInfo;
 import com.cvesters.notula.session.bdo.SessionInfo;
 import com.cvesters.notula.session.bdo.SessionTokens;
+import com.cvesters.notula.session.bdo.SessionUpdate;
 import com.cvesters.notula.user.TestUser;
 import com.cvesters.notula.user.UserService;
 import com.cvesters.notula.user.bdo.UserInfo;
@@ -26,11 +34,13 @@ class SessionServiceTest {
 	private static final String ACCESS_TOKEN = "access";
 
 	private final UserService userService = mock();
+	private final OrganisationUserService organisationUserService = mock();
 	private final AccessTokenService accessTokenService = mock();
 	private final SessionStorageGateway sessionStorageGateway = mock();
 
 	private final SessionService sessionService = new SessionService(
-			userService, accessTokenService, sessionStorageGateway);
+			userService, organisationUserService, accessTokenService,
+			sessionStorageGateway);
 
 	@Nested
 	class Create {
@@ -57,8 +67,7 @@ class SessionServiceTest {
 
 			assertThat(tokens.getId()).isEqualTo(SESSION.getId());
 			assertThat(tokens.getAccessToken()).isEqualTo(ACCESS_TOKEN);
-			assertThat(tokens.getRefreshToken())
-					.isEqualTo(SESSION.getRefreshToken());
+			assertThat(tokens.getRefreshToken()).isPresent();
 			assertThat(tokens.getActiveUntil())
 					.isEqualTo(SESSION.getActiveUntil());
 		}
@@ -76,6 +85,92 @@ class SessionServiceTest {
 
 			assertThatThrownBy(() -> sessionService.create(login))
 					.isInstanceOf(MissingEntityException.class);
+		}
+	}
+
+	@Nested
+	class Update {
+
+		private static final TestOrganisationUser ORGANISATION_USER = TestOrganisationUser.SPORER_EDUARDO_CHRISTIANSEN;
+		private static final TestOrganisation ORGANISATION = ORGANISATION_USER
+				.getOrganisation();
+
+		private static final Principal PRINCIPAL = SESSION.getUser()
+				.principal();
+		private static final SessionUpdate UPDATE = new SessionUpdate(
+				SESSION.getId(), ORGANISATION.getId());
+
+		@Test
+		void success() {
+			when(sessionStorageGateway.findById(SESSION.getId()))
+					.thenReturn(Optional.of(SESSION.info()));
+
+			when(organisationUserService.getAll(PRINCIPAL))
+					.thenReturn(List.of(ORGANISATION_USER.info()));
+
+			final SessionInfo updated = new SessionInfo(SESSION.getId(), USER.getId(), ORGANISATION.getId(), SESSION.getActiveUntil());
+			when(sessionStorageGateway.update(UPDATE)).thenReturn(updated);
+			when(accessTokenService.create(updated)).thenReturn(ACCESS_TOKEN);
+
+			final SessionTokens result = sessionService.update(PRINCIPAL,
+					UPDATE);
+
+			assertThat(result.getId()).isEqualTo(SESSION.getId());
+			assertThat(result.getAccessToken()).isEqualTo(ACCESS_TOKEN);
+			assertThat(result.getRefreshToken()).isEmpty();
+			assertThat(result.getActiveUntil()).isEqualTo(SESSION.getActiveUntil());
+		}
+
+		@Test
+		void sessionNotFound() {
+			when(sessionStorageGateway.findById(SESSION.getId()))
+					.thenReturn(Optional.empty());
+
+			assertThatThrownBy(() -> sessionService.update(PRINCIPAL, UPDATE))
+					.isInstanceOf(MissingEntityException.class);
+		}
+
+		@Test
+		void mismatchedUser() {
+			final Principal principal = TestUser.ALISON_DACH.principal();
+
+			when(sessionStorageGateway.findById(SESSION.getId()))
+					.thenReturn(Optional.of(SESSION.info()));
+
+			assertThatThrownBy(() -> sessionService.update(principal, UPDATE))
+					.isInstanceOf(MissingEntityException.class);
+		}
+
+		@Test
+		void organisationNotFound() {
+			when(sessionStorageGateway.findById(SESSION.getId()))
+					.thenReturn(Optional.of(SESSION.info()));
+
+			final var found = new OrganisationUserInfo(Long.MAX_VALUE,
+					USER.getId());
+			when(organisationUserService.getAll(PRINCIPAL))
+					.thenReturn(List.of(found));
+
+			assertThatThrownBy(() -> sessionService.update(PRINCIPAL, UPDATE))
+					.isInstanceOf(MissingEntityException.class);
+		}
+
+		@Test
+		void principalNull() {
+			assertThatThrownBy(() -> sessionService.update(null, UPDATE))
+					.isInstanceOf(NullPointerException.class);
+
+			verifyNoInteractions(sessionStorageGateway);
+			verifyNoInteractions(accessTokenService);
+		}
+
+		@Test
+		void updateNull() {
+			assertThatThrownBy(() -> sessionService.update(PRINCIPAL, null))
+					.isInstanceOf(NullPointerException.class);
+
+			verifyNoInteractions(sessionStorageGateway);
+			verifyNoInteractions(accessTokenService);
 		}
 	}
 }

@@ -3,8 +3,10 @@ package com.cvesters.notula.session;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.argThat;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -16,18 +18,21 @@ import org.junit.jupiter.params.provider.NullAndEmptySource;
 import org.junit.jupiter.params.provider.ValueSource;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.http.MediaType;
+import org.springframework.security.test.context.support.WithAnonymousUser;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 
 import com.cvesters.notula.common.exception.DuplicateEntityException;
+import com.cvesters.notula.organisation.TestOrganisation;
 import com.cvesters.notula.session.bdo.SessionTokens;
 import com.cvesters.notula.test.ControllerTest;
+import com.cvesters.notula.test.WithSession;
 import com.cvesters.notula.user.TestUser;
 
 @WebMvcTest(SessionController.class)
 class SessionControllerTest extends ControllerTest {
 
 	private static final String SERVER = "http://localhost";
-	private static final String ENDPOINT = "/api/sessions";
+	private static final String BASE_ENDPOINT = "/api/sessions";
 
 	private static final String REFRESH_TOKEN_COOKIE = "refreshToken";
 
@@ -54,13 +59,13 @@ class SessionControllerTest extends ControllerTest {
 			final String body = getBody(USER);
 			final String expectedResponse = getResponse(SESSION, ACCESS_TOKEN);
 
-			final var builder = post(ENDPOINT).content(body)
+			final var builder = post(BASE_ENDPOINT).content(body)
 					.contentType(MediaType.APPLICATION_JSON);
 
 			mockMvc.perform(builder)
 					.andExpect(status().isCreated())
 					.andExpect(header().string("location",
-							SERVER + ENDPOINT + "/" + USER.getId()))
+							SERVER + BASE_ENDPOINT + "/" + USER.getId()))
 					.andExpect(content().json(expectedResponse));
 			// .andExpectAll(
 			// cookie().value(REFRESH_TOKEN_COOKIE,
@@ -79,7 +84,7 @@ class SessionControllerTest extends ControllerTest {
 
 			final String body = getBody(USER);
 
-			final var builder = post(ENDPOINT).content(body)
+			final var builder = post(BASE_ENDPOINT).content(body)
 					.contentType(MediaType.APPLICATION_JSON);
 
 			mockMvc.perform(builder)
@@ -93,7 +98,7 @@ class SessionControllerTest extends ControllerTest {
 
 			final String body = getBody(USER);
 
-			final var builder = post(ENDPOINT).content(body)
+			final var builder = post(BASE_ENDPOINT).content(body)
 					.contentType(MediaType.APPLICATION_JSON);
 
 			mockMvc.perform(builder).andExpect(status().isBadRequest());
@@ -105,7 +110,7 @@ class SessionControllerTest extends ControllerTest {
 		void emailInvalid(final String email) throws Exception {
 			final String body = getBody(email, USER.getPassword().value());
 
-			final var builder = post(ENDPOINT).content(body)
+			final var builder = post(BASE_ENDPOINT).content(body)
 					.contentType(MediaType.APPLICATION_JSON);
 
 			mockMvc.perform(builder).andExpect(status().isBadRequest());
@@ -117,7 +122,7 @@ class SessionControllerTest extends ControllerTest {
 		void passwordInvalid(final String password) throws Exception {
 			final String body = getBody(USER.getEmail().value(), password);
 
-			final var builder = post(ENDPOINT).content(body)
+			final var builder = post(BASE_ENDPOINT).content(body)
 					.contentType(MediaType.APPLICATION_JSON);
 
 			mockMvc.perform(builder).andExpect(status().isBadRequest());
@@ -140,17 +145,64 @@ class SessionControllerTest extends ControllerTest {
 					}
 					""".formatted(formattedEmail, formattedPassword);
 		}
+	}
 
-		private String getResponse(final TestSession session,
-				final String accessToken) {
+	@Nested
+	@WithSession(TestSession.EDUARDO_CHRISTIANSEN_DEKSTOP)
+	class Update {
+
+		private static final String ENDPOINT = BASE_ENDPOINT + "/{id}";
+
+		@Test
+		void success() throws Exception {
+			final TestOrganisation organisation = TestOrganisation.SPORER;
+			final var tokens = new SessionTokens(SESSION.info(), ACCESS_TOKEN,
+					SESSION.getRefreshToken());
+
+			when(sessionService.update(eq(USER.principal()), argThat(update -> {
+				assertThat(update.sessionId()).isEqualTo(SESSION.getId());
+				assertThat(update.organisationId())
+						.isEqualTo(organisation.getId());
+				return true;
+			}))).thenReturn(tokens);
+
+			final String body = getBody(organisation);
+			final String expectedResponse = getResponse(SESSION, ACCESS_TOKEN);
+
+			final var builder = put(ENDPOINT, SESSION.getId()).content(body)
+					.contentType(MediaType.APPLICATION_JSON);
+
+			mockMvc.perform(builder)
+					.andExpect(status().isOk())
+					.andExpect(content().json(expectedResponse));
+		}
+
+		@Test
+		@WithAnonymousUser
+		void notAuthenticated() throws Exception {
+			final var builder = put(ENDPOINT, SESSION.getId());
+
+			mockMvc.perform(builder).andExpect(status().isUnauthorized());
+		}
+
+		private String getBody(final TestOrganisation organisation) {
 			return """
 					{
-						"id": %s,
-						"accessToken": "%s",
-						"activeUntil": "%s"
+						"organisationId": %d
 					}
-					""".formatted(session.getId(), accessToken,
-					session.getActiveUntil().toString());
+					""".formatted(organisation.getId());
 		}
+	}
+
+	private String getResponse(final TestSession session,
+			final String accessToken) {
+		return """
+				{
+					"id": %d,
+					"accessToken": "%s",
+					"activeUntil": "%s"
+				}
+				""".formatted(session.getId(), accessToken,
+				session.getActiveUntil().toString());
 	}
 }

@@ -2,6 +2,7 @@ package com.cvesters.notula.common.controller;
 
 import java.net.URI;
 import java.util.Objects;
+import java.util.Optional;
 
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -21,7 +22,13 @@ public abstract class BaseController {
 
 		if (authentication.getPrincipal() instanceof Jwt jwt) {
 			final long userId = Long.parseLong(jwt.getSubject());
-			return new Principal(userId);
+
+			final Long organisationId = Optional
+					.ofNullable(jwt.getClaimAsString("organisation_id"))
+					.map(Long::parseLong)
+					.orElse(null);
+
+			return new Principal(userId, organisationId);
 		}
 
 		throw new IllegalStateException(

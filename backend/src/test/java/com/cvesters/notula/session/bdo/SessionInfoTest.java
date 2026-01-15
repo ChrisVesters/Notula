@@ -20,12 +20,27 @@ class SessionInfoTest {
 		@Test
 		void withId() {
 			final var sessionInfo = new SessionInfo(SESSION.getId(),
-					SESSION.getUser().getId(),
+					SESSION.getUser().getId(), SESSION.getActiveUntil());
+
+			assertThat(sessionInfo.getId()).isEqualTo(SESSION.getId());
+			assertThat(sessionInfo.getUserId())
+					.isEqualTo(SESSION.getUser().getId());
+					assertThat(sessionInfo.getOrganisationId()).isEmpty();
+			assertThat(sessionInfo.getActiveUntil())
+					.isEqualTo(SESSION.getActiveUntil());
+		}
+
+		@Test
+		void withOrganisationId() {
+			final var sessionInfo = new SessionInfo(SESSION.getId(),
+					SESSION.getUser().getId(), SESSION.getOrganisation().getId(),
 					SESSION.getActiveUntil());
 
 			assertThat(sessionInfo.getId()).isEqualTo(SESSION.getId());
 			assertThat(sessionInfo.getUserId())
 					.isEqualTo(SESSION.getUser().getId());
+			assertThat(sessionInfo.getOrganisationId())
+					.contains(SESSION.getOrganisation().getId());
 			assertThat(sessionInfo.getActiveUntil())
 					.isEqualTo(SESSION.getActiveUntil());
 		}
@@ -36,8 +51,8 @@ class SessionInfoTest {
 			final long userId = SESSION.getUser().getId();
 			final OffsetDateTime activeUntil = null;
 
-			assertThatThrownBy(() -> new SessionInfo(id, userId,
-					activeUntil)).isInstanceOf(NullPointerException.class);
+			assertThatThrownBy(() -> new SessionInfo(id, userId, activeUntil))
+					.isInstanceOf(NullPointerException.class);
 		}
 	}
 }

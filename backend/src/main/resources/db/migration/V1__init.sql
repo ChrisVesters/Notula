@@ -32,7 +32,8 @@ CREATE TABLE organisation_users(
 CREATE TABLE sessions(
 	id BIGINT NOT NULL GENERATED ALWAYS AS IDENTITY,
 	user_id BIGINT NOT NULL,
-	refresh_token TEXT NOT NULL UNIQUE,
+	organisation_id BIGINT,
+	refresh_token TEXT NOT NULL,
 	active_until TIMESTAMP WITH TIME ZONE NOT NULL,
 
 	PRIMARY KEY(id),

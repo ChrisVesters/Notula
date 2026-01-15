@@ -11,7 +11,7 @@ import lombok.Getter;
 import com.cvesters.notula.user.bdo.UserInfo;
 
 @Getter
-public class SessionCreateAction {
+public class SessionCreate {
 
 	private static final SecureRandom RANDOM = new SecureRandom();
 	private static final Duration DURATION = Duration.ofDays(7);
@@ -20,7 +20,7 @@ public class SessionCreateAction {
 	private final String refreshToken;
 	private final OffsetDateTime activeUntil;
 
-	public SessionCreateAction(final UserInfo user) {
+	public SessionCreate(final UserInfo user) {
 		Objects.requireNonNull(user);
 
 		this.userId = user.getId();
@@ -29,12 +29,11 @@ public class SessionCreateAction {
 	}
 
 	private static String generateToken() {
-		final byte[] bytes = new byte[64];
+		final var bytes = new byte[64];
 		RANDOM.nextBytes(bytes);
 
-		final String token = Base64.getUrlEncoder()
+		return Base64.getUrlEncoder()
 				.withoutPadding()
 				.encodeToString(bytes);
-		return token;
 	}
 }
