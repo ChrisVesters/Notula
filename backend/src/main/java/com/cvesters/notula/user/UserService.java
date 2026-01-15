@@ -25,7 +25,7 @@ public class UserService {
 			throw new DuplicateEntityException();
 		}
 
-		return userStorageGateway.createUser(userLogin);
+		return userStorageGateway.create(userLogin);
 	}
 
 	public Optional<UserInfo> findByLogin(final UserLogin userLogin) {

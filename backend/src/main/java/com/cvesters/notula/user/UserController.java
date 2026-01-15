@@ -12,7 +12,7 @@ import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
 
 import com.cvesters.notula.common.controller.BaseController;
 import com.cvesters.notula.user.bdo.UserInfo;
-import com.cvesters.notula.user.dto.CreateUserDto;
+import com.cvesters.notula.user.dto.UserCreateDto;
 import com.cvesters.notula.user.dto.UserInfoDto;
 
 @RestController
@@ -27,7 +27,7 @@ public class UserController extends BaseController {
 
 	@PostMapping(consumes = MediaType.APPLICATION_JSON_VALUE, produces = MediaType.APPLICATION_JSON_VALUE)
 	public ResponseEntity<UserInfoDto> create(
-			@Valid @RequestBody final CreateUserDto request) {
+			@Valid @RequestBody final UserCreateDto request) {
 
 		final UserInfo user = userService.createUser(request.toBdo());
 		final var response = new UserInfoDto(user);

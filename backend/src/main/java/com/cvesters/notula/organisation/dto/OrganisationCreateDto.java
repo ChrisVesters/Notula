@@ -4,7 +4,7 @@ import jakarta.validation.constraints.NotBlank;
 
 import com.cvesters.notula.organisation.bdo.OrganisationInfo;
 
-public record CreateOrganisationDto(
+public record OrganisationCreateDto(
 		@NotBlank String name) {
 
 	public OrganisationInfo toBdo() {

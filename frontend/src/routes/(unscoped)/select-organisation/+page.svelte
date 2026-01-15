@@ -31,7 +31,6 @@
 
 		OrganisationClient.create({ name })
 			.then(organisation => {
-				console.log(`CREATED: ${organisation.id}`);
 				// TODO: refresh token with created organisation.
 				// Then redirect to dashboard
 				goto("/dashboard");

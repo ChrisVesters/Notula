@@ -1,4 +1,4 @@
-package com.cvesters.notula.user.dto;
+package com.cvesters.notula.session.dto;
 
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
@@ -8,7 +8,8 @@ import com.cvesters.notula.common.domain.Email;
 import com.cvesters.notula.common.domain.Password;
 import com.cvesters.notula.user.bdo.UserLogin;
 
-public record CreateUserDto(@NotBlank @jakarta.validation.constraints.Email String email,
+public record SessionCreateDto(
+		@NotBlank @jakarta.validation.constraints.Email String email,
 		@NotNull @Size(min = 8) String password) {
 
 	public UserLogin toBdo() {
