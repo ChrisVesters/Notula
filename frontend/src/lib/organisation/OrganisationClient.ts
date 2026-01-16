@@ -2,7 +2,7 @@ import Client from "$lib/common/Client";
 import DataStorage from "$lib/common/DataStorage";
 
 import type {
-	CreateOrganisationRequest,
+	OrganisationCreateRequest,
 	OrganisationInfo
 } from "./OrganisationTypes";
 
@@ -17,7 +17,7 @@ export default class OrganisationClient extends Client {
 	}
 
 	public static async create(
-		request: CreateOrganisationRequest
+		request: OrganisationCreateRequest
 	): Promise<OrganisationInfo> {
 		const token = DataStorage.getItem("accessToken");
 		if (token == null) {

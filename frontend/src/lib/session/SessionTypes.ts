@@ -4,7 +4,7 @@ export type SessionInfo = {
 	activeUntil: string;
 };
 
-export type CreateSessionRequest = {
+export type SessionCreateRequest = {
 	email: string;
 	password: string;
 };

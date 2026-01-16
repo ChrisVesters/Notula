@@ -2,14 +2,14 @@ import Client from "$lib/common/Client";
 import DataStorage from "$lib/common/DataStorage";
 
 import type {
-	CreateSessionRequest,
+	SessionCreateRequest,
 	SessionInfo,
 	SessionUpdateRequest
 } from "./SessionTypes";
 
 export default class SessionClient extends Client {
 	public static async create(
-		request: CreateSessionRequest
+		request: SessionCreateRequest
 	): Promise<SessionInfo> {
 		return fetch(getEndpoint(), {
 			method: "POST",

@@ -3,7 +3,7 @@ export type UserInfo = {
 	email: string;
 };
 
-export type CreateUserRequest = {
+export type UserCreateRequest = {
 	email: string;
 	password: string;
 };

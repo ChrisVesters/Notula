@@ -3,6 +3,6 @@ export type OrganisationInfo = {
 	name: string;
 };
 
-export type CreateOrganisationRequest = {
+export type OrganisationCreateRequest = {
 	name: string;
 };

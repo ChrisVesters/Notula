@@ -1,7 +1,7 @@
-import type { CreateUserRequest, UserInfo } from "./UserTypes";
+import type { UserCreateRequest, UserInfo } from "./UserTypes";
 
 export default class UserClient {
-	public static async create(request: CreateUserRequest): Promise<UserInfo> {
+	public static async create(request: UserCreateRequest): Promise<UserInfo> {
 		return fetch(getEndpoint(), {
 			method: "POST",
 			headers: {
