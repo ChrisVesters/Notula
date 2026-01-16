@@ -1,8 +1,8 @@
 <script lang="ts">
 	import type { FullAutoFill } from "svelte/elements";
 
-	import Eye from "$lib/assets/icons/Eye.svelte";
-	import EyeSlashed from "$lib/assets/icons/EyeSlashed.svelte";
+	import IconEye from "$lib/assets/icons/IconEye.svelte";
+	import IconEyeSlashed from "$lib/assets/icons/IconEyeSlashed.svelte";
 
 	import "./form.css";
 	import TextField from "./TextField.svelte";
@@ -39,7 +39,7 @@
 	{error}
 	{autocomplete}
 	rightAdornment={{
-		icon: show ? EyeSlashed : Eye,
+		icon: show ? IconEyeSlashed : IconEye,
 		onClick: toggleShow
 	}}
 />

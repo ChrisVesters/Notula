@@ -16,8 +16,6 @@ export class Principal {
 		this.userId = userId;
 		this.organisationId = organisationId;
 		this.expiresAt = expiresAt;
-
-		console.log(this.organisationId, organisationId);
 	}
 
 	public isValid(): boolean {
