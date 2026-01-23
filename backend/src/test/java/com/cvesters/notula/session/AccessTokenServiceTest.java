@@ -19,7 +19,7 @@ import com.cvesters.notula.session.bdo.SessionInfo;
 
 class AccessTokenServiceTest {
 
-	private static final TestSession SESSION = TestSession.EDUARDO_CHRISTIANSEN_DEKSTOP;
+	private static final TestSession SESSION = TestSession.EDUARDO_CHRISTIANSEN_SPORER;
 
 	private final JwtEncoder jwtEncoder = mock();
 
@@ -63,7 +63,7 @@ class AccessTokenServiceTest {
 
 		@Test
 		void withoutOrganisation() {
-			final TestSession session = TestSession.EDUARDO_CHRISTIANSEN_MOBILE;
+			final TestSession session = TestSession.EDUARDO_CHRISTIANSEN;
 			final SessionInfo sessionInfo = session.info();
 
 			final var now = Instant.now();

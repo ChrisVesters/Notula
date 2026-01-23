@@ -13,7 +13,7 @@ import com.cvesters.notula.session.bdo.SessionTokens;
 
 class SessionInfoDtoTest {
 
-	private static final TestSession SESSION = TestSession.EDUARDO_CHRISTIANSEN_DEKSTOP;
+	private static final TestSession SESSION = TestSession.EDUARDO_CHRISTIANSEN_SPORER;
 	private static final String ACCESS_TOKEN = "access";
 
 	@Nested

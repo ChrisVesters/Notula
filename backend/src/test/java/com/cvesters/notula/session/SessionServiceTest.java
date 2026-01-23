@@ -29,7 +29,7 @@ import com.cvesters.notula.user.bdo.UserLogin;
 
 class SessionServiceTest {
 
-	private static final TestSession SESSION = TestSession.EDUARDO_CHRISTIANSEN_DEKSTOP;
+	private static final TestSession SESSION = TestSession.EDUARDO_CHRISTIANSEN_SPORER;
 	private static final TestUser USER = SESSION.getUser();
 	private static final String ACCESS_TOKEN = "access";
 
@@ -95,8 +95,7 @@ class SessionServiceTest {
 		private static final TestOrganisation ORGANISATION = ORGANISATION_USER
 				.getOrganisation();
 
-		private static final Principal PRINCIPAL = SESSION.getUser()
-				.principal();
+		private static final Principal PRINCIPAL = SESSION.principal();
 		private static final SessionUpdate UPDATE = new SessionUpdate(
 				SESSION.getId(), ORGANISATION.getId());
 
@@ -132,7 +131,7 @@ class SessionServiceTest {
 
 		@Test
 		void mismatchedUser() {
-			final Principal principal = TestUser.ALISON_DACH.principal();
+			final Principal principal = TestSession.ALISON_DACH.principal();
 
 			when(sessionStorageGateway.findById(SESSION.getId()))
 					.thenReturn(Optional.of(SESSION.info()));

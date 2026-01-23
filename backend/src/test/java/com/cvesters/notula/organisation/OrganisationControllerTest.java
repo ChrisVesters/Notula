@@ -31,18 +31,15 @@ import com.cvesters.notula.organisation.bdo.OrganisationInfo;
 import com.cvesters.notula.session.TestSession;
 import com.cvesters.notula.test.ControllerTest;
 import com.cvesters.notula.test.WithSession;
-import com.cvesters.notula.user.TestUser;
 
 @WebMvcTest(OrganisationController.class)
-@WithSession(TestSession.EDUARDO_CHRISTIANSEN_DEKSTOP)
+@WithSession(TestSession.EDUARDO_CHRISTIANSEN)
 class OrganisationControllerTest extends ControllerTest {
 
 	private static final String ENDPOINT = "/api/organisations";
 
-	private static final TestSession SESSION = TestSession.EDUARDO_CHRISTIANSEN_DEKSTOP;
-	// TODO: organisation to be taken from session.
+	private static final TestSession SESSION = TestSession.EDUARDO_CHRISTIANSEN;
 	private static final TestOrganisation ORGANISATION = TestOrganisation.SPORER;
-	private static final TestUser USER = SESSION.getUser();
 
 	@MockitoBean
 	private OrganisationService organisationService;
@@ -52,7 +49,7 @@ class OrganisationControllerTest extends ControllerTest {
 
 		@Test
 		void single() throws Exception {
-			final Principal principal = USER.principal();
+			final Principal principal = SESSION.principal();
 			final List<TestOrganisation> organisations = List.of(ORGANISATION);
 			final List<OrganisationInfo> info = organisations.stream()
 					.map(TestOrganisation::info)
@@ -71,7 +68,7 @@ class OrganisationControllerTest extends ControllerTest {
 
 		@Test
 		void multiple() throws Exception {
-			final Principal principal = USER.principal();
+			final Principal principal = SESSION.principal();
 			final List<TestOrganisation> organisations = List
 					.of(TestOrganisation.SPORER, TestOrganisation.GLOVER);
 			final List<OrganisationInfo> info = organisations.stream()
@@ -91,7 +88,7 @@ class OrganisationControllerTest extends ControllerTest {
 
 		@Test
 		void none() throws Exception {
-			final Principal principal = USER.principal();
+			final Principal principal = SESSION.principal();
 			final List<TestOrganisation> organisations = Collections
 					.emptyList();
 			final List<OrganisationInfo> info = organisations.stream()
@@ -136,7 +133,7 @@ class OrganisationControllerTest extends ControllerTest {
 
 		@Test
 		void success() throws Exception {
-			final Principal principal = USER.principal();
+			final Principal principal = SESSION.principal();
 			final OrganisationInfo info = ORGANISATION.info();
 
 			when(organisationService.create(eq(principal), argThat(org -> {

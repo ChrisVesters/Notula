@@ -22,7 +22,7 @@ import com.cvesters.notula.session.dao.SessionDao;
 
 class SessionStorageGatewayTest {
 
-	private static final TestSession SESSION = TestSession.EDUARDO_CHRISTIANSEN_DEKSTOP;
+	private static final TestSession SESSION = TestSession.EDUARDO_CHRISTIANSEN_SPORER;
 	private static final String HASHED_REFRESH_TOKEN = "hash";
 
 	private final SessionRepository sessionRepository = mock();

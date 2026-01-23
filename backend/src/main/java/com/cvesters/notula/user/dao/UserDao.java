@@ -1,5 +1,7 @@
 package com.cvesters.notula.user.dao;
 
+import java.util.Objects;
+
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
@@ -34,6 +36,8 @@ public class UserDao {
 	private String password;
 
 	public UserDao(final String email, final String password) {
+		Objects.requireNonNull(email);
+
 		this.email = email;
 		this.password = password;
 	}

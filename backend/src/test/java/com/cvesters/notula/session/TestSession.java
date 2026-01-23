@@ -6,16 +6,22 @@ import java.util.Optional;
 
 import lombok.Getter;
 
+import com.cvesters.notula.common.domain.Principal;
 import com.cvesters.notula.organisation.TestOrganisation;
 import com.cvesters.notula.session.bdo.SessionInfo;
 import com.cvesters.notula.user.TestUser;
 
+// TODO: find a way to linke to TestOrganisationUser if possible!
 @Getter
 public enum TestSession {
-	EDUARDO_CHRISTIANSEN_DEKSTOP(1L, TestUser.EDUARDO_CHRISTIANSEN,
+	EDUARDO_CHRISTIANSEN_SPORER(1L, TestUser.EDUARDO_CHRISTIANSEN,
 			TestOrganisation.SPORER, "abc7775",
 			OffsetDateTime.now().plus(Period.ofDays(7))),
-	EDUARDO_CHRISTIANSEN_MOBILE(7L, TestUser.EDUARDO_CHRISTIANSEN, null,
+	KRISTINA_THIEL(2L, TestUser.KRISTINA_THIEL, null, "eff74def",
+			OffsetDateTime.now().plus(Period.ofDays(30))),
+	ALISON_DACH(3L, TestUser.ALISON_DACH, null, "ghj89tyu",
+			OffsetDateTime.now().plus(Period.ofDays(15))),
+	EDUARDO_CHRISTIANSEN(7L, TestUser.EDUARDO_CHRISTIANSEN, null,
 			"ddef741", OffsetDateTime.now().minus(Period.ofDays(1)));
 
 	private final long id;
@@ -41,5 +47,14 @@ public enum TestSession {
 				.orElse(null);
 
 		return new SessionInfo(id, userId, organisationId, activeUntil);
+	}
+
+	public Principal principal() {
+		final long userId = user.getId();
+		final Long organisationId = Optional.ofNullable(organisation)
+				.map(TestOrganisation::getId)
+				.orElse(null);
+
+		return new Principal(userId, organisationId);
 	}
 }

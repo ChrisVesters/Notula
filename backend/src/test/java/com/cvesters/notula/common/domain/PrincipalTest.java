@@ -1,6 +1,7 @@
 package com.cvesters.notula.common.domain;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -13,7 +14,8 @@ class PrincipalTest {
 
 	private static final TestOrganisationUser ORGANISATION_USER = TestOrganisationUser.SPORER_EDUARDO_CHRISTIANSEN;
 	private static final TestUser USER = ORGANISATION_USER.getUser();
-	private static final TestOrganisation ORGANISATION = ORGANISATION_USER.getOrganisation();
+	private static final TestOrganisation ORGANISATION = ORGANISATION_USER
+			.getOrganisation();
 
 	@Nested
 	class Constructor {
@@ -23,16 +25,19 @@ class PrincipalTest {
 			final var principal = new Principal(USER.getId());
 
 			assertThat(principal.userId()).isEqualTo(USER.getId());
-			assertThat(principal.organisationId()).isEmpty();
+			assertThatThrownBy(principal::organisationId)
+					.isInstanceOf(IllegalStateException.class);
 		}
 
 		@Test
 		void withOrganisation() {
-			final var principal = new Principal(USER.getId(), ORGANISATION.getId());
-			
+			final var principal = new Principal(USER.getId(),
+					ORGANISATION.getId());
+
 			assertThat(principal.userId()).isEqualTo(USER.getId());
-			assertThat(principal.organisationId()).contains(ORGANISATION.getId());
+			assertThat(principal.organisationId())
+					.isEqualTo(ORGANISATION.getId());
 		}
 	}
-	
+
 }

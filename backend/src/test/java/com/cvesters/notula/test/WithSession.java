@@ -8,6 +8,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 
 import org.springframework.security.core.GrantedAuthority;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.context.SecurityContext;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.oauth2.jwt.Jwt;
@@ -41,11 +42,18 @@ public @interface WithSession {
 			headers.put("alg", "none");
 
 			final var claims = new HashMap<String, Object>();
+			final var authorities = new ArrayList<GrantedAuthority>();
+
 			claims.put("sub", user.getId());
 
-			final var jwt = new Jwt("token", iat, exp, headers, claims);
+			if (userSession.getOrganisation() != null) {
+				claims.put("organisation_id",
+						userSession.getOrganisation().getId());
+				authorities
+						.add(new SimpleGrantedAuthority("CLAIM_ORGANISATION"));
+			}
 
-			final var authorities = new ArrayList<GrantedAuthority>();
+			final var jwt = new Jwt("token", iat, exp, headers, claims);
 
 			JwtAuthenticationToken auth = new JwtAuthenticationToken(jwt,
 					authorities);

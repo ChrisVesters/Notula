@@ -10,7 +10,7 @@ import com.cvesters.notula.user.bdo.UserLogin;
 
 class SessionCreateDtoTest {
 
-	private static final TestSession SESSION = TestSession.EDUARDO_CHRISTIANSEN_DEKSTOP;
+	private static final TestSession SESSION = TestSession.EDUARDO_CHRISTIANSEN_SPORER;
 	private static final TestUser USER = SESSION.getUser();
 
 	@Test

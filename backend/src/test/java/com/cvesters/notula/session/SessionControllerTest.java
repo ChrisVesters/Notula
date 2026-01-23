@@ -36,7 +36,7 @@ class SessionControllerTest extends ControllerTest {
 
 	private static final String REFRESH_TOKEN_COOKIE = "refreshToken";
 
-	private static final TestSession SESSION = TestSession.EDUARDO_CHRISTIANSEN_DEKSTOP;
+	private static final TestSession SESSION = TestSession.EDUARDO_CHRISTIANSEN;
 	private static final TestUser USER = SESSION.getUser();
 	private static final String ACCESS_TOKEN = "access";
 
@@ -65,7 +65,7 @@ class SessionControllerTest extends ControllerTest {
 			mockMvc.perform(builder)
 					.andExpect(status().isCreated())
 					.andExpect(header().string("location",
-							SERVER + BASE_ENDPOINT + "/" + USER.getId()))
+							SERVER + BASE_ENDPOINT + "/" + SESSION.getId()))
 					.andExpect(content().json(expectedResponse));
 			// .andExpectAll(
 			// cookie().value(REFRESH_TOKEN_COOKIE,
@@ -148,7 +148,7 @@ class SessionControllerTest extends ControllerTest {
 	}
 
 	@Nested
-	@WithSession(TestSession.EDUARDO_CHRISTIANSEN_DEKSTOP)
+	@WithSession(TestSession.EDUARDO_CHRISTIANSEN)
 	class Update {
 
 		private static final String ENDPOINT = BASE_ENDPOINT + "/{id}";
@@ -159,7 +159,7 @@ class SessionControllerTest extends ControllerTest {
 			final var tokens = new SessionTokens(SESSION.info(), ACCESS_TOKEN,
 					SESSION.getRefreshToken());
 
-			when(sessionService.update(eq(USER.principal()), argThat(update -> {
+			when(sessionService.update(eq(SESSION.principal()), argThat(update -> {
 				assertThat(update.sessionId()).isEqualTo(SESSION.getId());
 				assertThat(update.organisationId())
 						.isEqualTo(organisation.getId());

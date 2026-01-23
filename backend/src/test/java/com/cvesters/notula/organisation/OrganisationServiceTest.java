@@ -15,14 +15,16 @@ import org.junit.jupiter.api.Test;
 
 import com.cvesters.notula.common.domain.Principal;
 import com.cvesters.notula.organisation.bdo.OrganisationInfo;
+import com.cvesters.notula.session.TestSession;
 import com.cvesters.notula.user.TestUser;
 
 class OrganisationServiceTest {
 
+	private static final TestSession SESSION = TestSession.EDUARDO_CHRISTIANSEN_SPORER;
 	private static final TestOrganisationUser ORGANISATION_USER = TestOrganisationUser.SPORER_EDUARDO_CHRISTIANSEN;
-	private static final TestOrganisation ORGANISATION = ORGANISATION_USER
+	private static final TestOrganisation ORGANISATION = SESSION
 			.getOrganisation();
-	private static final TestUser USER = ORGANISATION_USER.getUser();
+	private static final TestUser USER = SESSION.getUser();
 
 	private final OrganisationStorageGateway organisationStorage = mock();
 	private final OrganisationUserStorageGateway organisationUserStorage = mock();
@@ -35,7 +37,7 @@ class OrganisationServiceTest {
 
 		@Test
 		void success() {
-			final Principal principal = USER.principal();
+			final Principal principal = SESSION.principal();
 
 			when(organisationUserStorage.findAllByUserId(USER.getId()))
 					.thenReturn(List.of(ORGANISATION_USER.info()));
@@ -53,7 +55,7 @@ class OrganisationServiceTest {
 
 		@Test
 		void organisationUserNotFound() {
-			final Principal principal = USER.principal();
+			final Principal principal = SESSION.principal();
 
 			when(organisationUserStorage.findAllByUserId(USER.getId()))
 					.thenReturn(Collections.emptyList());
@@ -66,7 +68,7 @@ class OrganisationServiceTest {
 
 		@Test
 		void organisationNotFound() {
-			final Principal principal = USER.principal();
+			final Principal principal = SESSION.principal();
 
 			when(organisationUserStorage.findAllByUserId(USER.getId()))
 					.thenReturn(List.of(ORGANISATION_USER.info()));
@@ -94,7 +96,7 @@ class OrganisationServiceTest {
 
 		@Test
 		void success() {
-			final Principal principal = USER.principal();
+			final Principal principal = SESSION.principal();
 			final OrganisationInfo organisation = new OrganisationInfo(
 					ORGANISATION.getName());
 
@@ -117,7 +119,7 @@ class OrganisationServiceTest {
 
 		@Test
 		void organisationNull() {
-			final Principal principal = USER.principal();
+			final Principal principal = SESSION.principal();
 			final OrganisationInfo organisation = null;
 
 			assertThatThrownBy(

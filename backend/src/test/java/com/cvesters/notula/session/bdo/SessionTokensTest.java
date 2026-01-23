@@ -10,7 +10,7 @@ import com.cvesters.notula.session.TestSession;
 
 class SessionTokensTest {
 
-	private static final TestSession SESSION = TestSession.EDUARDO_CHRISTIANSEN_DEKSTOP;
+	private static final TestSession SESSION = TestSession.EDUARDO_CHRISTIANSEN_SPORER;
 	private static final String ACCESS_TOKEN = "access_token";
 	private static final String REFRESH_TOKEN = SESSION.getRefreshToken();
 
