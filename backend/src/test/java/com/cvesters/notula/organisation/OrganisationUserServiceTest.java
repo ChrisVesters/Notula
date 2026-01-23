@@ -13,13 +13,15 @@ import org.junit.jupiter.api.Test;
 
 import com.cvesters.notula.common.domain.Principal;
 import com.cvesters.notula.organisation.bdo.OrganisationUserInfo;
+import com.cvesters.notula.session.TestSession;
 import com.cvesters.notula.user.TestUser;
 
 class OrganisationUserServiceTest {
 
+	private static final TestSession SESSION = TestSession.EDUARDO_CHRISTIANSEN_SPORER;
 	private static final TestOrganisationUser ORGANISATION_USER = TestOrganisationUser.SPORER_EDUARDO_CHRISTIANSEN;
 	private static final TestUser USER = ORGANISATION_USER.getUser();
-	private static final Principal PRINCIPAL = USER.principal();
+	private static final Principal PRINCIPAL = SESSION.principal();
 
 	private final OrganisationUserStorageGateway organisationUserStorage = mock();
 

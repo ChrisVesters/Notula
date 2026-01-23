@@ -1,28 +1,17 @@
 package com.cvesters.notula.common.domain;
 
-import java.util.Optional;
+import org.apache.commons.lang3.Validate;
 
-import lombok.Getter;
-import lombok.experimental.Accessors;
-
-@Getter
-@Accessors(fluent = true)
-public class Principal {
-
-	private final long userId;
-	private final Long organisationId;
+public record Principal(long userId, Long organisationId) {
 
 	public Principal(final long userId) {
 		this(userId, null);
 	}
 
-	public Principal(final long userId, final Long organisationId) {
-		this.userId = userId;
-		this.organisationId = organisationId;
-	}
+	public Long organisationId() {
+		Validate.validState(organisationId != null);
 
-	public Optional<Long> organisationId() {
-		return Optional.ofNullable(organisationId);
+		return organisationId;
 	}
 
 }

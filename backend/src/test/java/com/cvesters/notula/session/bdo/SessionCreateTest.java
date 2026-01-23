@@ -14,7 +14,7 @@ import com.cvesters.notula.session.TestSession;
 
 class SessionCreateTest {
 
-	private static final TestSession SESSION = TestSession.EDUARDO_CHRISTIANSEN_DEKSTOP;
+	private static final TestSession SESSION = TestSession.EDUARDO_CHRISTIANSEN_SPORER;
 
 	@Nested
 	class Constructor {

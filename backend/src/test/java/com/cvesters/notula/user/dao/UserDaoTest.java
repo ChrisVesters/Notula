@@ -13,7 +13,7 @@ import com.cvesters.notula.user.TestUser;
 class UserDaoTest {
 
 	private static final TestUser USER = TestUser.EDUARDO_CHRISTIANSEN;
-	
+
 	@Nested
 	class Constructor {
 
@@ -26,8 +26,16 @@ class UserDaoTest {
 			assertThat(dao.getEmail()).isEqualTo(USER.getEmail().value());
 			assertThat(dao.getPassword()).isEqualTo(USER.getPassword().value());
 		}
+
+		@Test
+		void emailNull() {
+			final String password = USER.getPassword().value();
+
+			assertThatThrownBy(() -> new UserDao(null, password))
+					.isInstanceOf(NullPointerException.class);
+		}
 	}
-	
+
 	@Nested
 	class ToBdo {
 

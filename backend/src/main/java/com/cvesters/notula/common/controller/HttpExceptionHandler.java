@@ -1,7 +1,9 @@
 package com.cvesters.notula.common.controller;
 
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.converter.HttpMessageNotReadableException;
+import org.springframework.security.authorization.AuthorizationDeniedException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ControllerAdvice;
 import org.springframework.web.bind.annotation.ExceptionHandler;
@@ -27,6 +29,11 @@ public class HttpExceptionHandler { // extends ResponseEntityExceptionHandler {
 	// public ResponseEntity<Void> handle(final OperationNotAllowedException e) {
 	// return ResponseEntity.status(HttpStatus.METHOD_NOT_ALLOWED).build();
 	// }
+
+	@ExceptionHandler(AuthorizationDeniedException.class)
+	public ResponseEntity<Void> handle(final AuthorizationDeniedException e) {
+		return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
+	}
 
 	@ExceptionHandler(HttpMessageNotReadableException.class)
 	public ResponseEntity<Void> handle(final HttpMessageNotReadableException e) {

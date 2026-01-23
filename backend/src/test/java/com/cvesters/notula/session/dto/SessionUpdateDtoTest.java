@@ -12,7 +12,7 @@ class SessionUpdateDtoTest {
 
 	@Test
 	void toBdo() {
-		final TestSession session = TestSession.EDUARDO_CHRISTIANSEN_DEKSTOP;
+		final TestSession session = TestSession.EDUARDO_CHRISTIANSEN_SPORER;
 		final TestOrganisation organisation = TestOrganisation.SPORER;
 		final var dto = new SessionUpdateDto(organisation.getId());
 
