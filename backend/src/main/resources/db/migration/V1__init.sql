@@ -41,3 +41,15 @@ CREATE TABLE sessions(
 );
 
 CREATE INDEX ON sessions(user_id);
+
+
+CREATE TABLE meetings(
+	id BIGINT NOT NULL GENERATED ALWAYS AS IDENTITY,
+	organisation_id BIGINT NOT NULL,
+	name TEXT NOT NULL,
+
+	PRIMARY KEY(id),
+	FOREIGN KEY(organisation_id) REFERENCES organisations(id) ON DELETE CASCADE
+);
+
+CREATE INDEX ON meetings(organisation_id);
