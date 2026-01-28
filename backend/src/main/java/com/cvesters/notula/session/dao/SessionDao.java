@@ -14,23 +14,20 @@ import org.apache.commons.lang3.Validate;
 import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
-import lombok.Setter;
 
 import com.cvesters.notula.session.bdo.SessionCreate;
 import com.cvesters.notula.session.bdo.SessionInfo;
+import com.cvesters.notula.session.bdo.SessionUpdate;
 
 @Getter
-@Setter
 @NoArgsConstructor(access = AccessLevel.PRIVATE)
 @Entity(name = "sessions")
 public class SessionDao {
 
 	@Id
 	@GeneratedValue(strategy = GenerationType.IDENTITY)
-	@Setter(value = AccessLevel.PRIVATE)
 	private Long id;
 
-	@Setter(value = AccessLevel.PRIVATE)
 	@Column(name = "user_id", nullable = false)
 	private long userId;
 
@@ -50,6 +47,13 @@ public class SessionDao {
 		this.userId = bdo.getUserId();
 		this.refreshToken = refreshToken;
 		this.activeUntil = bdo.getActiveUntil();
+	}
+
+	public void apply(final SessionUpdate update) {
+		Objects.requireNonNull(update);
+		Validate.isTrue(id == update.sessionId());
+
+		this.organisationId = update.organisationId();
 	}
 
 	public SessionInfo toBdo() {

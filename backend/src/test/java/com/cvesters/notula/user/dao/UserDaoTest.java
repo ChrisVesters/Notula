@@ -29,9 +29,9 @@ class UserDaoTest {
 
 		@Test
 		void emailNull() {
+			final String email = null;
 			final String password = USER.getPassword().value();
-
-			assertThatThrownBy(() -> new UserDao(null, password))
+			assertThatThrownBy(() -> new UserDao(email, password))
 					.isInstanceOf(NullPointerException.class);
 		}
 	}

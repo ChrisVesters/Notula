@@ -124,7 +124,7 @@ class SessionStorageGatewayTest {
 			assertThat(result).isSameAs(updatedInfo);
 
 			final InOrder order = inOrder(sessionRepository, dao);
-			order.verify(dao).setOrganisationId(ORGANIZATION_ID);
+			order.verify(dao).apply(update);
 			order.verify(sessionRepository).save(dao);
 		}
 

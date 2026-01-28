@@ -45,7 +45,7 @@ public class SessionStorageGateway {
 		final SessionDao dao = sessionRepository.findById(update.sessionId())
 				.orElseThrow(MissingEntityException::new);
 
-		dao.setOrganisationId(update.organisationId());
+		dao.apply(update);
 		final SessionDao updated = sessionRepository.save(dao);
 
 		return updated.toBdo();

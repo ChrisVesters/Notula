@@ -22,7 +22,7 @@ public class SessionService {
 	private final OrganisationUserService organisationUserService;
 	private final AccessTokenService accessTokenService;
 
-	private final SessionStorageGateway sessionStorageGateway;
+	private final SessionStorageGateway sessionStorage;
 
 	public SessionService(final UserService userService,
 			final OrganisationUserService organisationUserService,
@@ -31,7 +31,7 @@ public class SessionService {
 		this.userService = userService;
 		this.organisationUserService = organisationUserService;
 		this.accessTokenService = accessTokenService;
-		this.sessionStorageGateway = sessionStorageGateway;
+		this.sessionStorage = sessionStorageGateway;
 	}
 
 	public SessionTokens create(final UserLogin request) {
@@ -41,7 +41,7 @@ public class SessionService {
 				.orElseThrow(MissingEntityException::new);
 
 		final var action = new SessionCreate(user);
-		final SessionInfo createdSession = sessionStorageGateway.create(action);
+		final SessionInfo createdSession = sessionStorage.create(action);
 		final String accessToken = accessTokenService.create(createdSession);
 		final String refreshToken = action.getRefreshToken();
 
@@ -53,7 +53,7 @@ public class SessionService {
 		Objects.requireNonNull(principal);
 		Objects.requireNonNull(update);
 
-		sessionStorageGateway.findById(update.sessionId())
+		sessionStorage.findById(update.sessionId())
 				.filter(session -> session.getUserId() == principal.userId())
 				.orElseThrow(MissingEntityException::new);
 
@@ -63,7 +63,7 @@ public class SessionService {
 				.findFirst()
 				.orElseThrow(MissingEntityException::new);
 
-		final SessionInfo session = sessionStorageGateway.update(update);
+		final SessionInfo session = sessionStorage.update(update);
 		final String accessToken = accessTokenService.create(session);
 
 		return new SessionTokens(session, accessToken);
