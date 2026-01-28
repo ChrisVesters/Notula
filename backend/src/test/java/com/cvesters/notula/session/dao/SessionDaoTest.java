@@ -12,6 +12,7 @@ import org.junit.jupiter.api.Test;
 import com.cvesters.notula.session.TestSession;
 import com.cvesters.notula.session.bdo.SessionCreate;
 import com.cvesters.notula.session.bdo.SessionInfo;
+import com.cvesters.notula.session.bdo.SessionUpdate;
 
 class SessionDaoTest {
 
@@ -49,7 +50,53 @@ class SessionDaoTest {
 			assertThatThrownBy(() -> new SessionDao(bdo, null))
 					.isInstanceOf(NullPointerException.class);
 		}
+	}
 
+	@Nested
+	class ApplySessionUpdate {
+
+		private final static SessionCreate BDO = new SessionCreate(
+				SESSION.getUser().info());
+		private SessionDao dao;
+
+		@BeforeEach
+		void setup() throws Exception {
+			dao = new SessionDao(BDO, HASHED_REFRESH_TOKEN);
+			final var idField = dao.getClass().getDeclaredField("id");
+			idField.setAccessible(true);
+			idField.set(dao, SESSION.getId());
+		}
+
+		@Test
+		void success() {
+			final long organisationId = 22;
+			final var update = new SessionUpdate(SESSION.getId(),
+					organisationId);
+
+			dao.apply(update);
+
+			assertThat(dao.getId()).isEqualTo(SESSION.getId());
+			assertThat(dao.getUserId()).isEqualTo(SESSION.getUser().getId());
+			assertThat(dao.getOrganisationId()).isEqualTo(organisationId);
+			assertThat(dao.getRefreshToken()).isEqualTo(HASHED_REFRESH_TOKEN);
+			assertThat(dao.getActiveUntil()).isEqualTo(BDO.getActiveUntil());
+		}
+
+		@Test
+		void wrongSessionId() {
+			final long sessionId = Integer.MAX_VALUE;
+			final var update = new SessionUpdate(sessionId,
+					SESSION.getOrganisation().getId());
+
+			assertThatThrownBy(() -> dao.apply(update))
+					.isInstanceOf(IllegalArgumentException.class);
+		}
+
+		@Test
+		void updateNull() {
+			assertThatThrownBy(() -> dao.apply(null))
+					.isInstanceOf(NullPointerException.class);
+		}
 	}
 
 	@Nested
@@ -87,7 +134,8 @@ class SessionDaoTest {
 			idField.setAccessible(true);
 			idField.set(dao, SESSION.getId());
 
-			dao.setOrganisationId(SESSION.getOrganisation().getId());
+			dao.apply(new SessionUpdate(SESSION.getId(),
+					SESSION.getOrganisation().getId()));
 
 			final SessionInfo bdo = dao.toBdo();
 

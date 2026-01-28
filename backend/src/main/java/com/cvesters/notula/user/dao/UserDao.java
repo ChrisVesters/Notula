@@ -13,20 +13,17 @@ import org.apache.commons.lang3.Validate;
 import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
-import lombok.Setter;
 
 import com.cvesters.notula.common.domain.Email;
 import com.cvesters.notula.user.bdo.UserInfo;
 
 @Getter
-@Setter
 @NoArgsConstructor(access = AccessLevel.PRIVATE)
 @Entity(name = "users")
 public class UserDao {
-	
+
 	@Id
 	@GeneratedValue(strategy = GenerationType.IDENTITY)
-	@Setter(value = AccessLevel.PRIVATE)
 	private Long id;
 
 	@Column(nullable = false, unique = true)

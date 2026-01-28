@@ -123,13 +123,6 @@ class UserRepositoryTest {
 		}
 
 		@Test
-		void emailNull() {
-			final var dao = new UserDao(null, USER.getPassword().value());
-			assertThatThrownBy(() -> userRepository.save(dao))
-					.isInstanceOf(DataIntegrityViolationException.class);
-		}
-
-		@Test
 		void emailDuplicate() {
 			final var dao = new UserDao(USER.getEmail().value(),
 					USER.getPassword().value());

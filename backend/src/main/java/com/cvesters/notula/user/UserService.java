@@ -12,26 +12,26 @@ import com.cvesters.notula.user.bdo.UserLogin;
 @Service
 public class UserService {
 
-	private final UserStorageGateway userStorageGateway;
+	private final UserStorageGateway userStorage;
 
 	public UserService(final UserStorageGateway userStorageService) {
-		this.userStorageGateway = userStorageService;
+		this.userStorage = userStorageService;
 	}
 
 	public UserInfo createUser(final UserLogin userLogin) {
 		Objects.requireNonNull(userLogin);
 
-		if (userStorageGateway.existsByEmail(userLogin.getEmail())) {
+		if (userStorage.existsByEmail(userLogin.getEmail())) {
 			throw new DuplicateEntityException();
 		}
 
-		return userStorageGateway.create(userLogin);
+		return userStorage.create(userLogin);
 	}
 
 	public Optional<UserInfo> findByLogin(final UserLogin userLogin) {
 		Objects.requireNonNull(userLogin);
 
-		return userStorageGateway.findByLogin(userLogin);
+		return userStorage.findByLogin(userLogin);
 	}
 
 }
