@@ -1,6 +1,7 @@
 package com.cvesters.notula.organisation.dto;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import org.junit.jupiter.api.Test;
 
@@ -14,8 +15,9 @@ class OrganisationCreateDtoTest {
 	void toBdo() {
 		final var dto = new OrganisationCreateDto(ORGANISATION.getName());
 		final var bdo = dto.toBdo();
-		
-		assertThat(bdo.getId()).isNull();
+
+		assertThatThrownBy(() -> bdo.getId())
+				.isInstanceOf(IllegalStateException.class);
 		assertThat(bdo.getName()).isEqualTo(ORGANISATION.getName());
 	}
 }

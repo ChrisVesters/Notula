@@ -22,7 +22,8 @@ class OrganisationInfoTest {
 			final var organisation = new OrganisationInfo(
 					ORGANISATION.getName());
 
-			assertThat(organisation.getId()).isNull();
+			assertThatThrownBy(() -> organisation.getId())
+					.isInstanceOf(IllegalStateException.class);
 			assertThat(organisation.getName())
 					.isEqualTo(ORGANISATION.getName());
 		}
@@ -42,7 +43,8 @@ class OrganisationInfoTest {
 			final var organisation = new OrganisationInfo(null,
 					ORGANISATION.getName());
 
-			assertThat(organisation.getId()).isNull();
+			assertThatThrownBy(() -> organisation.getId())
+					.isInstanceOf(IllegalStateException.class);
 			assertThat(organisation.getName())
 					.isEqualTo(ORGANISATION.getName());
 		}

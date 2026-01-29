@@ -23,4 +23,10 @@ public class OrganisationInfo {
 		this.id = id;
 		this.name = name;
 	}
+
+	public long getId() {
+		Validate.validState(id != null);
+
+		return id;
+	}	
 }

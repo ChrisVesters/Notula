@@ -1,6 +1,7 @@
 package com.cvesters.notula.organisation;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.ArgumentMatchers.eq;
@@ -137,7 +138,8 @@ class OrganisationControllerTest extends ControllerTest {
 			final OrganisationInfo info = ORGANISATION.info();
 
 			when(organisationService.create(eq(principal), argThat(org -> {
-				assertThat(org.getId()).isNull();
+				assertThatThrownBy(() -> org.getId())
+						.isInstanceOf(IllegalStateException.class);
 				assertThat(org.getName()).isEqualTo(ORGANISATION.getName());
 				return true;
 			}))).thenReturn(info);
