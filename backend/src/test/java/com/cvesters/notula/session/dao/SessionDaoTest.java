@@ -5,6 +5,9 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
+import java.time.OffsetDateTime;
+import java.util.Optional;
+
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -12,7 +15,6 @@ import org.junit.jupiter.api.Test;
 import com.cvesters.notula.session.TestSession;
 import com.cvesters.notula.session.bdo.SessionCreate;
 import com.cvesters.notula.session.bdo.SessionInfo;
-import com.cvesters.notula.session.bdo.SessionUpdate;
 
 class SessionDaoTest {
 
@@ -70,31 +72,35 @@ class SessionDaoTest {
 		@Test
 		void success() {
 			final long organisationId = 22;
-			final var update = new SessionUpdate(SESSION.getId(),
-					organisationId);
+			final var activeUntil = OffsetDateTime.now().plusDays(5);
 
-			dao.apply(update);
+			final SessionInfo update = mock();
+			when(update.getId()).thenReturn(SESSION.getId());
+			when(update.getOrganisationId())
+					.thenReturn(Optional.of(organisationId));
+			when(update.getActiveUntil()).thenReturn(activeUntil);
+
+			dao.update(update);
 
 			assertThat(dao.getId()).isEqualTo(SESSION.getId());
 			assertThat(dao.getUserId()).isEqualTo(SESSION.getUser().getId());
 			assertThat(dao.getOrganisationId()).isEqualTo(organisationId);
 			assertThat(dao.getRefreshToken()).isEqualTo(HASHED_REFRESH_TOKEN);
-			assertThat(dao.getActiveUntil()).isEqualTo(BDO.getActiveUntil());
+			assertThat(dao.getActiveUntil()).isEqualTo(activeUntil);
 		}
 
 		@Test
 		void wrongSessionId() {
-			final long sessionId = Integer.MAX_VALUE;
-			final var update = new SessionUpdate(sessionId,
-					SESSION.getOrganisation().getId());
+			final SessionInfo update = mock();
+			when(update.getId()).thenReturn(Long.MAX_VALUE);
 
-			assertThatThrownBy(() -> dao.apply(update))
+			assertThatThrownBy(() -> dao.update(update))
 					.isInstanceOf(IllegalArgumentException.class);
 		}
 
 		@Test
 		void updateNull() {
-			assertThatThrownBy(() -> dao.apply(null))
+			assertThatThrownBy(() -> dao.update(null))
 					.isInstanceOf(NullPointerException.class);
 		}
 	}
@@ -134,8 +140,10 @@ class SessionDaoTest {
 			idField.setAccessible(true);
 			idField.set(dao, SESSION.getId());
 
-			dao.apply(new SessionUpdate(SESSION.getId(),
-					SESSION.getOrganisation().getId()));
+			final var organisationIdField = dao.getClass()
+					.getDeclaredField("organisationId");
+			organisationIdField.setAccessible(true);
+			organisationIdField.set(dao, SESSION.getOrganisation().getId());
 
 			final SessionInfo bdo = dao.toBdo();
 

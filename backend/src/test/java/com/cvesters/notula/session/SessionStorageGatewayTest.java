@@ -17,7 +17,6 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import com.cvesters.notula.common.exception.MissingEntityException;
 import com.cvesters.notula.session.bdo.SessionCreate;
 import com.cvesters.notula.session.bdo.SessionInfo;
-import com.cvesters.notula.session.bdo.SessionUpdate;
 import com.cvesters.notula.session.dao.SessionDao;
 
 class SessionStorageGatewayTest {
@@ -104,12 +103,12 @@ class SessionStorageGatewayTest {
 	@Nested
 	class Update {
 
-		private static final long ORGANIZATION_ID = 42L;
-		private final SessionUpdate update = new SessionUpdate(SESSION.getId(),
-				ORGANIZATION_ID);
+		private final SessionInfo update = mock();
 
 		@Test
 		void success() {
+			when(update.getId()).thenReturn(SESSION.getId());
+
 			final SessionDao dao = mock();
 			final SessionDao updated = mock();
 			when(sessionRepository.findById(SESSION.getId()))
@@ -124,7 +123,7 @@ class SessionStorageGatewayTest {
 			assertThat(result).isSameAs(updatedInfo);
 
 			final InOrder order = inOrder(sessionRepository, dao);
-			order.verify(dao).apply(update);
+			order.verify(dao).update(update);
 			order.verify(sessionRepository).save(dao);
 		}
 

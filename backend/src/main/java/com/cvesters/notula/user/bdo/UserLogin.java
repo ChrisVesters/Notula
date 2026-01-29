@@ -9,6 +9,7 @@ import com.cvesters.notula.common.domain.Password;
 
 @Getter
 public class UserLogin {
+
 	private final Email email;
 	private final Password password;
 

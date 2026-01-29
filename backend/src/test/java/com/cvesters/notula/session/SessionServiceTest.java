@@ -3,15 +3,18 @@ package com.cvesters.notula.session;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.argThat;
+import static org.mockito.Mockito.inOrder;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
+import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
+import org.mockito.InOrder;
 
 import com.cvesters.notula.common.domain.Principal;
 import com.cvesters.notula.common.exception.MissingEntityException;
@@ -101,14 +104,19 @@ class SessionServiceTest {
 
 		@Test
 		void success() {
-			when(sessionStorageGateway.findById(SESSION.getId()))
-					.thenReturn(Optional.of(SESSION.info()));
+			final SessionInfo bdo = mock();
+			when(bdo.getUserId()).thenReturn(SESSION.getUser().getId());
 
 			when(organisationUserService.getAll(PRINCIPAL))
 					.thenReturn(List.of(ORGANISATION_USER.info()));
 
-			final SessionInfo updated = new SessionInfo(SESSION.getId(), USER.getId(), ORGANISATION.getId(), SESSION.getActiveUntil());
-			when(sessionStorageGateway.update(UPDATE)).thenReturn(updated);
+			when(sessionStorageGateway.findById(SESSION.getId()))
+					.thenReturn(Optional.of(bdo));
+
+			final SessionInfo updated = new SessionInfo(SESSION.getId(),
+					USER.getId(), ORGANISATION.getId(),
+					SESSION.getActiveUntil());
+			when(sessionStorageGateway.update(bdo)).thenReturn(updated);
 			when(accessTokenService.create(updated)).thenReturn(ACCESS_TOKEN);
 
 			final SessionTokens result = sessionService.update(PRINCIPAL,
@@ -117,11 +125,21 @@ class SessionServiceTest {
 			assertThat(result.getId()).isEqualTo(SESSION.getId());
 			assertThat(result.getAccessToken()).isEqualTo(ACCESS_TOKEN);
 			assertThat(result.getRefreshToken()).isEmpty();
-			assertThat(result.getActiveUntil()).isEqualTo(SESSION.getActiveUntil());
+			assertThat(result.getActiveUntil())
+					.isEqualTo(SESSION.getActiveUntil());
+
+			final InOrder order = inOrder(bdo, sessionStorageGateway,
+					accessTokenService);
+			order.verify(bdo).update(UPDATE);
+			order.verify(sessionStorageGateway).update(bdo);
+			order.verify(accessTokenService).create(updated);
 		}
 
 		@Test
 		void sessionNotFound() {
+			when(organisationUserService.getAll(PRINCIPAL))
+					.thenReturn(List.of(ORGANISATION_USER.info()));
+
 			when(sessionStorageGateway.findById(SESSION.getId()))
 					.thenReturn(Optional.empty());
 
@@ -131,17 +149,24 @@ class SessionServiceTest {
 
 		@Test
 		void mismatchedUser() {
-			final Principal principal = TestSession.ALISON_DACH.principal();
+			final SessionInfo bdo = mock();
+			when(bdo.getUserId()).thenReturn(SESSION.getUser().getId() + 1);
+
+			when(organisationUserService.getAll(PRINCIPAL))
+					.thenReturn(List.of(ORGANISATION_USER.info()));
 
 			when(sessionStorageGateway.findById(SESSION.getId()))
-					.thenReturn(Optional.of(SESSION.info()));
+					.thenReturn(Optional.of(bdo));
 
-			assertThatThrownBy(() -> sessionService.update(principal, UPDATE))
+			assertThatThrownBy(() -> sessionService.update(PRINCIPAL, UPDATE))
 					.isInstanceOf(MissingEntityException.class);
 		}
 
 		@Test
 		void organisationNotFound() {
+			when(organisationUserService.getAll(PRINCIPAL))
+					.thenReturn(Collections.emptyList());
+
 			when(sessionStorageGateway.findById(SESSION.getId()))
 					.thenReturn(Optional.of(SESSION.info()));
 

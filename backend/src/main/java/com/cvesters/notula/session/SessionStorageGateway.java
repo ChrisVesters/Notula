@@ -9,7 +9,6 @@ import org.springframework.stereotype.Service;
 import com.cvesters.notula.common.exception.MissingEntityException;
 import com.cvesters.notula.session.bdo.SessionCreate;
 import com.cvesters.notula.session.bdo.SessionInfo;
-import com.cvesters.notula.session.bdo.SessionUpdate;
 import com.cvesters.notula.session.dao.SessionDao;
 
 @Service
@@ -39,13 +38,13 @@ public class SessionStorageGateway {
 		return created.toBdo();
 	}
 
-	public SessionInfo update(final SessionUpdate update) {
+	public SessionInfo update(final SessionInfo update) {
 		Objects.requireNonNull(update);
 
-		final SessionDao dao = sessionRepository.findById(update.sessionId())
+		final SessionDao dao = sessionRepository.findById(update.getId())
 				.orElseThrow(MissingEntityException::new);
 
-		dao.apply(update);
+		dao.update(update);
 		final SessionDao updated = sessionRepository.save(dao);
 
 		return updated.toBdo();

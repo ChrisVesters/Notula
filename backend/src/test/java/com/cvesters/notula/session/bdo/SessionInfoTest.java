@@ -25,7 +25,7 @@ class SessionInfoTest {
 			assertThat(sessionInfo.getId()).isEqualTo(SESSION.getId());
 			assertThat(sessionInfo.getUserId())
 					.isEqualTo(SESSION.getUser().getId());
-					assertThat(sessionInfo.getOrganisationId()).isEmpty();
+			assertThat(sessionInfo.getOrganisationId()).isEmpty();
 			assertThat(sessionInfo.getActiveUntil())
 					.isEqualTo(SESSION.getActiveUntil());
 		}
@@ -33,7 +33,8 @@ class SessionInfoTest {
 		@Test
 		void withOrganisationId() {
 			final var sessionInfo = new SessionInfo(SESSION.getId(),
-					SESSION.getUser().getId(), SESSION.getOrganisation().getId(),
+					SESSION.getUser().getId(),
+					SESSION.getOrganisation().getId(),
 					SESSION.getActiveUntil());
 
 			assertThat(sessionInfo.getId()).isEqualTo(SESSION.getId());
@@ -53,6 +54,43 @@ class SessionInfoTest {
 
 			assertThatThrownBy(() -> new SessionInfo(id, userId, activeUntil))
 					.isInstanceOf(NullPointerException.class);
+		}
+	}
+
+	@Nested
+	class Update {
+
+		private final SessionInfo sessionInfo = SESSION.info();
+
+		@Test
+		void success() {
+			final long organisationId = SESSION.getOrganisation().getId() + 1;
+			final var update = new SessionUpdate(SESSION.getId(),
+					organisationId);
+
+			sessionInfo.update(update);
+
+			assertThat(sessionInfo.getId()).isEqualTo(SESSION.getId());
+			assertThat(sessionInfo.getUserId())
+					.isEqualTo(SESSION.getUser().getId());
+			assertThat(sessionInfo.getOrganisationId())
+					.contains(organisationId);
+			assertThat(sessionInfo.getActiveUntil())
+					.isEqualTo(SESSION.getActiveUntil());
+		}
+
+		@Test
+		void updateNull() {
+			assertThatThrownBy(() -> sessionInfo.update(null))
+					.isInstanceOf(NullPointerException.class);
+		}
+
+		@Test
+		void updateWrongId() {
+			final var update = new SessionUpdate(Long.MAX_VALUE, 5L);
+
+			assertThatThrownBy(() -> sessionInfo.update(update))
+					.isInstanceOf(IllegalArgumentException.class);
 		}
 	}
 }
