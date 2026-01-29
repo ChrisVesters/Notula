@@ -53,17 +53,19 @@ public class SessionService {
 		Objects.requireNonNull(principal);
 		Objects.requireNonNull(update);
 
-		sessionStorage.findById(update.sessionId())
-				.filter(session -> session.getUserId() == principal.userId())
-				.orElseThrow(MissingEntityException::new);
-
 		organisationUserService.getAll(principal)
 				.stream()
 				.filter(ou -> ou.getOrganisationId() == update.organisationId())
 				.findFirst()
 				.orElseThrow(MissingEntityException::new);
 
-		final SessionInfo session = sessionStorage.update(update);
+		final SessionInfo bdo = sessionStorage.findById(update.sessionId())
+				.filter(session -> session.getUserId() == principal.userId())
+				.orElseThrow(MissingEntityException::new);
+
+		bdo.update(update);
+
+		final SessionInfo session = sessionStorage.update(bdo);
 		final String accessToken = accessTokenService.create(session);
 
 		return new SessionTokens(session, accessToken);

@@ -17,7 +17,6 @@ import lombok.NoArgsConstructor;
 
 import com.cvesters.notula.session.bdo.SessionCreate;
 import com.cvesters.notula.session.bdo.SessionInfo;
-import com.cvesters.notula.session.bdo.SessionUpdate;
 
 @Getter
 @NoArgsConstructor(access = AccessLevel.PRIVATE)
@@ -28,7 +27,7 @@ public class SessionDao {
 	@GeneratedValue(strategy = GenerationType.IDENTITY)
 	private Long id;
 
-	@Column(name = "user_id", nullable = false)
+	@Column(name = "user_id", nullable = false, updatable = false)
 	private long userId;
 
 	@Column(name = "organisation_id", nullable = true)
@@ -49,11 +48,12 @@ public class SessionDao {
 		this.activeUntil = bdo.getActiveUntil();
 	}
 
-	public void apply(final SessionUpdate update) {
-		Objects.requireNonNull(update);
-		Validate.isTrue(id == update.sessionId());
+	public void update(final SessionInfo info) {
+		Objects.requireNonNull(info);
+		Validate.isTrue(id == info.getId());
 
-		this.organisationId = update.organisationId();
+		this.organisationId = info.getOrganisationId().orElse(null);
+		this.activeUntil = info.getActiveUntil();
 	}
 
 	public SessionInfo toBdo() {
