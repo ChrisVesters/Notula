@@ -23,7 +23,7 @@ public enum TestMeeting {
 	}
 
 	public MeetingInfo info() {
-		return new MeetingInfo(id, name);
+		return new MeetingInfo(id, organisation.getId(), name);
 	}
 
 }

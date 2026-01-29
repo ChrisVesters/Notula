@@ -11,16 +11,24 @@ import com.cvesters.notula.meeting.bdo.MeetingInfo;
 @Service
 public class MeetingService {
 
-	private final MeetingStorageGateway meetingStorageGateway;
+	private final MeetingStorageGateway meetingStorage;
 
 	public MeetingService(final MeetingStorageGateway meetingStorageGateway) {
-		this.meetingStorageGateway = meetingStorageGateway;
+		this.meetingStorage = meetingStorageGateway;
 	}
 
 	public List<MeetingInfo> getAll(final Principal principal) {
 		Objects.requireNonNull(principal);
 
-		return meetingStorageGateway
+		return meetingStorage
 				.findAllByOrganisationId(principal.organisationId());
+	}
+
+	public MeetingInfo create(final Principal principal,
+			final MeetingInfo meeting) {
+		Objects.requireNonNull(principal);
+		Objects.requireNonNull(meeting);
+
+		return meetingStorage.create(meeting);
 	}
 }

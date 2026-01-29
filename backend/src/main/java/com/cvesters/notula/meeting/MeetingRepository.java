@@ -10,4 +10,6 @@ public interface MeetingRepository extends Repository<MeetingDao, Long> {
 
 	List<MeetingDao> findAllByOrganisationId(long organisationId);
 
+	MeetingDao save(MeetingDao meeting);
+
 }

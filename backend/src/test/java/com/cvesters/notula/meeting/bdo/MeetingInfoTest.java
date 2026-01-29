@@ -19,31 +19,36 @@ public class MeetingInfoTest {
 
 		@Test
 		void withoutId() {
-			final var result = new MeetingInfo(MEETING.name());
+			final var result = new MeetingInfo(
+					MEETING.getOrganisation().getId(), MEETING.getName());
 
-			assertThat(result.getId()).isNull();
-			assertThat(result.getName()).isEqualTo(MEETING.name());
+			assertThatThrownBy(() -> result.getId())
+					.isInstanceOf(IllegalStateException.class);
+			assertThat(result.getName()).isEqualTo(MEETING.getName());
 		}
 
 		@Test
-		void withId() {			
-			final var result = new MeetingInfo(MEETING.getId(), MEETING.name());
+		void withId() {
+			final var result = new MeetingInfo(MEETING.getId(),
+					MEETING.getOrganisation().getId(), MEETING.getName());
 
 			assertThat(result.getId()).isEqualTo(MEETING.getId());
-			assertThat(result.getName()).isEqualTo(MEETING.name());
+			assertThat(result.getName()).isEqualTo(MEETING.getName());
 		}
 
 		@Test
 		void nameNull() {
-			assertThatThrownBy(() -> new MeetingInfo(MEETING.getId(), null))
-					.isInstanceOf(NullPointerException.class);
+			assertThatThrownBy(() -> new MeetingInfo(MEETING.getId(),
+					MEETING.getOrganisation().getId(), null))
+							.isInstanceOf(NullPointerException.class);
 		}
 
 		@ParameterizedTest
 		@ValueSource(strings = { "", " " })
 		void nameInvalid(final String name) {
-			assertThatThrownBy(() -> new MeetingInfo(MEETING.getId(), name))
-					.isInstanceOf(IllegalArgumentException.class);
+			assertThatThrownBy(() -> new MeetingInfo(MEETING.getId(),
+					MEETING.getOrganisation().getId(), name))
+							.isInstanceOf(IllegalArgumentException.class);
 		}
 	}
 }

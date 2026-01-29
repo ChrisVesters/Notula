@@ -19,8 +19,7 @@ class MeetingDaoTest {
 
 		@Test
 		void success() {
-			final var dao = new MeetingDao(MEETING.getOrganisation().getId(),
-					MEETING.getName());
+			final var dao = new MeetingDao(MEETING.info());
 
 			assertThat(dao.getId()).isNull();
 			assertThat(dao.getOrganisationId())
@@ -30,9 +29,7 @@ class MeetingDaoTest {
 
 		@Test
 		void nameNull() {
-			final long organisationId = MEETING.getOrganisation().getId();
-
-			assertThatThrownBy(() -> new MeetingDao(organisationId, null))
+			assertThatThrownBy(() -> new MeetingDao(null))
 					.isInstanceOf(NullPointerException.class);
 		}
 	}
@@ -40,8 +37,7 @@ class MeetingDaoTest {
 	@Nested
 	class ToBdo {
 
-		private final MeetingDao dao = new MeetingDao(
-				MEETING.getOrganisation().getId(), MEETING.getName());
+		private final MeetingDao dao = new MeetingDao(MEETING.info());
 
 		@Test
 		void success() throws Exception {
@@ -52,6 +48,8 @@ class MeetingDaoTest {
 			final var bdo = dao.toBdo();
 
 			assertThat(bdo.getId()).isEqualTo(MEETING.getId());
+			assertThat(bdo.getOrganisationId())
+					.isEqualTo(MEETING.getOrganisation().getId());
 			assertThat(bdo.getName()).isEqualTo(MEETING.getName());
 		}
 

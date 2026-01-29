@@ -1,6 +1,8 @@
 package com.cvesters.notula.meeting;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -88,6 +90,38 @@ class MeetingStorageGatewayTest {
 					.findAllByOrganisationId(organisationId);
 
 			assertThat(result).isEmpty();
+		}
+	}
+
+	@Nested
+	class Create {
+
+		private final TestMeeting MEETING = TestMeeting.SPORER_PROJECT;
+
+		@Test
+		void success() {
+			final MeetingDao created = mock();
+			final MeetingInfo bdo = mock();
+			when(created.toBdo()).thenReturn(bdo);
+
+			when(meetingRepository.save(argThat(dao -> {
+				assertThat(dao.getId()).isNull();
+				assertThat(dao.getOrganisationId())
+						.isEqualTo(MEETING.getOrganisation().getId());
+				assertThat(dao.getName()).isEqualTo(MEETING.getName());
+				return true;
+			}))).thenReturn(created);
+
+			final MeetingInfo meetingInfo = gateway
+					.create(MEETING.info());
+
+			assertThat(meetingInfo).isEqualTo(bdo);
+		}
+
+		@Test
+		void organisationNull() {
+			assertThatThrownBy(() -> gateway.create(null))
+					.isInstanceOf(NullPointerException.class);
 		}
 	}
 }
