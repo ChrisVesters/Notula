@@ -1,19 +1,30 @@
 package com.cvesters.notula.meeting;
 
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.argThat;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import java.util.Collections;
 import java.util.List;
+import java.util.Optional;
 import java.util.stream.Collectors;
 
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.MethodSource;
+import org.junit.jupiter.params.provider.NullAndEmptySource;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
+import org.springframework.http.MediaType;
 import org.springframework.security.test.context.support.WithAnonymousUser;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 
@@ -72,21 +83,6 @@ class MeetingControllerTest extends ControllerTest {
 			mockMvc.perform(builder).andExpect(status().isForbidden());
 		}
 
-		private String getResponse(final List<TestMeeting> organisations) {
-			return organisations.stream()
-					.map(this::getResponse)
-					.collect(Collectors.joining(",", "[", "]"));
-		}
-
-		private String getResponse(final TestMeeting meeting) {
-			return """
-					{
-						"id": %s,
-						"name": "%s"
-					}
-					""".formatted(meeting.getId(), meeting.getName());
-		}
-
 		public static List<List<TestMeeting>> cases() {
 			return List.of(Collections.emptyList(),
 					List.of(TestMeeting.SPORER_PROJECT),
@@ -96,91 +92,102 @@ class MeetingControllerTest extends ControllerTest {
 		}
 	}
 
-	// @Nested
-	// class Create {
+	@Nested
+	class Create {
 
-	// @Test
-	// void success() throws Exception {
-	// final Principal principal = SESSION.principal();
-	// final OrganisationInfo info = ORGANISATION.info();
+		private static final TestMeeting MEETING = TestMeeting.SPORER_RETRO;
 
-	// when(organisationService.create(eq(principal), argThat(org -> {
-	// assertThat(org.getId()).isNull();
-	// assertThat(org.getName()).isEqualTo(ORGANISATION.getName());
-	// return true;
-	// }))).thenReturn(info);
+		@Test
+		void success() throws Exception {
+			final Principal principal = SESSION.principal();
+			final MeetingInfo info = MEETING.info();
 
-	// final String body = getBody(ORGANISATION);
-	// final String expectedResponse = getResponse(ORGANISATION);
+			when(meetingService.create(eq(principal), argThat(meeting -> {
+				assertThatThrownBy(() -> meeting.getId())
+						.isInstanceOf(IllegalStateException.class);
+				assertThat(meeting.getOrganisationId())
+						.isEqualTo(MEETING.getOrganisation().getId());
+				assertThat(meeting.getName()).isEqualTo(MEETING.getName());
+				return true;
+			}))).thenReturn(info);
 
-	// final var builder = post(ENDPOINT).content(body)
-	// .contentType(MediaType.APPLICATION_JSON);
+			final String body = getBody(MEETING);
+			final String expectedResponse = getResponse(MEETING);
 
-	// mockMvc.perform(builder)
-	// .andExpect(status().isCreated())
-	// .andExpect(header().string("location",
-	// getUrl(ENDPOINT + "/" + ORGANISATION.getId())))
-	// .andExpect(content().json(expectedResponse));
-	// }
+			final var builder = post(ENDPOINT).content(body)
+					.contentType(MediaType.APPLICATION_JSON);
 
-	// @Test
-	// @WithAnonymousUser
-	// void unauthorized() throws Exception {
-	// final var builder = post(ENDPOINT).content(getBody(ORGANISATION))
-	// .contentType(MediaType.APPLICATION_JSON);
+			mockMvc.perform(builder)
+					.andExpect(status().isCreated())
+					.andExpect(header().string("location",
+							getUrl(ENDPOINT + "/" + MEETING.getId())))
+					.andExpect(content().json(expectedResponse));
+		}
 
-	// mockMvc.perform(builder).andExpect(status().isUnauthorized());
-	// }
+		@Test
+		@WithAnonymousUser
+		void unauthorized() throws Exception {
+			final var builder = post(ENDPOINT).content(getBody(MEETING))
+					.contentType(MediaType.APPLICATION_JSON);
 
-	// @Test
-	// void serverError() throws Exception {
-	// when(organisationService.create(any(), any()))
-	// .thenThrow(new RuntimeException());
+			mockMvc.perform(builder).andExpect(status().isUnauthorized());
+		}
 
-	// final String body = getBody(ORGANISATION);
+		@Test
+		void serverError() throws Exception {
+			when(meetingService.create(any(), any()))
+					.thenThrow(new RuntimeException());
 
-	// final var builder = post(ENDPOINT).content(body)
-	// .contentType(MediaType.APPLICATION_JSON);
+			final String body = getBody(MEETING);
 
-	// mockMvc.perform(builder)
-	// .andExpect(status().isInternalServerError());
-	// }
+			final var builder = post(ENDPOINT).content(body)
+					.contentType(MediaType.APPLICATION_JSON);
 
-	// @ParameterizedTest
-	// @NullAndEmptySource
-	// @ValueSource(strings = { " " })
-	// void nameInvalid(final String name) throws Exception {
-	// final String body = getBody(name);
+			mockMvc.perform(builder)
+					.andExpect(status().isInternalServerError());
+		}
 
-	// final var builder = post(ENDPOINT).content(body)
-	// .contentType(MediaType.APPLICATION_JSON);
+		@ParameterizedTest
+		@NullAndEmptySource
+		@ValueSource(strings = { " " })
+		void nameInvalid(final String name) throws Exception {
+			final String body = getBody(name);
 
-	// mockMvc.perform(builder).andExpect(status().isBadRequest());
-	// }
+			final var builder = post(ENDPOINT).content(body)
+					.contentType(MediaType.APPLICATION_JSON);
 
-	// private String getBody(final TestOrganisation organisation) {
-	// return getBody(organisation.getName());
-	// }
+			mockMvc.perform(builder).andExpect(status().isBadRequest());
+		}
 
-	// private String getBody(final String name) {
-	// final String formattedName = Optional.ofNullable(name)
-	// .map(n -> String.format("\"%s\"", n))
-	// .orElse(null);
+		private String getBody(final TestMeeting meeting) {
+			return getBody(meeting.getName());
+		}
 
-	// return """
-	// {
-	// "name": %s
-	// }
-	// """.formatted(formattedName);
-	// }
+		private String getBody(final String name) {
+			final String formattedName = Optional.ofNullable(name)
+					.map(n -> String.format("\"%s\"", n))
+					.orElse(null);
 
-	// private String getResponse(final TestOrganisation organisation) {
-	// return """
-	// {
-	// "id": %s,
-	// "name": "%s"
-	// }
-	// """.formatted(organisation.getId(), organisation.getName());
-	// }
-	// }
+			return """
+					{
+						"name": %s
+					}
+					""".formatted(formattedName);
+		}
+	}
+
+	private static String getResponse(final List<TestMeeting> organisations) {
+		return organisations.stream()
+				.map(MeetingControllerTest::getResponse)
+				.collect(Collectors.joining(",", "[", "]"));
+	}
+
+	private static String getResponse(final TestMeeting meeting) {
+		return """
+				{
+					"id": %s,
+					"name": "%s"
+				}
+				""".formatted(meeting.getId(), meeting.getName());
+	}
 }

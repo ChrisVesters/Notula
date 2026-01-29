@@ -1,6 +1,7 @@
 package com.cvesters.notula.meeting;
 
 import java.util.List;
+import java.util.Objects;
 
 import org.springframework.stereotype.Service;
 
@@ -18,8 +19,18 @@ public class MeetingStorageGateway {
 
 	public List<MeetingInfo> findAllByOrganisationId(
 			final long organisationId) {
-		return meetingRepository
-				.findAllByOrganisationId(organisationId)
-				.stream().map(MeetingDao::toBdo).toList();
+		return meetingRepository.findAllByOrganisationId(organisationId)
+				.stream()
+				.map(MeetingDao::toBdo)
+				.toList();
 	}
+
+	public MeetingInfo create(final MeetingInfo meeting) {
+		Objects.requireNonNull(meeting);
+
+		final var dao = new MeetingDao(meeting);
+		final var saved = meetingRepository.save(dao);
+		return saved.toBdo();
+	}
+
 }

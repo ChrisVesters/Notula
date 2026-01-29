@@ -3,6 +3,7 @@ package com.cvesters.notula.meeting;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
 import java.util.List;
@@ -64,6 +65,49 @@ class MeetingServiceTest {
 		private static List<List<TestMeeting>> cases() {
 			return List.of(List.of(), List.of(TestMeeting.SPORER_PROJECT,
 					TestMeeting.SPORER_RETRO));
+		}
+	}
+
+	@Nested
+	class Create {
+
+		private static final TestSession SESSION = TestSession.EDUARDO_CHRISTIANSEN_SPORER;
+		private static final TestMeeting MEETING = TestMeeting.SPORER_PROJECT;
+
+		@Test
+		void success() {
+			final Principal principal = SESSION.principal();
+			final MeetingInfo meeting = mock();
+
+			final MeetingInfo created = MEETING.info();
+			when(meetingStorageGateway.create(meeting)).thenReturn(created);
+
+			final MeetingInfo result = meetingService.create(principal,
+					meeting);
+
+			assertThat(created).isEqualTo(result);
+
+			verifyNoInteractions(meeting);
+		}
+
+		@Test
+		void organisationNull() {
+			final Principal principal = SESSION.principal();
+			final MeetingInfo organisation = null;
+
+			assertThatThrownBy(
+					() -> meetingService.create(principal, organisation))
+							.isInstanceOf(NullPointerException.class);
+		}
+
+		@Test
+		void principalNull() {
+			final Principal principal = null;
+			final var meeting = new MeetingInfo(
+					MEETING.getOrganisation().getId(), MEETING.getName());
+
+			assertThatThrownBy(() -> meetingService.create(principal, meeting))
+					.isInstanceOf(NullPointerException.class);
 		}
 	}
 }

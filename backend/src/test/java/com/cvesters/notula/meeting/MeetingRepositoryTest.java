@@ -1,6 +1,7 @@
 package com.cvesters.notula.meeting;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.util.List;
 
@@ -14,9 +15,11 @@ import org.springframework.boot.test.autoconfigure.jdbc.AutoConfigureTestDatabas
 import org.springframework.boot.test.autoconfigure.jdbc.AutoConfigureTestDatabase.Replace;
 import org.springframework.boot.test.autoconfigure.orm.jpa.DataJpaTest;
 import org.springframework.context.annotation.Import;
+import org.springframework.dao.InvalidDataAccessApiUsageException;
 import org.springframework.test.context.jdbc.Sql;
 
 import com.cvesters.notula.TestContainerConfig;
+import com.cvesters.notula.meeting.bdo.MeetingInfo;
 import com.cvesters.notula.meeting.dao.MeetingDao;
 import com.cvesters.notula.organisation.TestOrganisation;
 
@@ -92,4 +95,32 @@ class MeetingRepositoryTest {
 		}
 	}
 
+	@Nested
+	class Save {
+
+		@Test
+		void newMeeting() {
+			final TestOrganisation organisation = TestOrganisation.SPORER;
+			final String name = "test";
+			final var bdo = new MeetingInfo(organisation.getId(), name);
+			final var dao = new MeetingDao(bdo);
+			final MeetingDao saved = meetingRepository.save(dao);
+
+			assertThat(saved.getId()).isNotNull();
+			assertThat(saved.getName()).isEqualTo(name);
+
+			final MeetingDao found = entityManager
+					.find(MeetingDao.class, saved.getId());
+			assertThat(found).isNotNull();
+			assertThat(found.getId()).isEqualTo(saved.getId());
+			assertThat(found.getOrganisationId()).isEqualTo(saved.getOrganisationId());
+			assertThat(found.getName()).isEqualTo(name);
+		}
+
+		@Test
+		void meetingNull() {
+			assertThatThrownBy(() -> meetingRepository.save(null))
+					.isInstanceOf(InvalidDataAccessApiUsageException.class);
+		}
+	}
 }

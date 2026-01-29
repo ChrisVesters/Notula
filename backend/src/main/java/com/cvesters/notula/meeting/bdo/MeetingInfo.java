@@ -8,22 +8,24 @@ import lombok.Getter;
 public class MeetingInfo {
 
 	private final Long id;
+	private final long organisationId;
 	private final String name;
 
-	public MeetingInfo(final String name) {
-		this(null, name);
+	public MeetingInfo(final long organisationId, final String name) {
+		this(null, organisationId, name);
 	}
 
-	public MeetingInfo(final Long id, final String name) {
+	public MeetingInfo(final Long id, final long organisationId, final String name) {
 		Validate.notBlank(name);
 
 		this.id = id;
+		this.organisationId = organisationId;
 		this.name = name;
 	}
 
-	// TODO: Optional for getId, or just throw exception if null?
-	// TODO: make other object consistent with this!
-	// public Optional<Long> getId() {
-	// 	return Optional.ofNullable(id);
-	// }
+	public long getId() {
+		Validate.validState(id != null);
+
+		return id;
+	}
 }
