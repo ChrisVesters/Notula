@@ -1,3 +1,5 @@
+import DataStorage from "./DataStorage";
+
 export default abstract class Client {
 	public static async get<Response>(
 		endpoint: string,
@@ -9,6 +11,17 @@ export default abstract class Client {
 				"Authorization": `Bearer ${token}`
 			}
 		}).then(res => res.json());
+	}
+
+	public static async getAuthenticated<Response>(
+		endpoint: string
+	): Promise<Response> {
+		const token = DataStorage.getItem("accessToken");
+		if (token == null) {
+			return Promise.reject("No access token");
+		}
+
+		return this.get(endpoint, token);
 	}
 
 	public static async post<Request, Response>(
@@ -24,6 +37,18 @@ export default abstract class Client {
 			},
 			body: JSON.stringify(request)
 		}).then(res => res.json());
+	}
+
+	public static async postAuthenticated<Request, Response>(
+		endpoint: string,
+		request: Request
+	): Promise<Response> {
+		const token = DataStorage.getItem("accessToken");
+		if (token == null) {
+			return Promise.reject("No access token");
+		}
+
+		return this.post(endpoint, request, token);
 	}
 
 	public static async put<Request, Response>(

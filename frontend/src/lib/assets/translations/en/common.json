@@ -17,5 +17,6 @@
 	"name": "name",
 	"selectOrganisation": "select organisation",
 	"createOrganisation": "create organisation",
-	"create": "create"
+	"create": "create",
+	"untitled": "untitled"
 }
