@@ -31,6 +31,13 @@ export default class SessionClient extends Client {
 
 		return this.put(`${getEndpoint()}/${id}`, request, token);
 	}
+
+	public static async refresh(id: number): Promise<SessionInfo> {
+		return fetch(`${getEndpoint()}/${id}/refresh`, {
+			method: "POST",
+			credentials: "include"
+		}).then(res => res.json());
+	}
 }
 
 function getEndpoint(): string {

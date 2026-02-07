@@ -60,3 +60,4 @@ docker run --name notula-nginx \
 ```
 
 Note: currently you still may have to update the ip addres the host.docker.internal binds to.
+Note: on Linux, the host mapping is: `--add-host=host.docker.internal:host-gateway`

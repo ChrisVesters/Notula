@@ -18,5 +18,6 @@
 	"selectOrganisation": "select organisation",
 	"createOrganisation": "create organisation",
 	"create": "create",
-	"untitled": "untitled"
+	"untitled": "untitled",
+	"add": "add"
 }

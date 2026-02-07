@@ -31,6 +31,8 @@ public class WebSecurityConfig {
 			// Public
 			auth.requestMatchers(HttpMethod.POST, "/api/users").permitAll();
 			auth.requestMatchers(HttpMethod.POST, "/api/sessions").permitAll();
+			auth.requestMatchers(HttpMethod.POST, "/api/sessions/*/refresh")
+					.permitAll();
 			// Unscoped
 			auth.requestMatchers(HttpMethod.PUT, "/api/sessions/*")
 					.authenticated();
@@ -49,21 +51,22 @@ public class WebSecurityConfig {
 
 	@Bean
 	UrlBasedCorsConfigurationSource corsConfigurationSource() {
-		CorsConfiguration configuration = new CorsConfiguration();
+		final var configuration = new CorsConfiguration();
 
-		configuration.setAllowedOriginPatterns(List.of("*"));
+		// TODO: move to configuration!
+		configuration.setAllowedOrigins(List.of("https://localhost:4443"));
 		configuration.setAllowedMethods(List.of("*"));
 		configuration.setAllowedHeaders(List.of("*"));
-		// configuration.setAllowCredentials(true);
+		configuration.setAllowCredentials(true);
 
-		UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
+		final var source = new UrlBasedCorsConfigurationSource();
 		source.registerCorsConfiguration("/**", configuration);
 		return source;
 	}
 
 	@Bean
 	JwtAuthenticationConverter jwtAuthenticationConverter() {
-		final JwtAuthenticationConverter converter = new JwtAuthenticationConverter();
+		final var converter = new JwtAuthenticationConverter();
 		converter.setJwtGrantedAuthoritiesConverter(jwt -> {
 			final var authorities = new ArrayList<GrantedAuthority>();
 
