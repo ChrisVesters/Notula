@@ -15,7 +15,6 @@ import org.mockito.InOrder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 
 import com.cvesters.notula.common.exception.MissingEntityException;
-import com.cvesters.notula.session.bdo.SessionCreate;
 import com.cvesters.notula.session.bdo.SessionInfo;
 import com.cvesters.notula.session.dao.SessionDao;
 
@@ -140,20 +139,25 @@ class SessionStorageGatewayTest {
 				return true;
 			}))).thenReturn(created);
 
-			final SessionCreate action = mock();
-			when(action.getUserId()).thenReturn(SESSION.getUser().getId());
-			when(action.getRefreshToken())
-					.thenReturn(SESSION.getRefreshToken());
-			when(action.getActiveUntil()).thenReturn(SESSION.getActiveUntil());
+			final SessionInfo action = SESSION.info();
 
-			final SessionInfo sessionInfo = gateway.create(action);
+			final SessionInfo sessionInfo = gateway.create(action,
+					SESSION.getRefreshToken());
 
 			assertThat(sessionInfo).isEqualTo(bdo);
 		}
 
 		@Test
 		void sessionInfoNull() {
-			assertThatThrownBy(() -> gateway.create(null))
+			assertThatThrownBy(() -> gateway.create(null, "Token"))
+					.isInstanceOf(NullPointerException.class);
+		}
+
+		@Test
+		void tokenNull() {
+			final SessionInfo bdo = SESSION.info();
+
+			assertThatThrownBy(() -> gateway.create(bdo, null))
 					.isInstanceOf(NullPointerException.class);
 		}
 	}

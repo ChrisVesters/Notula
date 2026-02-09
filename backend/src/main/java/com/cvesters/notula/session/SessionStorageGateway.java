@@ -7,7 +7,6 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
 import com.cvesters.notula.common.exception.MissingEntityException;
-import com.cvesters.notula.session.bdo.SessionCreate;
 import com.cvesters.notula.session.bdo.SessionInfo;
 import com.cvesters.notula.session.dao.SessionDao;
 
@@ -38,11 +37,12 @@ public class SessionStorageGateway {
 				.map(SessionDao::toBdo);
 	}
 
-	public SessionInfo create(final SessionCreate sessionInfo) {
+	public SessionInfo create(final SessionInfo sessionInfo,
+			final String refreshToken) {
 		Objects.requireNonNull(sessionInfo);
+		Objects.requireNonNull(refreshToken);
 
-		final String tokenHash = passwordEncoder
-				.encode(sessionInfo.getRefreshToken());
+		final String tokenHash = passwordEncoder.encode(refreshToken);
 		final var dao = new SessionDao(sessionInfo, tokenHash);
 		final SessionDao created = sessionRepository.save(dao);
 		return created.toBdo();

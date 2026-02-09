@@ -60,8 +60,9 @@ public class SessionController extends BaseController {
 			@Valid @RequestBody final SessionUpdateDto request) {
 		final Principal principal = getPrincipal();
 
-		final SessionUpdate update = request.toBdo(id);
-		final SessionTokens session = sessionService.update(principal, update);
+		final SessionUpdate update = request.toBdo();
+		final SessionTokens session = sessionService.update(principal, id,
+				update);
 		final var dto = new SessionInfoDto(session);
 
 		return ResponseEntity.ok(dto);
@@ -88,7 +89,8 @@ public class SessionController extends BaseController {
 				.secure(true)
 				.sameSite("None")
 				.path("/api/sessions/" + sessionId + "/refresh")
-				.maxAge(Duration.ofDays(7)) // TODO: Duration.between(now, session.getActiveUntil())
+				.maxAge(Duration.ofDays(7)) // TODO: Duration.between(now,
+											// session.getActiveUntil())
 				.build();
 	}
 }

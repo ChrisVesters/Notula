@@ -14,17 +14,17 @@ public class SessionInfo {
 
 	private static final Duration ACTIVE_DURATION = Duration.ofDays(7);
 
-	private final long id;
+	private final Long id;
 	private final long userId;
 	private Long organisationId;
 	private OffsetDateTime activeUntil;
 
-	public SessionInfo(final long id, final long userId,
-			final OffsetDateTime activeUntil) {
-		this(id, userId, null, activeUntil);
+	public SessionInfo(final long userId, final Long organisationId) {
+		this(null, userId, organisationId,
+				OffsetDateTime.now().plus(ACTIVE_DURATION));
 	}
 
-	public SessionInfo(final long id, final long userId,
+	public SessionInfo(final Long id, final long userId,
 			final Long organisationId, final OffsetDateTime activeUntil) {
 		Objects.requireNonNull(activeUntil);
 
@@ -36,7 +36,6 @@ public class SessionInfo {
 
 	public void update(final SessionUpdate update) {
 		Objects.requireNonNull(update);
-		Validate.isTrue(id == update.sessionId());
 
 		this.organisationId = update.organisationId();
 	}
@@ -45,6 +44,12 @@ public class SessionInfo {
 		Validate.validState(this.activeUntil.isAfter(OffsetDateTime.now()));
 
 		this.activeUntil = OffsetDateTime.now().plus(ACTIVE_DURATION);
+	}
+
+	public long getId() {
+		Validate.validState(id != null);
+
+		return id;
 	}
 
 	public Optional<Long> getOrganisationId() {

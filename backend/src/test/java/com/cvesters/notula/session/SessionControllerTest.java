@@ -160,6 +160,7 @@ class SessionControllerTest extends ControllerTest {
 	class Update {
 
 		private static final String ENDPOINT = BASE_ENDPOINT + "/{id}";
+		private static final long SESSION_ID = SESSION.getId();
 
 		@Test
 		void success() throws Exception {
@@ -167,10 +168,8 @@ class SessionControllerTest extends ControllerTest {
 			final var tokens = new SessionTokens(SESSION.info(), ACCESS_TOKEN,
 					SESSION.getRefreshToken());
 
-			when(sessionService.update(eq(SESSION.principal()),
+			when(sessionService.update(eq(SESSION.principal()), eq(SESSION_ID),
 					argThat(update -> {
-						assertThat(update.sessionId())
-								.isEqualTo(SESSION.getId());
 						assertThat(update.organisationId())
 								.isEqualTo(organisation.getId());
 						return true;
@@ -179,7 +178,7 @@ class SessionControllerTest extends ControllerTest {
 			final String body = getBody(organisation);
 			final String expectedResponse = getResponse(SESSION, ACCESS_TOKEN);
 
-			final var builder = put(ENDPOINT, SESSION.getId()).content(body)
+			final var builder = put(ENDPOINT, SESSION_ID).content(body)
 					.contentType(MediaType.APPLICATION_JSON);
 
 			mockMvc.perform(builder)
@@ -190,7 +189,7 @@ class SessionControllerTest extends ControllerTest {
 		@Test
 		@WithAnonymousUser
 		void notAuthenticated() throws Exception {
-			final var builder = put(ENDPOINT, SESSION.getId());
+			final var builder = put(ENDPOINT, SESSION_ID);
 
 			mockMvc.perform(builder).andExpect(status().isUnauthorized());
 		}
