@@ -14,7 +14,6 @@ import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 
 import com.cvesters.notula.session.TestSession;
-import com.cvesters.notula.session.bdo.SessionCreate;
 import com.cvesters.notula.session.bdo.SessionInfo;
 
 class SessionDaoTest {
@@ -27,8 +26,9 @@ class SessionDaoTest {
 
 		@Test
 		void success() {
-			final var userInfo = SESSION.getUser().info();
-			final var bdo = new SessionCreate(userInfo);
+			final long userId = SESSION.getUser().getId();
+			final long orgId = SESSION.getOrganisation().getId();
+			final var bdo = new SessionInfo(userId, orgId);
 
 			final var dao = new SessionDao(bdo, HASHED_REFRESH_TOKEN);
 
@@ -47,8 +47,9 @@ class SessionDaoTest {
 
 		@Test
 		void refreshTokenNull() {
-			final var userInfo = SESSION.getUser().info();
-			final var bdo = new SessionCreate(userInfo);
+			final long userId = SESSION.getUser().getId();
+			final long orgId = SESSION.getOrganisation().getId();
+			final var bdo = new SessionInfo(userId, orgId);
 
 			assertThatThrownBy(() -> new SessionDao(bdo, null))
 					.isInstanceOf(NullPointerException.class);
@@ -58,8 +59,7 @@ class SessionDaoTest {
 	@Nested
 	class Update {
 
-		private final static SessionCreate BDO = new SessionCreate(
-				SESSION.getUser().info());
+		private final static SessionInfo BDO = SESSION.info();
 		private SessionDao dao;
 
 		@BeforeEach
@@ -110,8 +110,7 @@ class SessionDaoTest {
 	class UpdateWithRefreshToken {
 
 		private static final String UPDATED_REFRESH_TOKEN = "newHash";
-		private static final SessionCreate BDO = new SessionCreate(
-				SESSION.getUser().info());
+		private static final SessionInfo BDO = SESSION.info();
 		private SessionDao dao;
 
 		@BeforeEach
@@ -172,7 +171,7 @@ class SessionDaoTest {
 	@Nested
 	class ToBdo {
 
-		private final SessionCreate bdo = mock();
+		private final SessionInfo bdo = mock();
 		private SessionDao dao;
 
 		@BeforeEach

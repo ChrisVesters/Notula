@@ -21,9 +21,25 @@ class SessionInfoTest {
 	class Constructor {
 
 		@Test
-		void withId() {
+		void withoutId() {
+			final var sessionInfo = new SessionInfo(SESSION.getUser().getId(),
+					SESSION.getOrganisation().getId());
+
+			assertThatThrownBy(() -> sessionInfo.getId())
+					.isInstanceOf(IllegalStateException.class);
+			assertThat(sessionInfo.getUserId())
+					.isEqualTo(SESSION.getUser().getId());
+			assertThat(sessionInfo.getOrganisationId())
+					.contains(SESSION.getOrganisation().getId());
+			assertThat(sessionInfo.getActiveUntil()).isCloseTo(
+					OffsetDateTime.now().plus(Period.ofDays(7)),
+					within(Duration.ofMillis(100)));
+		}
+
+		@Test
+		void withIdWithoutOrganisationId() {
 			final var sessionInfo = new SessionInfo(SESSION.getId(),
-					SESSION.getUser().getId(), SESSION.getActiveUntil());
+					SESSION.getUser().getId(), null, SESSION.getActiveUntil());
 
 			assertThat(sessionInfo.getId()).isEqualTo(SESSION.getId());
 			assertThat(sessionInfo.getUserId())
@@ -34,7 +50,7 @@ class SessionInfoTest {
 		}
 
 		@Test
-		void withOrganisationId() {
+		void full() {
 			final var sessionInfo = new SessionInfo(SESSION.getId(),
 					SESSION.getUser().getId(),
 					SESSION.getOrganisation().getId(),
@@ -53,10 +69,11 @@ class SessionInfoTest {
 		void activeUntilNull() {
 			final long id = SESSION.getId();
 			final long userId = SESSION.getUser().getId();
+			final long organisationId = SESSION.getOrganisation().getId();
 			final OffsetDateTime activeUntil = null;
 
-			assertThatThrownBy(() -> new SessionInfo(id, userId, activeUntil))
-					.isInstanceOf(NullPointerException.class);
+			assertThatThrownBy(() -> new SessionInfo(id, userId, organisationId,
+					activeUntil)).isInstanceOf(NullPointerException.class);
 		}
 	}
 
@@ -68,8 +85,7 @@ class SessionInfoTest {
 		@Test
 		void success() {
 			final long organisationId = SESSION.getOrganisation().getId() + 1;
-			final var update = new SessionUpdate(SESSION.getId(),
-					organisationId);
+			final var update = new SessionUpdate(organisationId);
 
 			sessionInfo.update(update);
 
@@ -86,14 +102,6 @@ class SessionInfoTest {
 		void updateNull() {
 			assertThatThrownBy(() -> sessionInfo.update(null))
 					.isInstanceOf(NullPointerException.class);
-		}
-
-		@Test
-		void updateWrongId() {
-			final var update = new SessionUpdate(Long.MAX_VALUE, 5L);
-
-			assertThatThrownBy(() -> sessionInfo.update(update))
-					.isInstanceOf(IllegalArgumentException.class);
 		}
 	}
 

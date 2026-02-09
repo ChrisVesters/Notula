@@ -19,7 +19,6 @@ import org.springframework.dao.InvalidDataAccessApiUsageException;
 import org.springframework.test.context.jdbc.Sql;
 
 import com.cvesters.notula.TestContainerConfig;
-import com.cvesters.notula.session.bdo.SessionCreate;
 import com.cvesters.notula.session.dao.SessionDao;
 
 @Sql({ "/db/users.sql", "/db/sessions.sql" })
@@ -64,7 +63,7 @@ class SessionRepositoryTest {
 
 		@Test
 		void success() {
-			final var bdo = new SessionCreate(SESSION.getUser().info());
+			final var bdo = SESSION.info();
 			final var dao = new SessionDao(bdo, HASHED_REFRESH_TOKEN);
 			final SessionDao saved = sessionRepository.save(dao);
 

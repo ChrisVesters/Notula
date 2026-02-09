@@ -15,7 +15,6 @@ import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 
-import com.cvesters.notula.session.bdo.SessionCreate;
 import com.cvesters.notula.session.bdo.SessionInfo;
 
 @Getter
@@ -39,7 +38,7 @@ public class SessionDao {
 	@Column(name = "active_until", nullable = false)
 	private OffsetDateTime activeUntil;
 
-	public SessionDao(final SessionCreate bdo, final String refreshToken) {
+	public SessionDao(final SessionInfo bdo, final String refreshToken) {
 		Objects.requireNonNull(bdo);
 		Objects.requireNonNull(refreshToken);
 

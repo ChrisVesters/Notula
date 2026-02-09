@@ -1,4 +1,4 @@
 package com.cvesters.notula.session.bdo;
 
-public record SessionUpdate(long sessionId, long organisationId) {
+public record SessionUpdate(long organisationId) {
 }

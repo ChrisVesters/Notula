@@ -9,7 +9,6 @@ import org.springframework.stereotype.Service;
 import com.cvesters.notula.common.domain.Principal;
 import com.cvesters.notula.common.exception.MissingEntityException;
 import com.cvesters.notula.organisation.OrganisationUserService;
-import com.cvesters.notula.session.bdo.SessionCreate;
 import com.cvesters.notula.session.bdo.SessionInfo;
 import com.cvesters.notula.session.bdo.SessionTokens;
 import com.cvesters.notula.session.bdo.SessionUpdate;
@@ -44,15 +43,17 @@ public class SessionService {
 		final UserInfo user = userService.findByLogin(request)
 				.orElseThrow(MissingEntityException::new);
 
-		final var action = new SessionCreate(user);
-		final SessionInfo createdSession = sessionStorage.create(action);
+		final var action = new SessionInfo(user.getId(), null);
+		final String refreshToken = generateRefreshToken();
+
+		final SessionInfo createdSession = sessionStorage.create(action,
+				refreshToken);
 		final String accessToken = accessTokenService.create(createdSession);
-		final String refreshToken = action.getRefreshToken();
 
 		return new SessionTokens(createdSession, accessToken, refreshToken);
 	}
 
-	public SessionTokens update(final Principal principal,
+	public SessionTokens update(final Principal principal, final long sessionId,
 			final SessionUpdate update) {
 		Objects.requireNonNull(principal);
 		Objects.requireNonNull(update);
@@ -63,7 +64,7 @@ public class SessionService {
 				.findFirst()
 				.orElseThrow(MissingEntityException::new);
 
-		final SessionInfo bdo = sessionStorage.findById(update.sessionId())
+		final SessionInfo bdo = sessionStorage.findById(sessionId)
 				.filter(session -> session.getUserId() == principal.userId())
 				.orElseThrow(MissingEntityException::new);
 
