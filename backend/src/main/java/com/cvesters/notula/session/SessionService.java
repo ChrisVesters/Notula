@@ -1,5 +1,7 @@
 package com.cvesters.notula.session;
 
+import java.security.SecureRandom;
+import java.util.Base64;
 import java.util.Objects;
 
 import org.springframework.stereotype.Service;
@@ -17,6 +19,8 @@ import com.cvesters.notula.user.bdo.UserLogin;
 
 @Service
 public class SessionService {
+
+	private static final SecureRandom RANDOM = new SecureRandom();
 
 	private final UserService userService;
 	private final OrganisationUserService organisationUserService;
@@ -69,5 +73,29 @@ public class SessionService {
 		final String accessToken = accessTokenService.create(session);
 
 		return new SessionTokens(session, accessToken);
+	}
+
+	public SessionTokens refresh(final long sessionId,
+			final String refreshToken) {
+		Objects.requireNonNull(refreshToken);
+
+		final SessionInfo bdo = sessionStorage
+				.findByIdAndRefreshToken(sessionId, refreshToken)
+				.orElseThrow(MissingEntityException::new);
+
+		bdo.refresh();
+		final String newToken = generateRefreshToken();
+
+		final SessionInfo session = sessionStorage.update(bdo, newToken);
+		final String accessToken = accessTokenService.create(session);
+
+		return new SessionTokens(session, accessToken, newToken);
+	}
+
+	private static String generateRefreshToken() {
+		final var bytes = new byte[64];
+		RANDOM.nextBytes(bytes);
+
+		return Base64.getUrlEncoder().withoutPadding().encodeToString(bytes);
 	}
 }

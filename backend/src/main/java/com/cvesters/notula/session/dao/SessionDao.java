@@ -49,11 +49,17 @@ public class SessionDao {
 	}
 
 	public void update(final SessionInfo info) {
+		update(info, this.refreshToken);
+	}
+
+	public void update(final SessionInfo info, final String refreshToken) {
 		Objects.requireNonNull(info);
+		Objects.requireNonNull(refreshToken);
 		Validate.isTrue(id == info.getId());
 
 		this.organisationId = info.getOrganisationId().orElse(null);
 		this.activeUntil = info.getActiveUntil();
+		this.refreshToken = refreshToken;
 	}
 
 	public SessionInfo toBdo() {

@@ -2,7 +2,9 @@ package com.cvesters.notula.session;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.argThat;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.inOrder;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verifyNoInteractions;
@@ -14,6 +16,7 @@ import java.util.Optional;
 
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
+import org.mockito.ArgumentCaptor;
 import org.mockito.InOrder;
 
 import com.cvesters.notula.common.domain.Principal;
@@ -197,4 +200,79 @@ class SessionServiceTest {
 			verifyNoInteractions(accessTokenService);
 		}
 	}
+
+	@Nested
+	class Refresh {
+
+		private static final TestOrganisationUser ORGANISATION_USER = TestOrganisationUser.SPORER_EDUARDO_CHRISTIANSEN;
+		private static final TestOrganisation ORGANISATION = ORGANISATION_USER
+				.getOrganisation();
+
+		private static final Principal PRINCIPAL = SESSION.principal();
+
+		@Test
+		void success() {
+			final long sessionId = SESSION.getId();
+			final String refreshToken = SESSION.getRefreshToken();
+
+			final SessionInfo bdo = mock();
+			when(sessionStorageGateway.findByIdAndRefreshToken(sessionId,
+					refreshToken)).thenReturn(Optional.of(bdo));
+
+			final SessionInfo updated = new SessionInfo(SESSION.getId(),
+					USER.getId(), ORGANISATION.getId(),
+					SESSION.getActiveUntil());
+			when(sessionStorageGateway.update(eq(bdo), anyString()))
+					.thenReturn(updated);
+			when(accessTokenService.create(updated)).thenReturn(ACCESS_TOKEN);
+
+			final SessionTokens result = sessionService.refresh(SESSION.getId(),
+					SESSION.getRefreshToken());
+
+			final var newToken = ArgumentCaptor.forClass(String.class);
+
+			final InOrder order = inOrder(bdo, sessionStorageGateway,
+					accessTokenService);
+			order.verify(bdo).refresh();
+			order.verify(sessionStorageGateway)
+					.update(eq(bdo), newToken.capture());
+			order.verify(accessTokenService).create(updated);
+
+			assertThat(result.getId()).isEqualTo(SESSION.getId());
+			assertThat(result.getAccessToken()).isEqualTo(ACCESS_TOKEN);
+			assertThat(result.getRefreshToken())
+					.contains(newToken.getValue());
+			assertThat(result.getActiveUntil())
+					.isEqualTo(SESSION.getActiveUntil());
+
+		}
+
+		@Test
+		void sessionNotFound() {
+			final long sessionId = SESSION.getId();
+			final String refreshToken = SESSION.getRefreshToken();
+
+			when(organisationUserService.getAll(PRINCIPAL))
+					.thenReturn(List.of(ORGANISATION_USER.info()));
+
+			when(sessionStorageGateway.findByIdAndRefreshToken(sessionId,
+					refreshToken)).thenReturn(Optional.empty());
+
+			assertThatThrownBy(
+					() -> sessionService.refresh(sessionId, refreshToken))
+							.isInstanceOf(MissingEntityException.class);
+		}
+
+		@Test
+		void tokenNull() {
+			final long sessionId = SESSION.getId();
+
+			assertThatThrownBy(() -> sessionService.refresh(sessionId, null))
+					.isInstanceOf(NullPointerException.class);
+
+			verifyNoInteractions(sessionStorageGateway);
+			verifyNoInteractions(accessTokenService);
+		}
+	}
+
 }

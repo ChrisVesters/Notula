@@ -28,6 +28,16 @@ public class SessionStorageGateway {
 		return sessionRepository.findById(sessionId).map(SessionDao::toBdo);
 	}
 
+	public Optional<SessionInfo> findByIdAndRefreshToken(final long sessionId,
+			final String refreshToken) {
+		Objects.requireNonNull(refreshToken);
+
+		return sessionRepository.findById(sessionId)
+				.filter(session -> passwordEncoder.matches(refreshToken,
+						session.getRefreshToken()))
+				.map(SessionDao::toBdo);
+	}
+
 	public SessionInfo create(final SessionCreate sessionInfo) {
 		Objects.requireNonNull(sessionInfo);
 
@@ -45,6 +55,22 @@ public class SessionStorageGateway {
 				.orElseThrow(MissingEntityException::new);
 
 		dao.update(update);
+		final SessionDao updated = sessionRepository.save(dao);
+
+		return updated.toBdo();
+	}
+
+	public SessionInfo update(final SessionInfo update,
+			final String refreshToken) {
+		Objects.requireNonNull(update);
+		Objects.requireNonNull(refreshToken);
+
+		final SessionDao dao = sessionRepository.findById(update.getId())
+				.orElseThrow(MissingEntityException::new);
+
+		final String tokenHash = passwordEncoder.encode(refreshToken);
+
+		dao.update(update, tokenHash);
 		final SessionDao updated = sessionRepository.save(dao);
 
 		return updated.toBdo();
