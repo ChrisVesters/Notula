@@ -2,8 +2,11 @@ package com.cvesters.notula.session.bdo;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.assertj.core.api.Assertions.within;
 
+import java.time.Duration;
 import java.time.OffsetDateTime;
+import java.time.Period;
 
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -91,6 +94,40 @@ class SessionInfoTest {
 
 			assertThatThrownBy(() -> sessionInfo.update(update))
 					.isInstanceOf(IllegalArgumentException.class);
+		}
+	}
+
+	@Nested
+	class Refresh {
+
+		@Test
+		void success() {
+			final var sessionInfo = new SessionInfo(SESSION.getId(),
+					SESSION.getUser().getId(),
+					SESSION.getOrganisation().getId(),
+					OffsetDateTime.now().plus(Duration.ofHours(4)));
+
+			sessionInfo.refresh();
+
+			assertThat(sessionInfo.getId()).isEqualTo(SESSION.getId());
+			assertThat(sessionInfo.getUserId())
+					.isEqualTo(SESSION.getUser().getId());
+			assertThat(sessionInfo.getOrganisationId())
+					.contains(SESSION.getOrganisation().getId());
+			assertThat(sessionInfo.getActiveUntil()).isCloseTo(
+					OffsetDateTime.now().plus(Period.ofDays(7)),
+					within(Duration.ofSeconds(1)));
+		}
+
+		@Test
+		void expiredSession() {
+			final var sessionInfo = new SessionInfo(SESSION.getId(),
+					SESSION.getUser().getId(),
+					SESSION.getOrganisation().getId(),
+					OffsetDateTime.now().minus(Duration.ofHours(4)));
+
+			assertThatThrownBy(() -> sessionInfo.refresh())
+					.isInstanceOf(IllegalStateException.class);
 		}
 	}
 }

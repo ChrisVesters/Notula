@@ -4,9 +4,11 @@ import java.time.Duration;
 
 import jakarta.validation.Valid;
 
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseCookie;
 import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.CookieValue;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
@@ -41,15 +43,15 @@ public class SessionController extends BaseController {
 		final SessionTokens session = sessionService.create(login);
 		final var dto = new SessionInfoDto(session);
 
-		// final ResponseCookie refreshCookie = createRefreshCookie(
-		// 		session.getId(), session.getRefreshToken());
+		final ResponseCookie refreshCookie = createRefreshCookie(
+				session.getId(), session.getRefreshToken().orElse(null));
 
 		return ResponseEntity
 				.created(ServletUriComponentsBuilder.fromCurrentRequest()
 						.path("/{id}")
 						.buildAndExpand(session.getId())
 						.toUri())
-				// .header(HttpHeaders.SET_COOKIE, refreshCookie.toString())
+				.header(HttpHeaders.SET_COOKIE, refreshCookie.toString())
 				.body(dto);
 	}
 
@@ -65,11 +67,26 @@ public class SessionController extends BaseController {
 		return ResponseEntity.ok(dto);
 	}
 
-	private ResponseCookie createRefreshCookie(final long sessionId,
+	@PostMapping(path = "/{id}/refresh")
+	public ResponseEntity<SessionInfoDto> refresh(@PathVariable final long id,
+			@CookieValue final String refreshToken) {
+		final SessionTokens session = sessionService.refresh(id, refreshToken);
+		final var dto = new SessionInfoDto(session);
+
+		final ResponseCookie refreshCookie = createRefreshCookie(
+				session.getId(), session.getRefreshToken().orElse(null));
+
+		return ResponseEntity.ok()
+				.header(HttpHeaders.SET_COOKIE, refreshCookie.toString())
+				.body(dto);
+	}
+
+	private static ResponseCookie createRefreshCookie(final long sessionId,
 			final String refreshToken) {
 		return ResponseCookie.from("refreshToken", refreshToken)
 				.httpOnly(true)
 				.secure(true)
+				.sameSite("None")
 				.path("/api/sessions/" + sessionId + "/refresh")
 				.maxAge(Duration.ofDays(7)) // TODO: Duration.between(now, session.getActiveUntil())
 				.build();
