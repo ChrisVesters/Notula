@@ -1,14 +1,10 @@
+import Client from "$lib/common/Client";
+
 import type { UserCreateRequest, UserInfo } from "./UserTypes";
 
-export default class UserClient {
+export default class UserClient extends Client {
 	public static async create(request: UserCreateRequest): Promise<UserInfo> {
-		return fetch(getEndpoint(), {
-			method: "POST",
-			headers: {
-				"Content-Type": "application/json"
-			},
-			body: JSON.stringify(request)
-		}).then(res => res.json());
+		return this.post(getEndpoint(), request);
 	}
 }
 
