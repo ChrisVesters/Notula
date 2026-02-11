@@ -1,5 +1,4 @@
 import Client from "$lib/common/Client";
-import DataStorage from "$lib/common/DataStorage";
 
 import type {
 	OrganisationCreateRequest,
@@ -8,23 +7,13 @@ import type {
 
 export default class OrganisationClient extends Client {
 	public static async getAll(): Promise<OrganisationInfo[]> {
-		const token = DataStorage.getItem("accessToken");
-		if (token == null) {
-			return Promise.reject("No access token");
-		}
-
-		return this.get(getEndpoint(), token);
+		return this.getAuthenticated(getEndpoint());
 	}
 
 	public static async create(
 		request: OrganisationCreateRequest
 	): Promise<OrganisationInfo> {
-		const token = DataStorage.getItem("accessToken");
-		if (token == null) {
-			return Promise.reject("No access token");
-		}
-
-		return this.post(getEndpoint(), request, token);
+		return this.postAuthenticated(getEndpoint(), request);
 	}
 }
 

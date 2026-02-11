@@ -1,5 +1,4 @@
 import Client from "$lib/common/Client";
-import DataStorage from "$lib/common/DataStorage";
 
 import type {
 	SessionCreateRequest,
@@ -11,25 +10,22 @@ export default class SessionClient extends Client {
 	public static async create(
 		request: SessionCreateRequest
 	): Promise<SessionInfo> {
-		return fetch(getEndpoint(), {
-			method: "POST",
-			headers: {
-				"Content-Type": "application/json"
-			},
-			body: JSON.stringify(request)
-		}).then(res => res.json());
+		return this.post(getEndpoint(), request);
 	}
 
 	public static async update(
 		id: number,
 		request: SessionUpdateRequest
 	): Promise<SessionInfo> {
-		const token = DataStorage.getItem("accessToken");
-		if (token == null) {
-			return Promise.reject("No access token");
-		}
+		return this.putAuthenticated(`${getEndpoint()}/${id}`, request);
+	}
 
-		return this.put(`${getEndpoint()}/${id}`, request, token);
+	public static async refresh(id: number): Promise<SessionInfo> {
+		// TODO
+		return fetch(`${getEndpoint()}/${id}/refresh`, {
+			method: "POST",
+			credentials: "include"
+		}).then(res => res.json());
 	}
 }
 
