@@ -2,10 +2,10 @@
 	import { goto } from "$app/navigation";
 
 	import { t } from "$lib/assets/translations/index";
-	import Auth from "$lib/auth/Auth";
-	import DataStorage from "$lib/common/DataStorage";
+
 	import PasswordField from "$lib/form/PasswordField.svelte";
 	import TextField from "$lib/form/TextField.svelte";
+	import Session from "$lib/auth/Session";
 	import SessionClient from "$lib/session/SessionClient";
 
 	let email = $state("");
@@ -31,8 +31,7 @@
 
 		SessionClient.create({ email, password })
 			.then(session => {
-				DataStorage.setItem("sessionId", session.id.toString());
-				Auth.updatePrincipal(session.accessToken);
+				Session.update(session);
 				goto("/dashboard");
 			})
 			.catch(error => {

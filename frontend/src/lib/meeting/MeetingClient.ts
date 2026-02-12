@@ -7,11 +7,11 @@ import type {
 } from "./MeetingTypes";
 
 export default class MeetingClient extends Client {
-	public static async getAll(): Promise<MeetingInfo[]> {
+	public static getAll(): Promise<MeetingInfo[]> {
 		return this.getAuthenticated(getEndpoint());
 	}
 
-	public static async create(
+	public static create(
 		request: MeetingCreateRequest
 	): Promise<MeetingInfo> {
 		return this.postAuthenticated(getEndpoint(), request);

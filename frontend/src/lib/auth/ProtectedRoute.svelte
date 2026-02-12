@@ -15,6 +15,7 @@
 	import { goto } from "$app/navigation";
 
 	import Auth from "./Auth";
+	import Session from "./Session";
 
 	interface ProtectedRouteProps {
 		children: Snippet;
@@ -25,7 +26,11 @@
 	let allowed: boolean = $state(false);
 	let principal = Auth.getPrincipal();
 
-	onMount(() => {
+	onMount(async () => {
+		if ($principal?.hasExpired()) {
+			await Session.refresh();
+		}
+
 		const isLoggedIn: boolean = $principal?.isValid() ?? false;
 		const isScoped = $principal?.isScoped() ?? false;
 

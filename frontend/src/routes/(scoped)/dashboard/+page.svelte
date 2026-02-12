@@ -15,7 +15,7 @@
 	});
 
 	function handleAddClick(): Promise<void> {
-		return MeetingClient.create({ name: $t("untitled") })
+		return MeetingClient.create({ name: $t("common.untitled") })
 			.then(meeting => {
 				// TODO: open meeting note.
 			})
@@ -32,7 +32,7 @@
 	<FeedbackButton className="primary" onClick={handleAddClick}>
 		<span class="label">
 			<IconPlus />
-			{$t("Add")}
+			{$t("common.add")}
 		</span>
 	</FeedbackButton>
 
