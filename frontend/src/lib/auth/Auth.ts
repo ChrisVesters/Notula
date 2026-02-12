@@ -18,8 +18,12 @@ export class Principal {
 		this.expiresAt = expiresAt;
 	}
 
+	public hasExpired(): boolean {
+		return this.expiresAt < new Date();
+	}
+
 	public isValid(): boolean {
-		return this.expiresAt > new Date();
+		return !this.hasExpired();
 	}
 
 	public isScoped(): boolean {
@@ -42,27 +46,7 @@ export default class Auth {
 		return principal;
 	}
 
-	public static loadPrincipal(): void {
-		const token = DataStorage.getItem("accessToken");
-
-		if (token !== null) {
-			this.setPrincipalFromToken(token);
-		}
-	}
-
 	public static updatePrincipal(token: string): void {
-		DataStorage.setItem("accessToken", token);
-
-		this.setPrincipalFromToken(token);
-	}
-
-	public static deletePrincipal(): void {
-		DataStorage.removeItem("accessToken");
-
-		principal.set(null);
-	}
-
-	private static setPrincipalFromToken(token: string): void {
 		const base64Payload = token.split(".")[1];
 		const payload: JwtPayload = JSON.parse(window.atob(base64Payload));
 
@@ -71,5 +55,9 @@ export default class Auth {
 		const expiresAt = new Date(payload.exp * 1000);
 
 		principal.set(new Principal(userId, organisationId, expiresAt));
+	}
+
+	public static deletePrincipal(): void {
+		principal.set(null);
 	}
 }

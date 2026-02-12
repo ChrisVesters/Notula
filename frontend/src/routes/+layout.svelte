@@ -2,14 +2,14 @@
 	import { onMount } from "svelte";
 
 	import favicon from "$lib/assets/favicon.svg";
-	import Auth from "$lib/auth/Auth";
+	import Session from "$lib/auth/Session";
 
 	let { children } = $props();
 
 	let loaded: boolean = $state(false);
 
 	onMount(() => {
-		Auth.loadPrincipal();
+		Session.load();
 
 		loaded = true;
 	});

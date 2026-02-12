@@ -4,8 +4,7 @@
 	import { goto } from "$app/navigation";
 	import { t } from "$lib/assets/translations";
 
-	import Auth from "$lib/auth/Auth";
-	import DataStorage from "$lib/common/DataStorage";
+	import Session from "$lib/auth/Session";
 	import TextField from "$lib/form/TextField.svelte";
 	import OrganisationClient from "$lib/organisation/OrganisationClient";
 	import type { OrganisationInfo } from "$lib/organisation/OrganisationTypes";
@@ -20,11 +19,9 @@
 	});
 
 	function selectOrganisation(organisationId: number) {
-		const sessionId = Number(DataStorage.getItem("sessionId"));
-
-		SessionClient.update(sessionId, { organisationId })
+		SessionClient.update(Session.getId(), { organisationId })
 			.then(session => {
-				Auth.updatePrincipal(session.accessToken);
+				Session.update(session);
 				goto("/dashboard");
 			})
 			.catch(error => {

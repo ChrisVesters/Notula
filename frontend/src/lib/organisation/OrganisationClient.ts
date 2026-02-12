@@ -6,11 +6,11 @@ import type {
 } from "./OrganisationTypes";
 
 export default class OrganisationClient extends Client {
-	public static async getAll(): Promise<OrganisationInfo[]> {
+	public static getAll(): Promise<OrganisationInfo[]> {
 		return this.getAuthenticated(getEndpoint());
 	}
 
-	public static async create(
+	public static create(
 		request: OrganisationCreateRequest
 	): Promise<OrganisationInfo> {
 		return this.postAuthenticated(getEndpoint(), request);

@@ -54,9 +54,9 @@ Using in nginx:
 docker run --name notula-nginx \
 	-v ./nginx.conf:/etc/nginx/nginx.conf:ro \
 	-v ./ssl:/etc/nginx/certs:ro \
-	--add-host=host.docker.internal:192.168.0.219 \
 	-p 4443:443 \
 	-d nginx
 ```
 
 Note: currently you still may have to update the ip addres the host.docker.internal binds to.
+Note: on Linux, add the host mapping: `--add-host=host.docker.internal:host-gateway`
