@@ -11,23 +11,16 @@ import jakarta.persistence.PersistenceContext;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.autoconfigure.jdbc.AutoConfigureTestDatabase;
-import org.springframework.boot.test.autoconfigure.jdbc.AutoConfigureTestDatabase.Replace;
-import org.springframework.boot.test.autoconfigure.orm.jpa.DataJpaTest;
-import org.springframework.context.annotation.Import;
 import org.springframework.dao.InvalidDataAccessApiUsageException;
 import org.springframework.test.context.jdbc.Sql;
 
-import com.cvesters.notula.TestContainerConfig;
 import com.cvesters.notula.meeting.bdo.MeetingInfo;
 import com.cvesters.notula.meeting.dao.MeetingDao;
 import com.cvesters.notula.organisation.TestOrganisation;
+import com.cvesters.notula.test.RepositoryTest;
 
 @Sql({ "/db/organisations.sql", "/db/meetings.sql" })
-@DataJpaTest
-@Import(TestContainerConfig.class)
-@AutoConfigureTestDatabase(replace = Replace.NONE)
-class MeetingRepositoryTest {
+class MeetingRepositoryTest extends RepositoryTest {
 
 	@Autowired
 	private MeetingRepository meetingRepository;
@@ -109,11 +102,12 @@ class MeetingRepositoryTest {
 			assertThat(saved.getId()).isNotNull();
 			assertThat(saved.getName()).isEqualTo(name);
 
-			final MeetingDao found = entityManager
-					.find(MeetingDao.class, saved.getId());
+			final MeetingDao found = entityManager.find(MeetingDao.class,
+					saved.getId());
 			assertThat(found).isNotNull();
 			assertThat(found.getId()).isEqualTo(saved.getId());
-			assertThat(found.getOrganisationId()).isEqualTo(saved.getOrganisationId());
+			assertThat(found.getOrganisationId())
+					.isEqualTo(saved.getOrganisationId());
 			assertThat(found.getName()).isEqualTo(name);
 		}
 

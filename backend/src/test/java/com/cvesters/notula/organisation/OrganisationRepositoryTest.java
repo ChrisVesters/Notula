@@ -12,22 +12,15 @@ import jakarta.persistence.PersistenceContext;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.autoconfigure.jdbc.AutoConfigureTestDatabase;
-import org.springframework.boot.test.autoconfigure.jdbc.AutoConfigureTestDatabase.Replace;
-import org.springframework.boot.test.autoconfigure.orm.jpa.DataJpaTest;
-import org.springframework.context.annotation.Import;
 import org.springframework.dao.InvalidDataAccessApiUsageException;
 import org.springframework.test.context.jdbc.Sql;
 
-import com.cvesters.notula.TestContainerConfig;
 import com.cvesters.notula.organisation.bdo.OrganisationInfo;
 import com.cvesters.notula.organisation.dao.OrganisationDao;
+import com.cvesters.notula.test.RepositoryTest;
 
 @Sql({ "/db/organisations.sql" })
-@DataJpaTest
-@Import(TestContainerConfig.class)
-@AutoConfigureTestDatabase(replace = Replace.NONE)
-class OrganisationRepositoryTest {
+class OrganisationRepositoryTest extends RepositoryTest {
 
 	@Autowired
 	private OrganisationRepository organisationRepository;
