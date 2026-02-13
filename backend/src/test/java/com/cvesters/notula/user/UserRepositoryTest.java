@@ -13,22 +13,15 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.autoconfigure.jdbc.AutoConfigureTestDatabase;
-import org.springframework.boot.test.autoconfigure.jdbc.AutoConfigureTestDatabase.Replace;
-import org.springframework.boot.test.autoconfigure.orm.jpa.DataJpaTest;
-import org.springframework.context.annotation.Import;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.dao.InvalidDataAccessApiUsageException;
 import org.springframework.test.context.jdbc.Sql;
 
-import com.cvesters.notula.TestContainerConfig;
+import com.cvesters.notula.test.RepositoryTest;
 import com.cvesters.notula.user.dao.UserDao;
 
 @Sql({ "/db/users.sql" })
-@DataJpaTest
-@Import(TestContainerConfig.class)
-@AutoConfigureTestDatabase(replace = Replace.NONE)
-class UserRepositoryTest {
+class UserRepositoryTest extends RepositoryTest {
 
 	private static final TestUser USER = TestUser.EDUARDO_CHRISTIANSEN;
 

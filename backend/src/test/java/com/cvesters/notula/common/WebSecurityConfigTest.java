@@ -7,6 +7,7 @@ import java.util.HashMap;
 
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
+import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationConverter;
 
@@ -30,7 +31,10 @@ class WebSecurityConfigTest {
 
 			assertThat(token.isAuthenticated()).isTrue();
 			assertThat(token.getPrincipal()).isEqualTo(jwt);
-			assertThat(token.getAuthorities()).isEmpty();
+			assertThat(token.getAuthorities())
+					.extracting(GrantedAuthority::getAuthority)
+					.contains("FACTOR_BEARER")
+					.doesNotContain("CLAIM_ORGANISATION");
 		}
 
 		@Test
@@ -41,9 +45,10 @@ class WebSecurityConfigTest {
 
 			assertThat(token.isAuthenticated()).isTrue();
 			assertThat(token.getPrincipal()).isEqualTo(jwt);
-			assertThat(token.getAuthorities()).satisfiesExactlyInAnyOrder(
-					authority -> assertThat(authority.getAuthority())
-							.isEqualTo("CLAIM_ORGANISATION"));
+			assertThat(token.getAuthorities())
+					.extracting(GrantedAuthority::getAuthority)
+					.contains("FACTOR_BEARER")
+					.contains("CLAIM_ORGANISATION");
 		}
 
 		private Jwt toJwt(final TestSession session) {

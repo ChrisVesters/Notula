@@ -11,21 +11,14 @@ import jakarta.persistence.PersistenceContext;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.autoconfigure.jdbc.AutoConfigureTestDatabase;
-import org.springframework.boot.test.autoconfigure.jdbc.AutoConfigureTestDatabase.Replace;
-import org.springframework.boot.test.autoconfigure.orm.jpa.DataJpaTest;
-import org.springframework.context.annotation.Import;
 import org.springframework.dao.InvalidDataAccessApiUsageException;
 import org.springframework.test.context.jdbc.Sql;
 
-import com.cvesters.notula.TestContainerConfig;
 import com.cvesters.notula.session.dao.SessionDao;
+import com.cvesters.notula.test.RepositoryTest;
 
 @Sql({ "/db/users.sql", "/db/sessions.sql" })
-@DataJpaTest
-@Import(TestContainerConfig.class)
-@AutoConfigureTestDatabase(replace = Replace.NONE)
-class SessionRepositoryTest {
+class SessionRepositoryTest extends RepositoryTest {
 
 	private static final TestSession SESSION = TestSession.EDUARDO_CHRISTIANSEN_SPORER;
 	private static final String HASHED_REFRESH_TOKEN = "hash";
@@ -69,8 +62,7 @@ class SessionRepositoryTest {
 
 			assertThat(saved.getId()).isNotNull();
 			assertThat(saved.getUserId()).isEqualTo(SESSION.getUser().getId());
-			assertThat(saved.getRefreshToken())
-					.isEqualTo(HASHED_REFRESH_TOKEN);
+			assertThat(saved.getRefreshToken()).isEqualTo(HASHED_REFRESH_TOKEN);
 			assertThat(saved.getActiveUntil()).isEqualTo(bdo.getActiveUntil());
 
 			final SessionDao found = entityManager.find(SessionDao.class,
@@ -78,8 +70,7 @@ class SessionRepositoryTest {
 			assertThat(found).isNotNull();
 			assertThat(found.getId()).isEqualTo(saved.getId());
 			assertThat(found.getUserId()).isEqualTo(SESSION.getUser().getId());
-			assertThat(found.getRefreshToken())
-					.isEqualTo(HASHED_REFRESH_TOKEN);
+			assertThat(found.getRefreshToken()).isEqualTo(HASHED_REFRESH_TOKEN);
 			assertThat(found.getActiveUntil()).isEqualTo(bdo.getActiveUntil());
 		}
 
