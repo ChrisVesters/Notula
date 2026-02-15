@@ -9,30 +9,45 @@ import org.springframework.http.HttpMethod;
 import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
+import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationConverter;
 import org.springframework.security.web.SecurityFilterChain;
+import org.springframework.security.web.context.NullSecurityContextRepository;
 import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
+
+import com.cvesters.notula.session.AccessTokenService;
 
 @Configuration
 @EnableWebSecurity
 @EnableMethodSecurity
 public class WebSecurityConfig {
 
+	private final AccessTokenService accessTokenService;
+
 	private static final String ORGANISATION_CLAIM = "CLAIM_ORGANISATION";
 
+	WebSecurityConfig(AccessTokenService accessTokenService) {
+		this.accessTokenService = accessTokenService;
+	}
+
 	@Bean
-	SecurityFilterChain securityFilterChain(final HttpSecurity http)
-			throws Exception {
-		http.csrf(csrf -> csrf.disable());
+	SecurityFilterChain securityFilterChain(final HttpSecurity http) {
+		http.sessionManagement(session -> session
+				.sessionCreationPolicy(SessionCreationPolicy.STATELESS));
+		http.securityContext(
+				securityContext -> securityContext.securityContextRepository(
+						new NullSecurityContextRepository()));
+		http.csrf(csrf -> csrf.disable()); // TODO: should this be enabled?
 		http.authorizeHttpRequests(auth -> {
 			// Public
 			auth.requestMatchers(HttpMethod.POST, "/api/users").permitAll();
 			auth.requestMatchers(HttpMethod.POST, "/api/sessions").permitAll();
 			auth.requestMatchers(HttpMethod.POST, "/api/sessions/*/refresh")
 					.permitAll();
+			auth.requestMatchers("/ws/**").permitAll();
 			// Unscoped
 			auth.requestMatchers(HttpMethod.PUT, "/api/sessions/*")
 					.authenticated();

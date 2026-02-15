@@ -8,11 +8,34 @@
 	import MeetingClient from "$lib/meeting/MeetingClient";
 	import type { MeetingInfo } from "$lib/meeting/MeetingTypes";
 
+	import { Client } from "@stomp/stompjs";
+	import Session from "$lib/auth/Session";
+
 	let meetings: Array<MeetingInfo> = $state([]);
 
 	onMount(async () => {
 		meetings = await MeetingClient.getAll();
+
+		// Connecting websocket
+		const client = new Client({
+			brokerURL: import.meta.env.VITE_WS_URL,
+			connectHeaders: {
+				Authorization: "Bearer " + Session.getAccessToken()
+			},
+			onConnect: () => {
+				console.log("Connected...");
+				client.subscribe("/topic/messages", onMessage);
+				client.publish({destination: "/app/chat", body: "Hello World"});
+			}
+		});
+
+		client.activate();
+		console.log("Connecting...");
 	});
+
+	const onMessage = (event: any) => {
+		console.log(event.body);
+	};
 
 	function handleAddClick(): Promise<void> {
 		return MeetingClient.create({ name: $t("common.untitled") })

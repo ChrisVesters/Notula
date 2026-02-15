@@ -18,8 +18,9 @@ import com.nimbusds.jose.jwk.source.ImmutableSecret;
 @Configuration
 public class JwtConfig {
 
-	private final SecretKeySpec keySpec;
 	public static final MacAlgorithm MAC_ALGORITHM = MacAlgorithm.HS512;
+
+	private final SecretKeySpec keySpec;
 
 	public JwtConfig(final @Value("${jwt.secret.key}") String secretKey) {
 		this.keySpec = new SecretKeySpec(

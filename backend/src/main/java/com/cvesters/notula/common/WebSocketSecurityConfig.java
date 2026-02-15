@@ -3,6 +3,8 @@ package com.cvesters.notula.common;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.messaging.Message;
+import org.springframework.messaging.simp.SimpMessageType;
+import org.springframework.messaging.support.ChannelInterceptor;
 import org.springframework.security.authorization.AuthorizationDecision;
 import org.springframework.security.authorization.AuthorizationManager;
 import org.springframework.security.config.annotation.web.socket.EnableWebSocketSecurity;
@@ -15,13 +17,29 @@ import org.springframework.security.messaging.access.intercept.MessageMatcherDel
 public class WebSocketSecurityConfig {
 
 	@Bean
+	public ChannelInterceptor csrfChannelInterceptor() {
+		// disabling csrf
+		return new ChannelInterceptor() {
+
+		};
+	}
+
+	@Bean
 	AuthorizationManager<Message<?>> messageAuthorizationManager(
 			MessageMatcherDelegatingAuthorizationManager.Builder messages) {
 
-		messages.simpSubscribeDestMatchers("/topic/tenant/**")
+		// TODO: Well, no authentication!
+		messages.simpTypeMatchers(SimpMessageType.CONNECT).permitAll();
+		messages.simpTypeMatchers(SimpMessageType.HEARTBEAT).permitAll();
+		messages.simpTypeMatchers(SimpMessageType.DISCONNECT).permitAll();
+		messages.simpDestMatchers("/app/**", "/topic/**")
 				.access(tenantAuthorizationManager())
 				.anyMessage()
 				.authenticated();
+		// messages.simpSubscribeDestMatchers("/topic/tenant/**")
+		// .access(tenantAuthorizationManager())
+		// .anyMessage()
+		// .authenticated();
 
 		return messages.build();
 	}
