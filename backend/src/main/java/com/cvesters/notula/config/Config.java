@@ -1,4 +1,4 @@
-package com.cvesters.notula.common;
+package com.cvesters.notula.config;
 
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;

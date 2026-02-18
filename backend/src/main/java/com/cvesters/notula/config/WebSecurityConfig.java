@@ -1,6 +1,5 @@
-package com.cvesters.notula.common;
+package com.cvesters.notula.config;
 
-import java.util.ArrayList;
 import java.util.List;
 
 import org.springframework.context.annotation.Bean;
@@ -9,9 +8,7 @@ import org.springframework.http.HttpMethod;
 import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
-import org.springframework.security.core.GrantedAuthority;
-import org.springframework.security.core.authority.SimpleGrantedAuthority;
-import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationConverter;
+import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
@@ -21,13 +18,20 @@ import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 @EnableMethodSecurity
 public class WebSecurityConfig {
 
-	private static final String ORGANISATION_CLAIM = "CLAIM_ORGANISATION";
+	private final JwtAuthConverter authenticationConverter;
+
+	public WebSecurityConfig(final JwtAuthConverter authenticationConverter) {
+		this.authenticationConverter = authenticationConverter;
+	}
 
 	@Bean
-	SecurityFilterChain securityFilterChain(final HttpSecurity http)
-			throws Exception {
+	SecurityFilterChain securityFilterChain(final HttpSecurity http) {
+		http.sessionManagement(session -> session
+				.sessionCreationPolicy(SessionCreationPolicy.STATELESS));
 		http.csrf(csrf -> csrf.disable());
 		http.authorizeHttpRequests(auth -> {
+			// WebSocket
+			auth.requestMatchers("/ws/**").permitAll();
 			// Public
 			auth.requestMatchers(HttpMethod.POST, "/api/users").permitAll();
 			auth.requestMatchers(HttpMethod.POST, "/api/sessions").permitAll();
@@ -41,10 +45,10 @@ public class WebSecurityConfig {
 			auth.requestMatchers(HttpMethod.POST, "/api/organisations")
 					.authenticated();
 			// Scopes
-			auth.anyRequest().hasAuthority(ORGANISATION_CLAIM);
+			auth.anyRequest().hasAuthority(JwtAuthConverter.ORGANISATION_CLAIM);
 		});
 		http.oauth2ResourceServer(oauth -> oauth.jwt(jwt -> jwt
-				.jwtAuthenticationConverter(jwtAuthenticationConverter())));
+				.jwtAuthenticationConverter(authenticationConverter)));
 
 		return http.build();
 	}
@@ -62,22 +66,5 @@ public class WebSecurityConfig {
 		final var source = new UrlBasedCorsConfigurationSource();
 		source.registerCorsConfiguration("/**", configuration);
 		return source;
-	}
-
-	@Bean
-	JwtAuthenticationConverter jwtAuthenticationConverter() {
-		final var converter = new JwtAuthenticationConverter();
-		converter.setJwtGrantedAuthoritiesConverter(jwt -> {
-			final var authorities = new ArrayList<GrantedAuthority>();
-
-			// TODO: no magic strings!
-			if (jwt.hasClaim("organisation_id")) {
-				authorities.add(new SimpleGrantedAuthority(ORGANISATION_CLAIM));
-			}
-
-			return authorities;
-		});
-
-		return converter;
 	}
 }

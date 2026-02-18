@@ -14,7 +14,6 @@ import org.junit.jupiter.api.Test;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContext;
 import org.springframework.security.core.context.SecurityContextHolder;
-import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.web.context.request.RequestContextHolder;
 import org.springframework.web.context.request.ServletRequestAttributes;
 
@@ -47,19 +46,18 @@ class BaseControllerTest {
 
 		@Test
 		void success() {
-			final Jwt jwt = mock();
-			when(jwt.getSubject()).thenReturn("12345");
-			when(authentication.getPrincipal()).thenReturn(jwt);
+			final Principal principal = mock();
+			when(authentication.getPrincipal()).thenReturn(principal);
 
-			final Principal principal = controller.getPrincipal();
+			final Principal result = controller.getPrincipal();
 
-			assertThat(principal.userId()).isEqualTo(12345L);
+			assertThat(result).isEqualTo(principal);
 		}
 
 		@Test
 		void principalInvalid() {
-			final Object jwt = mock();
-			when(authentication.getPrincipal()).thenReturn(jwt);
+			final Object principal = mock();
+			when(authentication.getPrincipal()).thenReturn(principal);
 
 			assertThatThrownBy(() -> controller.getPrincipal())
 					.isInstanceOf(IllegalStateException.class)
@@ -74,15 +72,6 @@ class BaseControllerTest {
 			assertThatThrownBy(() -> controller.getPrincipal())
 					.isInstanceOf(IllegalStateException.class)
 					.hasMessageContaining("User not authenticated");
-		}
-
-		@Test
-		void noSubject() {
-			final Jwt jwt = mock();
-			when(authentication.getPrincipal()).thenReturn(jwt);
-
-			assertThatThrownBy(() -> controller.getPrincipal())
-					.isInstanceOf(NumberFormatException.class);
 		}
 	}
 

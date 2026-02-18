@@ -2,11 +2,9 @@ package com.cvesters.notula.common.controller;
 
 import java.net.URI;
 import java.util.Objects;
-import java.util.Optional;
 
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
-import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
 
 import com.cvesters.notula.common.domain.Principal;
@@ -20,15 +18,8 @@ public abstract class BaseController {
 			throw new IllegalStateException("User not authenticated");
 		}
 
-		if (authentication.getPrincipal() instanceof Jwt jwt) {
-			final long userId = Long.parseLong(jwt.getSubject());
-
-			final Long organisationId = Optional
-					.ofNullable(jwt.getClaimAsString("organisation_id"))
-					.map(Long::parseLong)
-					.orElse(null);
-
-			return new Principal(userId, organisationId);
+		if (authentication.getPrincipal() instanceof Principal principal) {
+			return principal;
 		}
 
 		throw new IllegalStateException(
