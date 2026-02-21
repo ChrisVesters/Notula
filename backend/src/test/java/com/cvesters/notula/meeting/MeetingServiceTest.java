@@ -7,6 +7,7 @@ import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
 import java.util.List;
+import java.util.Optional;
 
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -24,6 +25,65 @@ class MeetingServiceTest {
 
 	private final MeetingService meetingService = new MeetingService(
 			meetingStorageGateway);
+
+	@Nested
+	class ExistsById {
+
+		private static final TestSession SESSION = TestSession.EDUARDO_CHRISTIANSEN_SPORER;
+		private static final Principal PRINCIPAL = SESSION.principal();
+
+		private static final TestMeeting MEETING = TestMeeting.SPORER_Q2_PLANNING;
+
+		@Test
+		void found() {
+			when(meetingStorageGateway.findById(MEETING.getId()))
+					.thenReturn(Optional.of(MEETING.info()));
+
+			assertThat(meetingService.existsById(PRINCIPAL, MEETING.getId()))
+					.isTrue();
+		}
+
+		@Test
+		void notFound() {
+			when(meetingStorageGateway.findById(MEETING.getId()))
+					.thenReturn(Optional.empty());
+
+			assertThat(meetingService.existsById(PRINCIPAL, MEETING.getId()))
+					.isFalse();
+		}
+
+		@Test
+		void wrongOrganisation() {
+			when(meetingStorageGateway.findById(MEETING.getId()))
+					.thenReturn(Optional.of(MEETING.info()));
+
+			final var principal = TestSession.ALISON_DACH_GLOVER.principal();
+
+			assertThat(meetingService.existsById(principal, MEETING.getId()))
+					.isFalse();
+		}
+
+		@Test
+		void noOrganisation() {
+			when(meetingStorageGateway.findById(MEETING.getId()))
+					.thenReturn(Optional.of(MEETING.info()));
+
+			final var principal = TestSession.EDUARDO_CHRISTIANSEN.principal();
+			final long meetingId = MEETING.getId();
+
+			assertThatThrownBy(
+					() -> meetingService.existsById(principal, meetingId))
+							.isInstanceOf(IllegalStateException.class);
+		}
+
+		@Test
+		void principalNull() {
+			final long meetingId = MEETING.getId();
+			assertThatThrownBy(() -> meetingService.existsById(null, meetingId))
+					.isInstanceOf(NullPointerException.class);
+		}
+
+	}
 
 	@Nested
 	class GetAll {

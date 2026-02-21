@@ -2,6 +2,7 @@ package com.cvesters.notula.meeting;
 
 import java.util.List;
 import java.util.Objects;
+import java.util.Optional;
 
 import org.springframework.stereotype.Service;
 
@@ -15,6 +16,10 @@ public class MeetingStorageGateway {
 
 	public MeetingStorageGateway(final MeetingRepository meetingRepository) {
 		this.meetingRepository = meetingRepository;
+	}
+
+	public Optional<MeetingInfo> findById(final long id) {
+		return meetingRepository.findById(id).map(MeetingDao::toBdo);
 	}
 
 	public List<MeetingInfo> findAllByOrganisationId(
