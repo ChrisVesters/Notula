@@ -4,6 +4,7 @@ import Auth from "$lib/auth/Auth";
 import DataStorage from "$lib/common/DataStorage";
 import type { SessionInfo } from "$lib/session/SessionTypes";
 
+// TODO: rename to SessionManager
 export default class Session {
 	static readonly #GRACE_PERIOD_MS = 60_000;
 	static #TIMER_ID: number | null = null;

@@ -32,6 +32,7 @@
 		"vitest-browser-svelte": "^2.0.1"
 	},
 	"dependencies": {
+		"@stomp/stompjs": "^7.3.0",
 		"sveltekit-i18n": "^2.4.2"
 	}
 }
