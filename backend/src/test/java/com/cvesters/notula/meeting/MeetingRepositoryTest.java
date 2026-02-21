@@ -4,6 +4,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.util.List;
+import java.util.Optional;
 
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.PersistenceContext;
@@ -27,6 +28,30 @@ class MeetingRepositoryTest extends RepositoryTest {
 
 	@PersistenceContext
 	private EntityManager entityManager;
+
+	@Nested
+	class FindById {
+
+		private static final TestMeeting MEETING = TestMeeting.GLOVER_KICKOFF_2026;
+
+		@Test
+		void single() {
+			final Optional<MeetingDao> dao = meetingRepository
+					.findById(MEETING.getId());
+
+			final var expected = entityManager.find(MeetingDao.class,
+					MEETING.getId());
+			assertThat(dao).contains(expected);
+		}
+
+		@Test
+		void notFound() {
+			final Optional<MeetingDao> dao = meetingRepository
+					.findById(Long.MAX_VALUE);
+
+			assertThat(dao).isEmpty();
+		}
+	}
 
 	@Nested
 	class FindAllByOrganisationId {

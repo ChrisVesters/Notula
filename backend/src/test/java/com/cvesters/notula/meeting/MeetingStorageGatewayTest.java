@@ -9,6 +9,7 @@ import static org.mockito.Mockito.when;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.Optional;
 
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -19,10 +20,42 @@ import com.cvesters.notula.organisation.TestOrganisation;
 
 class MeetingStorageGatewayTest {
 
+	private static final TestMeeting MEETING = TestMeeting.SPORER_PROJECT;
+
 	private final MeetingRepository meetingRepository = mock();
 
 	private final MeetingStorageGateway gateway = new MeetingStorageGateway(
 			meetingRepository);
+
+	@Nested
+	class FindById {
+
+		@Test
+		void found() {
+			final MeetingDao dao = mock();
+			final MeetingInfo bdo = mock();
+			when(dao.toBdo()).thenReturn(bdo);
+
+			when(meetingRepository.findById(MEETING.getId()))
+					.thenReturn(Optional.of(dao));
+
+			final Optional<MeetingInfo> result = gateway
+					.findById(MEETING.getId());
+
+			assertThat(result).contains(bdo);
+		}
+
+		@Test
+		void notFound() {
+			when(meetingRepository.findById(MEETING.getId()))
+					.thenReturn(Optional.empty());
+
+			final Optional<MeetingInfo> result = gateway
+					.findById(MEETING.getId());
+
+			assertThat(result).isEmpty();
+		}
+	}
 
 	@Nested
 	class FindAllByOrganisationId {
@@ -96,8 +129,6 @@ class MeetingStorageGatewayTest {
 	@Nested
 	class Create {
 
-		private final TestMeeting MEETING = TestMeeting.SPORER_PROJECT;
-
 		@Test
 		void success() {
 			final MeetingDao created = mock();
@@ -112,8 +143,7 @@ class MeetingStorageGatewayTest {
 				return true;
 			}))).thenReturn(created);
 
-			final MeetingInfo meetingInfo = gateway
-					.create(MEETING.info());
+			final MeetingInfo meetingInfo = gateway.create(MEETING.info());
 
 			assertThat(meetingInfo).isEqualTo(bdo);
 		}

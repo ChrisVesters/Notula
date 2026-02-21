@@ -17,6 +17,15 @@ public class MeetingService {
 		this.meetingStorage = meetingStorageGateway;
 	}
 
+	public boolean existsById(final Principal principal, final long id) {
+		Objects.requireNonNull(principal);
+
+		return meetingStorage.findById(id)
+				.filter(meeting -> meeting.getOrganisationId() == principal
+						.organisationId())
+				.isPresent();
+	}
+
 	public List<MeetingInfo> getAll(final Principal principal) {
 		Objects.requireNonNull(principal);
 
