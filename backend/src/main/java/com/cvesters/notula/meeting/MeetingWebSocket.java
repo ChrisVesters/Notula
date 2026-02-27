@@ -4,9 +4,10 @@ import org.springframework.messaging.handler.annotation.DestinationVariable;
 import org.springframework.messaging.handler.annotation.MessageMapping;
 import org.springframework.messaging.handler.annotation.Payload;
 import org.springframework.messaging.handler.annotation.SendTo;
-import org.springframework.security.core.Authentication;
-import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.messaging.simp.annotation.SubscribeMapping;
 import org.springframework.stereotype.Controller;
+
+import com.cvesters.notula.meeting.dto.MeetingDetailsDto;
 
 @Controller
 public class MeetingWebSocket {
@@ -15,12 +16,13 @@ public class MeetingWebSocket {
 	@SendTo("/topic/meetings/{id}")
 	public String send(@DestinationVariable final long id,
 			@Payload final String message) throws Exception {
-				// TODO: let authentication/security be handled by the AuthManager.
-		final Authentication authentication = SecurityContextHolder.getContext()
-				.getAuthentication();
 		return "Echo: " + message;
 		// return MessageBuilder.withPayload("Echo: " + message).build();
 	}
 
 	// TODO: endpoint to return initial state on subscription.
+	@SubscribeMapping("/meetings/{id}")
+	public MeetingDetailsDto subscribe(@DestinationVariable final long id) {
+		return new MeetingDetailsDto(id, "The Guardians Of The Galaxy");
+	}
 }

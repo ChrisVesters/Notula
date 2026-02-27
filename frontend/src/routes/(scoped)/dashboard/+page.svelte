@@ -1,6 +1,7 @@
 <script lang="ts">
-	import { onDestroy, onMount } from "svelte";
+	import { onMount } from "svelte";
 
+	import { goto } from "$app/navigation";
 	import { t } from "$lib/assets/translations";
 
 	import IconPlus from "$lib/assets/icons/IconPlus.svelte";
@@ -8,29 +9,13 @@
 	import MeetingClient from "$lib/meeting/MeetingClient";
 	import type { MeetingInfo } from "$lib/meeting/MeetingTypes";
 
-	import { Client, type IMessage, type Message } from "@stomp/stompjs";
-	import Session from "$lib/auth/Session";
-	import WebSocketManager from "$lib/websocket/WebSocketManager";
-
 	let meetings: Array<MeetingInfo> = $state([]);
 
 	onMount(async () => {
 		meetings = await MeetingClient.getAll();
-
-		WebSocketManager.connect();
-		WebSocketManager.subscribe("/topic/meetings/4", onMessage);
-
 	});
 
-	onDestroy(() => {
-		WebSocketManager.disconnect();
-	});
-
-	const onMessage = (event: Message) => {
-		console.log(event.body);
-	};
-
-	function handleAddClick(): Promise<void> {
+	function addMeeting(): Promise<void> {
 		return MeetingClient.create({ name: $t("common.untitled") })
 			.then(meeting => {
 				// TODO: open meeting note.
@@ -41,24 +26,26 @@
 			});
 	}
 
-	function sendMessage(): void {
-		WebSocketManager.send("/app/meetings/4", "I am Groot!");
+	function openMeeting(id: number): void {
+		goto(`/meeting/${id}`);
 	}
 </script>
 
 <main class="container">
-	<h1>Dashboard</h1>
+	<h1>{$t("common.dashboard")}</h1>
 
-	<FeedbackButton className="primary" onClick={handleAddClick}>
+	<FeedbackButton className="primary" onClick={addMeeting}>
 		<span class="label">
 			<IconPlus />
 			{$t("common.add")}
 		</span>
 	</FeedbackButton>
 
-	{#each meetings as meeting}
-		<div>{meeting.name}</div>
-	{/each}
-
-	<button onclick={sendMessage}>Send</button>
+	<ul>
+		{#each meetings as meeting}
+			<li>
+				<a href={`/meeting/${meeting.id}`}>{meeting.name}</a>
+			</li>
+		{/each}
+	</ul>
 </main>

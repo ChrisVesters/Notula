@@ -203,6 +203,7 @@ export default class WebSocketManager {
 
 		await WebSocketManager.#CONNECTION;
 
+		console.log("subscribe to ", destination);
 		return WebSocketManager.#CLIENT.subscribe(destination, callback, {
 			ack: "client-individual"
 		});
