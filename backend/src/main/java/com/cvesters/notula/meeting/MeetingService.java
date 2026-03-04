@@ -6,6 +6,8 @@ import java.util.Objects;
 import org.springframework.stereotype.Service;
 
 import com.cvesters.notula.common.domain.Principal;
+import com.cvesters.notula.common.exception.MissingEntityException;
+import com.cvesters.notula.meeting.bdo.MeetingDetails;
 import com.cvesters.notula.meeting.bdo.MeetingInfo;
 
 @Service
@@ -31,6 +33,17 @@ public class MeetingService {
 
 		return meetingStorage
 				.findAllByOrganisationId(principal.organisationId());
+	}
+
+	public MeetingDetails getDetails(final Principal principal, final long id) {
+		Objects.requireNonNull(principal);
+
+		final MeetingInfo info = meetingStorage.findById(id)
+				.filter(meeting -> meeting.getOrganisationId() == principal
+						.organisationId())
+				.orElseThrow(MissingEntityException::new);
+
+		return new MeetingDetails(info);
 	}
 
 	public MeetingInfo create(final Principal principal,
