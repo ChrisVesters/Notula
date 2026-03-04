@@ -15,6 +15,8 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.MethodSource;
 
 import com.cvesters.notula.common.domain.Principal;
+import com.cvesters.notula.common.exception.MissingEntityException;
+import com.cvesters.notula.meeting.bdo.MeetingDetails;
 import com.cvesters.notula.meeting.bdo.MeetingInfo;
 import com.cvesters.notula.organisation.TestOrganisation;
 import com.cvesters.notula.session.TestSession;
@@ -125,6 +127,43 @@ class MeetingServiceTest {
 		private static List<List<TestMeeting>> cases() {
 			return List.of(List.of(), List.of(TestMeeting.SPORER_PROJECT,
 					TestMeeting.SPORER_RETRO));
+		}
+	}
+
+	@Nested
+	class GetDetails {
+
+		private static final TestSession SESSION = TestSession.EDUARDO_CHRISTIANSEN_SPORER;
+		private static final TestMeeting MEETING = TestMeeting.SPORER_PROJECT;
+
+		@Test
+		void success() {
+			final MeetingInfo info = MEETING.info();
+			when(meetingStorageGateway.findById(MEETING.getId()))
+					.thenReturn(Optional.of(info));
+
+			final MeetingDetails result = meetingService
+					.getDetails(SESSION.principal(), MEETING.getId());
+
+			assertThat(result).isNotNull();
+			assertThat(result.info()).isEqualTo(info);
+		}
+
+		@Test
+		void notFound() {
+			when(meetingStorageGateway.findById(MEETING.getId()))
+					.thenReturn(Optional.empty());
+
+			assertThatThrownBy(() -> meetingService
+					.getDetails(SESSION.principal(), MEETING.getId()))
+							.isInstanceOf(MissingEntityException.class);
+		}
+
+		@Test
+		void principalNull() {
+			assertThatThrownBy(
+					() -> meetingService.getDetails(null, MEETING.getId()))
+							.isInstanceOf(NullPointerException.class);
 		}
 	}
 
