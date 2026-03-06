@@ -2,6 +2,7 @@ package com.cvesters.notula.config;
 
 import java.util.List;
 
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpMethod;
@@ -19,9 +20,12 @@ import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 public class WebSecurityConfig {
 
 	private final JwtAuthConverter authenticationConverter;
+	private final String frontendUrl;
 
-	public WebSecurityConfig(final JwtAuthConverter authenticationConverter) {
+	public WebSecurityConfig(final JwtAuthConverter authenticationConverter,
+			@Value("${frontend.url}") final String frontendUrl) {
 		this.authenticationConverter = authenticationConverter;
+		this.frontendUrl = frontendUrl;
 	}
 
 	@Bean
@@ -57,8 +61,7 @@ public class WebSecurityConfig {
 	UrlBasedCorsConfigurationSource corsConfigurationSource() {
 		final var configuration = new CorsConfiguration();
 
-		// TODO: move to configuration!
-		configuration.setAllowedOrigins(List.of("https://localhost:4443"));
+		configuration.setAllowedOrigins(List.of(frontendUrl));
 		configuration.setAllowedMethods(List.of("*"));
 		configuration.setAllowedHeaders(List.of("*"));
 		configuration.setAllowCredentials(true);
