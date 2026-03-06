@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { onMount } from "svelte";
 
+	import { goto } from "$app/navigation";
 	import { t } from "$lib/assets/translations";
 
 	import IconPlus from "$lib/assets/icons/IconPlus.svelte";
@@ -14,7 +15,7 @@
 		meetings = await MeetingClient.getAll();
 	});
 
-	function handleAddClick(): Promise<void> {
+	function addMeeting(): Promise<void> {
 		return MeetingClient.create({ name: $t("common.untitled") })
 			.then(meeting => {
 				// TODO: open meeting note.
@@ -24,19 +25,27 @@
 				alert("Creating meeting failed. Please try again.");
 			});
 	}
+
+	function openMeeting(id: number): void {
+		goto(`/meeting/${id}`);
+	}
 </script>
 
 <main class="container">
-	<h1>Dashboard</h1>
+	<h1>{$t("common.dashboard")}</h1>
 
-	<FeedbackButton className="primary" onClick={handleAddClick}>
+	<FeedbackButton className="primary" onClick={addMeeting}>
 		<span class="label">
 			<IconPlus />
 			{$t("common.add")}
 		</span>
 	</FeedbackButton>
 
-	{#each meetings as meeting}
-		<div>{meeting.name}</div>
-	{/each}
+	<ul>
+		{#each meetings as meeting}
+			<li>
+				<a href={`/meeting/${meeting.id}`}>{meeting.name}</a>
+			</li>
+		{/each}
+	</ul>
 </main>

@@ -3,6 +3,10 @@ export type MeetingInfo = {
 	name: string;
 };
 
+export type MeetingDetails = {
+	info: MeetingInfo;
+}
+
 export type MeetingCreateRequest = {
 	name: string;
 };
