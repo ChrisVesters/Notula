@@ -5,9 +5,6 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.util.Optional;
 
-import jakarta.persistence.EntityManager;
-import jakarta.persistence.PersistenceContext;
-
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -27,9 +24,6 @@ class UserRepositoryTest extends RepositoryTest {
 
 	@Autowired
 	private UserRepository userRepository;
-
-	@PersistenceContext
-	private EntityManager entityManager;
 
 	@Nested
 	class ExistsByEmail {
