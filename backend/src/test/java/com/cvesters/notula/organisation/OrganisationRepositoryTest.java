@@ -6,9 +6,6 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import java.util.Collections;
 import java.util.List;
 
-import jakarta.persistence.EntityManager;
-import jakarta.persistence.PersistenceContext;
-
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -24,9 +21,6 @@ class OrganisationRepositoryTest extends RepositoryTest {
 
 	@Autowired
 	private OrganisationRepository organisationRepository;
-
-	@PersistenceContext
-	private EntityManager entityManager;
 
 	@Nested
 	class FindAllById {

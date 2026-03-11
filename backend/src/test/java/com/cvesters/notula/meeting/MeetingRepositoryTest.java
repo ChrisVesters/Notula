@@ -6,9 +6,6 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import java.util.List;
 import java.util.Optional;
 
-import jakarta.persistence.EntityManager;
-import jakarta.persistence.PersistenceContext;
-
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -25,9 +22,6 @@ class MeetingRepositoryTest extends RepositoryTest {
 
 	@Autowired
 	private MeetingRepository meetingRepository;
-
-	@PersistenceContext
-	private EntityManager entityManager;
 
 	@Nested
 	class FindById {
@@ -133,7 +127,7 @@ class MeetingRepositoryTest extends RepositoryTest {
 			assertThat(found.getId()).isEqualTo(saved.getId());
 			assertThat(found.getOrganisationId())
 					.isEqualTo(saved.getOrganisationId());
-			assertThat(found.getName()).isEqualTo(name);
+			assertThat(found.getName()).isEqualTo(saved.getName());
 		}
 
 		@Test

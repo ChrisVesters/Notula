@@ -5,9 +5,6 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.util.Optional;
 
-import jakarta.persistence.EntityManager;
-import jakarta.persistence.PersistenceContext;
-
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -25,9 +22,6 @@ class SessionRepositoryTest extends RepositoryTest {
 
 	@Autowired
 	private SessionRepository sessionRepository;
-
-	@PersistenceContext
-	private EntityManager entityManager;
 
 	@Nested
 	class FindById {
