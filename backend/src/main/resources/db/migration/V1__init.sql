@@ -53,3 +53,18 @@ CREATE TABLE meetings(
 );
 
 CREATE INDEX ON meetings(organisation_id);
+
+
+CREATE TABLE topics(
+	id BIGINT NOT NULL GENERATED ALWAYS AS IDENTITY,
+	organisation_id BIGINT NOT NULL,
+	meeting_id BIGINT NOT NULL,
+	name TEXT NOT NULL,
+
+	PRIMARY KEY(id),
+	FOREIGN KEY(organisation_id) REFERENCES organisations(id) ON DELETE CASCADE,
+	FOREIGN KEY(meeting_id) REFERENCES meetings(id) ON DELETE CASCADE
+);
+
+CREATE INDEX ON topics(organisation_id);
+CREATE INDEX ON topics(meeting_id);
