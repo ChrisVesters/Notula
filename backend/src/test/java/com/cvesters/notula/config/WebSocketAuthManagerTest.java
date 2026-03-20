@@ -1,11 +1,14 @@
 package com.cvesters.notula.config;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.springframework.security.authorization.AuthorizationResult;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.messaging.access.intercept.MessageAuthorizationContext;
@@ -21,10 +24,40 @@ class WebSocketAuthManagerTest {
 	private static final Authentication auth = mock();
 	private static final MessageAuthorizationContext<?> context = mock();
 
-	private final WebSocketAuthManager manager = new TestWebSocketAuthManager();
+	
+	@Nested
+	class Constructor {
 
+		@Test
+		void patternNull() {
+			assertThatThrownBy(() -> new TestWebSocketAuthManager(null))
+					.isInstanceOf(NullPointerException.class);
+		}
+
+		@ParameterizedTest
+		@ValueSource(strings = { "", " " })
+		void patternInvalid(final String pattern) {
+			assertThatThrownBy(() -> new TestWebSocketAuthManager(pattern))
+					.isInstanceOf(IllegalArgumentException.class);
+		}
+		
+	}
+	
 	@Nested
 	class Authorize {
+		private final WebSocketAuthManager manager = new TestWebSocketAuthManager();
+
+		@Test
+		void authenticationSupplierNull() {
+			assertThatThrownBy(() -> manager.authorize(null, context))
+					.isInstanceOf(NullPointerException.class);
+		}
+
+		@Test
+		void contextNull() {
+			assertThatThrownBy(() -> manager.authorize(() -> auth, null))
+					.isInstanceOf(NullPointerException.class);
+		}
 
 		@Test
 		void authenticationNull() {
@@ -80,7 +113,11 @@ class WebSocketAuthManagerTest {
 	private class TestWebSocketAuthManager extends WebSocketAuthManager {
 
 		public TestWebSocketAuthManager() {
-			super(PATTERN);
+			this(PATTERN);
+		}
+
+		public TestWebSocketAuthManager(final String pattern) {
+			super(pattern);
 		}
 
 		@Override

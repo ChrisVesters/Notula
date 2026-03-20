@@ -37,7 +37,7 @@ public class WebSocketSecurityConfig {
 		messages.simpTypeMatchers(SimpMessageType.HEARTBEAT).permitAll();
 		messages.simpTypeMatchers(SimpMessageType.DISCONNECT).permitAll();
 		authManagers.forEach(authManager -> messages
-				.simpDestMatchers(authManager.getPattern())
+				.simpSubscribeDestMatchers(authManager.getPattern())
 				.access(authManager));
 		messages.anyMessage().authenticated();
 
