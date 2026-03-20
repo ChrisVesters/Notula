@@ -1,7 +1,9 @@
 package com.cvesters.notula.config;
 
+import java.util.Objects;
 import java.util.function.Supplier;
 
+import org.apache.commons.lang3.Validate;
 import org.springframework.security.authorization.AuthorizationDecision;
 import org.springframework.security.authorization.AuthorizationManager;
 import org.springframework.security.authorization.AuthorizationResult;
@@ -19,6 +21,8 @@ public abstract class WebSocketAuthManager
 	private final String pattern;
 
 	public WebSocketAuthManager(final String pattern) {
+		Validate.notBlank(pattern);
+
 		this.pattern = pattern;
 	}
 
@@ -26,6 +30,8 @@ public abstract class WebSocketAuthManager
 	public final AuthorizationResult authorize(
 			final Supplier<? extends Authentication> authentication,
 			final MessageAuthorizationContext<?> context) {
+		Objects.requireNonNull(authentication);
+		Objects.requireNonNull(context);
 
 		final Authentication auth = authentication.get();
 		if (auth == null) {
@@ -39,6 +45,6 @@ public abstract class WebSocketAuthManager
 	}
 
 	public abstract boolean hasAccess(final Principal principal,
-			final  MessageAuthorizationContext<?> context);
+			final MessageAuthorizationContext<?> context);
 
 }
