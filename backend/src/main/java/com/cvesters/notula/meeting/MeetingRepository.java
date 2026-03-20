@@ -9,7 +9,7 @@ import com.cvesters.notula.meeting.dao.MeetingDao;
 
 public interface MeetingRepository extends Repository<MeetingDao, Long> {
 
-	Optional<MeetingDao> findById(long id);
+	Optional<MeetingDao> findByOrganisationIdAndId(long organisationid, long id);
 
 	List<MeetingDao> findAllByOrganisationId(long organisationId);
 

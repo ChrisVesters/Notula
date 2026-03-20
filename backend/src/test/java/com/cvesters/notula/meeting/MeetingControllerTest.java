@@ -1,10 +1,6 @@
 package com.cvesters.notula.meeting;
 
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.argThat;
-import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
@@ -102,14 +98,8 @@ class MeetingControllerTest extends ControllerTest {
 			final Principal principal = SESSION.principal();
 			final MeetingInfo info = MEETING.info();
 
-			when(meetingService.create(eq(principal), argThat(meeting -> {
-				assertThatThrownBy(() -> meeting.getId())
-						.isInstanceOf(IllegalStateException.class);
-				assertThat(meeting.getOrganisationId())
-						.isEqualTo(MEETING.getOrganisation().getId());
-				assertThat(meeting.getName()).isEqualTo(MEETING.getName());
-				return true;
-			}))).thenReturn(info);
+			when(meetingService.create(principal, MEETING.create()))
+					.thenReturn(info);
 
 			final String body = getBody(MEETING);
 			final String expectedResponse = getResponse(MEETING);

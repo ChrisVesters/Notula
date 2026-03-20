@@ -2,12 +2,13 @@ package com.cvesters.notula.meeting;
 
 import java.util.List;
 import java.util.Objects;
+import java.util.Optional;
 
 import org.springframework.stereotype.Service;
 
 import com.cvesters.notula.common.domain.Principal;
 import com.cvesters.notula.common.exception.MissingEntityException;
-import com.cvesters.notula.meeting.bdo.MeetingDetails;
+import com.cvesters.notula.meeting.bdo.MeetingAction;
 import com.cvesters.notula.meeting.bdo.MeetingInfo;
 
 @Service
@@ -22,10 +23,22 @@ public class MeetingService {
 	public boolean existsById(final Principal principal, final long id) {
 		Objects.requireNonNull(principal);
 
-		return meetingStorage.findById(id)
-				.filter(meeting -> meeting.getOrganisationId() == principal
-						.organisationId())
-				.isPresent();
+		return findById(principal, id).isPresent();
+	}
+
+	public MeetingInfo getById(final Principal principal, final long id) {
+		Objects.requireNonNull(principal);
+
+		return findById(principal, id)
+				.orElseThrow(MissingEntityException::new);
+	}
+
+	private Optional<MeetingInfo> findById(final Principal principal,
+			final long id) {
+		Objects.requireNonNull(principal);
+
+		return meetingStorage
+				.findByOrganisationIdAndId(principal.organisationId(), id);
 	}
 
 	public List<MeetingInfo> getAll(final Principal principal) {
@@ -35,22 +48,14 @@ public class MeetingService {
 				.findAllByOrganisationId(principal.organisationId());
 	}
 
-	public MeetingDetails getDetails(final Principal principal, final long id) {
-		Objects.requireNonNull(principal);
-
-		final MeetingInfo info = meetingStorage.findById(id)
-				.filter(meeting -> meeting.getOrganisationId() == principal
-						.organisationId())
-				.orElseThrow(MissingEntityException::new);
-
-		return new MeetingDetails(info);
-	}
-
 	public MeetingInfo create(final Principal principal,
-			final MeetingInfo meeting) {
+			final MeetingAction.Create meeting) {
 		Objects.requireNonNull(principal);
 		Objects.requireNonNull(meeting);
 
-		return meetingStorage.create(meeting);
+		final var meetingInfo = new MeetingInfo(principal.organisationId(),
+				meeting.name());
+
+		return meetingStorage.create(meetingInfo);
 	}
 }

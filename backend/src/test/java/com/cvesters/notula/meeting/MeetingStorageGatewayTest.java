@@ -21,6 +21,8 @@ import com.cvesters.notula.organisation.TestOrganisation;
 class MeetingStorageGatewayTest {
 
 	private static final TestMeeting MEETING = TestMeeting.SPORER_PROJECT;
+	private static final TestOrganisation ORGANISATION = MEETING
+			.getOrganisation();
 
 	private final MeetingRepository meetingRepository = mock();
 
@@ -28,7 +30,7 @@ class MeetingStorageGatewayTest {
 			meetingRepository);
 
 	@Nested
-	class FindById {
+	class FindByOrganisationIdAndId {
 
 		@Test
 		void found() {
@@ -36,22 +38,26 @@ class MeetingStorageGatewayTest {
 			final MeetingInfo bdo = mock();
 			when(dao.toBdo()).thenReturn(bdo);
 
-			when(meetingRepository.findById(MEETING.getId()))
-					.thenReturn(Optional.of(dao));
+			when(meetingRepository.findByOrganisationIdAndId(
+					ORGANISATION.getId(), MEETING.getId()))
+							.thenReturn(Optional.of(dao));
 
 			final Optional<MeetingInfo> result = gateway
-					.findById(MEETING.getId());
+					.findByOrganisationIdAndId(ORGANISATION.getId(),
+							MEETING.getId());
 
 			assertThat(result).contains(bdo);
 		}
 
 		@Test
 		void notFound() {
-			when(meetingRepository.findById(MEETING.getId()))
-					.thenReturn(Optional.empty());
+			when(meetingRepository.findByOrganisationIdAndId(
+					ORGANISATION.getId(), MEETING.getId()))
+							.thenReturn(Optional.empty());
 
 			final Optional<MeetingInfo> result = gateway
-					.findById(MEETING.getId());
+					.findByOrganisationIdAndId(ORGANISATION.getId(),
+							MEETING.getId());
 
 			assertThat(result).isEmpty();
 		}

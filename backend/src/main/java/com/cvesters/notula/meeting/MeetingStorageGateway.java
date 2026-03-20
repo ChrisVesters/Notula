@@ -18,8 +18,9 @@ public class MeetingStorageGateway {
 		this.meetingRepository = meetingRepository;
 	}
 
-	public Optional<MeetingInfo> findById(final long id) {
-		return meetingRepository.findById(id).map(MeetingDao::toBdo);
+	public Optional<MeetingInfo> findByOrganisationIdAndId(
+			final long organisationid, final long id) {
+		return meetingRepository.findByOrganisationIdAndId(organisationid, id).map(MeetingDao::toBdo);
 	}
 
 	public List<MeetingInfo> findAllByOrganisationId(

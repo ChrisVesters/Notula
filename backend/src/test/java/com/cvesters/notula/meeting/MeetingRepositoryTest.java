@@ -24,14 +24,15 @@ class MeetingRepositoryTest extends RepositoryTest {
 	private MeetingRepository meetingRepository;
 
 	@Nested
-	class FindById {
+	class FindByOrganisationIdAndId {
 
 		private static final TestMeeting MEETING = TestMeeting.GLOVER_KICKOFF_2026;
 
 		@Test
 		void single() {
 			final Optional<MeetingDao> dao = meetingRepository
-					.findById(MEETING.getId());
+					.findByOrganisationIdAndId(
+							MEETING.getOrganisation().getId(), MEETING.getId());
 
 			final var expected = entityManager.find(MeetingDao.class,
 					MEETING.getId());
@@ -39,9 +40,29 @@ class MeetingRepositoryTest extends RepositoryTest {
 		}
 
 		@Test
-		void notFound() {
+		void meetingIdNonExisting() {
 			final Optional<MeetingDao> dao = meetingRepository
-					.findById(Long.MAX_VALUE);
+					.findByOrganisationIdAndId(
+							MEETING.getOrganisation().getId(), Long.MAX_VALUE);
+
+			assertThat(dao).isEmpty();
+		}
+
+		@Test
+		void organisatioIdNonExisting() {
+			final Optional<MeetingDao> dao = meetingRepository
+					.findByOrganisationIdAndId(Long.MAX_VALUE, MEETING.getId());
+
+			assertThat(dao).isEmpty();
+		}
+
+		@Test
+		void meetingBelongsToOtherOrganisation() {
+			final long organisationId = TestOrganisation.SPORER.getId();
+			final long meetingId = TestMeeting.GLOVER_KICKOFF_2026.getId();
+
+			final Optional<MeetingDao> dao = meetingRepository
+					.findByOrganisationIdAndId(organisationId, meetingId);
 
 			assertThat(dao).isEmpty();
 		}
