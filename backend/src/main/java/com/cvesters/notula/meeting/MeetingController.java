@@ -13,8 +13,9 @@ import org.springframework.web.bind.annotation.RestController;
 
 import com.cvesters.notula.common.controller.BaseController;
 import com.cvesters.notula.common.domain.Principal;
+import com.cvesters.notula.meeting.bdo.MeetingAction;
 import com.cvesters.notula.meeting.bdo.MeetingInfo;
-import com.cvesters.notula.meeting.dto.MeetingCreateDto;
+import com.cvesters.notula.meeting.dto.MeetingActionDto;
 import com.cvesters.notula.meeting.dto.MeetingInfoDto;
 
 @RestController
@@ -41,16 +42,14 @@ public class MeetingController extends BaseController {
 
 	@PostMapping
 	public ResponseEntity<MeetingInfoDto> create(
-			@Valid @RequestBody MeetingCreateDto request) {
+			@Valid @RequestBody MeetingActionDto.Create request) {
 		final Principal principal = getPrincipal();
 
-		final MeetingInfo bdo = request.toBdo(principal.organisationId());
-		final MeetingInfo created = meetingService.create(principal, bdo);
+		final MeetingAction.Create action = request.toBdo();
+		final MeetingInfo created = meetingService.create(principal, action);
 		final var dto = new MeetingInfoDto(created);
 
-		return ResponseEntity
-				.created(getLocation("/{id}", dto.id()))
-				.body(dto);
+		return ResponseEntity.created(getLocation("/{id}", dto.id())).body(dto);
 	}
 
 }

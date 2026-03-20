@@ -7,6 +7,7 @@ import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 
 import com.cvesters.notula.meeting.TestMeeting;
+import com.cvesters.notula.meeting.bdo.MeetingInfo;
 
 class MeetingInfoDtoTest {
 
@@ -17,7 +18,7 @@ class MeetingInfoDtoTest {
 
 		@Test
 		void success() {
-			final var bdo = MEETING.info();
+			final MeetingInfo bdo = MEETING.info();
 
 			final var dto = new MeetingInfoDto(bdo);
 
