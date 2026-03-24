@@ -4,7 +4,10 @@ import org.apache.commons.lang3.Validate;
 
 public final class TopicAction {
 
-	public static record Create(String name) {
+	private TopicAction() {
+	}
+
+	public final static record Create(String name) {
 
 		public Create {
 			Validate.notBlank(name);
