@@ -1,37 +1,48 @@
 package com.cvesters.notula.topic;
 
-import java.util.List;
 import java.util.Objects;
 
 import org.springframework.stereotype.Service;
 
+import com.cvesters.notula.common.domain.Principal;
+import com.cvesters.notula.meeting.MeetingService;
 import com.cvesters.notula.meeting.bdo.MeetingInfo;
 import com.cvesters.notula.topic.bdo.TopicAction;
+import com.cvesters.notula.topic.bdo.TopicEvent;
 import com.cvesters.notula.topic.bdo.TopicInfo;
 
 @Service
 public class TopicService {
 
+	private final MeetingService meetingService;
+
 	private final TopicStorageGateway topicStorage;
+	private final TopicPublisher topicPublisher;
 
-	public TopicService(final TopicStorageGateway topicStorage) {
+	public TopicService(final MeetingService meetingService,
+			final TopicStorageGateway topicStorage,
+			final TopicPublisher topicPublisher) {
+		this.meetingService = meetingService;
 		this.topicStorage = topicStorage;
+		this.topicPublisher = topicPublisher;
 	}
 
-	public TopicInfo create(final MeetingInfo meeting,
-			final TopicAction.Create topic) {
-		Objects.requireNonNull(meeting);
-		Objects.requireNonNull(topic);
+	public TopicInfo create(final Principal principal, final long meetingId,
+			final TopicAction.Create action) {
+		Objects.requireNonNull(principal);
+		Objects.requireNonNull(action);
 
-		final var topicInfo = new TopicInfo(meeting.getOrganisationId(),
-				meeting.getId(), topic.name());
+		final MeetingInfo meeting = meetingService.getById(principal,
+				meetingId);
+		final var topic = new TopicInfo(meeting.getOrganisationId(),
+				meeting.getId(), action.name());
 
-		return topicStorage.create(topicInfo);
+		final TopicInfo created = topicStorage.create(topic);
+
+		final TopicEvent event = new TopicEvent.Create(created);
+		topicPublisher.publish(meetingId, event);
+
+		return created;
 	}
 
-	public List<TopicInfo> getAllForMeeting(final MeetingInfo meeting) {
-		Objects.requireNonNull(meeting);
-
-		return topicStorage.findAllByMeetingId(meeting.getId());
-	}
 }

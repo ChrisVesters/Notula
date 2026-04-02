@@ -1,11 +1,16 @@
 package com.cvesters.notula.session;
 
 import java.time.OffsetDateTime;
+import java.util.ArrayList;
 import java.util.Optional;
+
+import org.springframework.security.core.GrantedAuthority;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
 
 import lombok.Getter;
 
 import com.cvesters.notula.common.domain.Principal;
+import com.cvesters.notula.config.JwtAuthConverter;
 import com.cvesters.notula.organisation.TestOrganisation;
 import com.cvesters.notula.session.bdo.SessionInfo;
 import com.cvesters.notula.user.TestUser;
@@ -22,8 +27,8 @@ public enum TestSession {
 			OffsetDateTime.now().plusDays(15)),
 	EDUARDO_CHRISTIANSEN(7L, TestUser.EDUARDO_CHRISTIANSEN, null, "ddef741",
 			OffsetDateTime.now().minusDays(1)),
-	ALISON_DACH_GLOVER(8L, TestUser.ALISON_DACH, TestOrganisation.GLOVER, "ad98gh3",
-			OffsetDateTime.now().plusDays(3));
+	ALISON_DACH_GLOVER(8L, TestUser.ALISON_DACH, TestOrganisation.GLOVER,
+			"ad98gh3", OffsetDateTime.now().plusDays(3));
 
 	private final long id;
 	private final TestUser user;
@@ -57,5 +62,14 @@ public enum TestSession {
 				.orElse(null);
 
 		return new Principal(userId, organisationId);
+	}
+
+	public JwtAuthConverter.AuthToken getAuthToken() {
+		final var authorities = new ArrayList<GrantedAuthority>();
+		if (organisation != null) {
+			authorities.add(new SimpleGrantedAuthority("CLAIM_ORGANISATION"));
+		}
+
+		return new JwtAuthConverter.AuthToken(principal(), authorities);
 	}
 }
