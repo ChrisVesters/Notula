@@ -25,6 +25,8 @@ class PrincipalTest {
 			final var principal = new Principal(USER.getId());
 
 			assertThat(principal.userId()).isEqualTo(USER.getId());
+			assertThat(Long.parseLong(principal.getName()))
+					.isEqualTo(USER.getId());
 			assertThatThrownBy(principal::organisationId)
 					.isInstanceOf(IllegalStateException.class);
 		}
@@ -35,6 +37,8 @@ class PrincipalTest {
 					ORGANISATION.getId());
 
 			assertThat(principal.userId()).isEqualTo(USER.getId());
+			assertThat(Long.parseLong(principal.getName()))
+					.isEqualTo(USER.getId());
 			assertThat(principal.organisationId())
 					.isEqualTo(ORGANISATION.getId());
 		}

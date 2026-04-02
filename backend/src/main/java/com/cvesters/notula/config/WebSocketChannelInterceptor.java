@@ -25,7 +25,8 @@ public class WebSocketChannelInterceptor implements ChannelInterceptor {
 	}
 
 	@Override
-	public Message<?> preSend(Message<?> message, MessageChannel channel) {
+	public Message<?> preSend(final Message<?> message,
+			final MessageChannel channel) {
 		final var accessor = MessageHeaderAccessor.getAccessor(message,
 				StompHeaderAccessor.class);
 		if (accessor == null || StompCommand.CONNECT != accessor.getCommand()) {
