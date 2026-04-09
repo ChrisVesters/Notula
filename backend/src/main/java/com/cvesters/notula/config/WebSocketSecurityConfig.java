@@ -23,7 +23,7 @@ public class WebSocketSecurityConfig {
 	}
 
 	@Bean
-	public ChannelInterceptor csrfChannelInterceptor() {
+	ChannelInterceptor csrfChannelInterceptor() {
 		// Disable csrf
 		return new ChannelInterceptor() {
 		};
