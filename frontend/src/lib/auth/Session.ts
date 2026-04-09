@@ -1,14 +1,17 @@
 import { get } from "svelte/store";
 
-import Auth from "$lib/auth/Auth";
 import DataStorage from "$lib/common/DataStorage";
+import WebSocketClient from "$lib/common/WebSocketClient";
 import type { SessionInfo } from "$lib/session/SessionTypes";
+
+import Auth from "$lib/auth/Auth";
 
 export default class Session {
 	static readonly #GRACE_PERIOD_MS = 60_000;
 	static #TIMER_ID: number | null = null;
 	static #SESSION_ID: number | null = null;
 	static #ACCESS_TOKEN: string | null = null;
+	static #WS_CLIENT: WebSocketClient | null = null;
 
 	public static getId(): number {
 		if (Session.#SESSION_ID === null) {
@@ -26,6 +29,14 @@ export default class Session {
 		return Session.#ACCESS_TOKEN;
 	}
 
+	public static getWebSocketClient(): WebSocketClient {
+		if (Session.#WS_CLIENT === null) {
+			throw new Error("No valid websocket");
+		}
+
+		return Session.#WS_CLIENT;
+	}
+
 	public static load(): void {
 		const sessionId = Number(DataStorage.getItem("sessionId"));
 		const accessToken = DataStorage.getItem("accessToken");
@@ -35,6 +46,12 @@ export default class Session {
 
 		Session.#SESSION_ID = sessionId;
 		Session.#ACCESS_TOKEN = accessToken;
+
+		// TODO: better handling in case token is expired/can not be refreshed!
+		if (Session.#WS_CLIENT !== null) {
+			Session.#WS_CLIENT.disconnect();
+		}
+		Session.#WS_CLIENT = new WebSocketClient(accessToken);
 
 		Auth.updatePrincipal(accessToken);
 		Session.scheduleRefresh();
@@ -47,6 +64,11 @@ export default class Session {
 		Session.#SESSION_ID = session.id;
 		Session.#ACCESS_TOKEN = session.accessToken;
 
+		if (Session.#WS_CLIENT !== null) {
+			Session.#WS_CLIENT.disconnect();
+		}
+		Session.#WS_CLIENT = new WebSocketClient(session.accessToken);
+
 		Auth.updatePrincipal(session.accessToken);
 		Session.scheduleRefresh();
 	}
@@ -57,6 +79,11 @@ export default class Session {
 
 		Session.#SESSION_ID = null;
 		Session.#ACCESS_TOKEN = null;
+
+		if (Session.#WS_CLIENT !== null) {
+			Session.#WS_CLIENT.disconnect();
+		}
+		Session.#WS_CLIENT = null;
 
 		Session.cancelScheduledRefresh();
 		Auth.deletePrincipal();
@@ -94,9 +121,10 @@ export default class Session {
 		}
 
 		const offset = principal.expiresAt.getTime() - Date.now();
-		Session.#TIMER_ID = setTimeout(() => {
-			Session.refresh();
-		}, offset - this.#GRACE_PERIOD_MS);
+		Session.#TIMER_ID = setTimeout(
+			() => Session.refresh(),
+			offset - this.#GRACE_PERIOD_MS
+		);
 	}
 
 	private static cancelScheduledRefresh() {

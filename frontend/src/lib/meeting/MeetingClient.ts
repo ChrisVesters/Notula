@@ -1,5 +1,4 @@
 import Client from "$lib/common/Client";
-import DataStorage from "$lib/common/DataStorage";
 
 import type {
 	MeetingCreateRequest,
