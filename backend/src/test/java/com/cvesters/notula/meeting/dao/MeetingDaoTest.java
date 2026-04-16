@@ -38,6 +38,29 @@ class MeetingDaoTest {
 	}
 
 	@Nested
+	class Update {
+
+		private final MeetingDao dao = new MeetingDao(MEETING.info());
+
+		@Test
+		void success() {
+			final String name = "Updated";
+			final MeetingInfo bdo = new MeetingInfo(ORGANISATION.getId(), name);
+			dao.update(bdo);
+
+			assertThat(dao.getId()).isNull();
+			assertThat(dao.getOrganisationId()).isEqualTo(ORGANISATION.getId());
+			assertThat(dao.getName()).isEqualTo(name);
+		}
+
+		@Test
+		void bdoNull() {
+			assertThatThrownBy(() -> dao.update(null))
+					.isInstanceOf(NullPointerException.class);
+		}
+	}
+
+	@Nested
 	class ToBdo {
 
 		private final MeetingDao dao = new MeetingDao(MEETING.info());

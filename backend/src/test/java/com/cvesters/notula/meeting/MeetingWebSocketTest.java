@@ -3,18 +3,26 @@ package com.cvesters.notula.meeting;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.timeout;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.springframework.messaging.simp.stomp.ConnectionLostException;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 
 import com.cvesters.notula.common.domain.Principal;
 import com.cvesters.notula.common.exception.MissingEntityException;
+import com.cvesters.notula.meeting.bdo.MeetingAction;
 import com.cvesters.notula.meeting.bdo.MeetingDetails;
 import com.cvesters.notula.meeting.dto.MeetingDetailsDto;
 import com.cvesters.notula.session.TestSession;
@@ -33,6 +41,9 @@ class MeetingWebSocketTest extends WebSocketTest {
 
 	@MockitoBean
 	private MeetingDetailsService meetingDetailsService;
+
+	@MockitoBean
+	private MeetingService meetingService;
 
 	@Nested
 	class Subscribe {
@@ -96,5 +107,79 @@ class MeetingWebSocketTest extends WebSocketTest {
 			return DESTINATION_PREFIX + meetingId;
 		}
 
+	}
+
+	@Nested
+	class UpdateName {
+
+		@ParameterizedTest
+		@ValueSource(strings = { "meet", "!@#$%^&*(){}[]|\\:;\"'<>,.?/",
+				"Встреча: 你好 مرحبا" })
+		void success(final String name) throws Exception {
+			final Map<String, Object> dto = getDto(name);
+
+			connect(SESSION);
+			send(getDestination(MEETING.getId()), dto);
+
+			final var expected = new MeetingAction.UpdateName(5, 2, name);
+			verify(meetingService, timeout(WAIT_TIMEOUT.toMillis())).update(
+					eq(PRINCIPAL), eq(MEETING.getId()),
+					MeetingActionMatcher.matches(expected));
+		}
+
+		@Test
+		void notFound() throws Exception {
+			final var meeting = TestMeeting.SPORER_PROJECT;
+			final Map<String, Object> dto = getDto(meeting.getName());
+
+			when(meetingService.update(any(), anyLong(), any()))
+					.thenThrow(new MissingEntityException());
+
+			connect(SESSION);
+			final FrameHandler<String> errorFrameHandler = subscribeToErrors();
+			send(getDestination(MEETING.getId()), dto);
+
+			assertThat(errorFrameHandler.getResponse())
+					.succeedsWithin(WAIT_TIMEOUT.toSeconds(), TimeUnit.SECONDS)
+					.isNotNull()
+					.satisfies(message -> message.startsWith("Error"));
+		}
+
+		@Test
+		void invalid() throws Exception {
+			final Map<String, Object> dto = getDto("");
+
+			connect(SESSION);
+			final FrameHandler<String> errorFrameHandler = subscribeToErrors();
+			send(getDestination(MEETING.getId()), dto);
+
+			verifyNoInteractions(meetingService);
+			assertThat(errorFrameHandler.getResponse())
+					.succeedsWithin(WAIT_TIMEOUT.toSeconds(), TimeUnit.SECONDS)
+					.isNotNull()
+					.satisfies(message -> message.startsWith("Error"));
+		}
+
+		@Test
+		void unauthenticated() throws Exception {
+			final Map<String, Object> dto = getDto("meeting");
+
+			connect();
+			send(getDestination(MEETING.getId()), dto);
+
+			assertThat(stompSessionHandler.getError())
+					.succeedsWithin(WAIT_TIMEOUT.toSeconds(), TimeUnit.SECONDS)
+					.isInstanceOf(ConnectionLostException.class);
+		}
+
+		private Map<String, Object> getDto(final String name) {
+			return Map.ofEntries(Map.entry("action", "UPDATE_NAME"),
+					Map.entry("position", 5), Map.entry("length", 2),
+					Map.entry("value", name));
+		}
+
+		private String getDestination(final long meetingId) {
+			return DESTINATION_PREFIX + meetingId;
+		}
 	}
 }

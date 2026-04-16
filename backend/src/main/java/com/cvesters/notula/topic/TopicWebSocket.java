@@ -8,6 +8,7 @@ import org.springframework.messaging.handler.annotation.Payload;
 import org.springframework.stereotype.Controller;
 
 import com.cvesters.notula.common.controller.BaseController;
+import com.cvesters.notula.common.domain.Principal;
 import com.cvesters.notula.topic.bdo.TopicAction;
 import com.cvesters.notula.topic.dto.TopicActionDto;
 
@@ -25,9 +26,10 @@ public class TopicWebSocket extends BaseController {
 	@MessageMapping(BASE_ENDPOINT)
 	public void create(@DestinationVariable final long meetingId,
 			@Valid @Payload final TopicActionDto.Create dto) {
+		final Principal principal = getPrincipal();
 
 		final TopicAction.Create action = dto.toBdo();
-		topicService.create(getPrincipal(), meetingId, action);
+		topicService.create(principal, meetingId, action);
 	}
 
 }

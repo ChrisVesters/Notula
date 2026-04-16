@@ -25,7 +25,7 @@ class TopicPublisherTest {
 		private static final TestTopic TOPIC = TestTopic.SPORER_PROJECT_BLOCKERS;
 
 		private static final String DESTINATION = DESTINATION_PREFIX + "/"
-				+ +MEETING_ID;
+				+ MEETING_ID;
 
 		@Test
 		void create() {

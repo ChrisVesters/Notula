@@ -6,6 +6,7 @@ import java.util.Optional;
 
 import org.springframework.stereotype.Service;
 
+import com.cvesters.notula.common.exception.MissingEntityException;
 import com.cvesters.notula.meeting.bdo.MeetingInfo;
 import com.cvesters.notula.meeting.dao.MeetingDao;
 
@@ -20,7 +21,8 @@ public class MeetingStorageGateway {
 
 	public Optional<MeetingInfo> findByOrganisationIdAndId(
 			final long organisationid, final long id) {
-		return meetingRepository.findByOrganisationIdAndId(organisationid, id).map(MeetingDao::toBdo);
+		return meetingRepository.findByOrganisationIdAndId(organisationid, id)
+				.map(MeetingDao::toBdo);
 	}
 
 	public List<MeetingInfo> findAllByOrganisationId(
@@ -39,4 +41,15 @@ public class MeetingStorageGateway {
 		return saved.toBdo();
 	}
 
+	public MeetingInfo update(final MeetingInfo meeting) {
+		Objects.requireNonNull(meeting);
+
+		final var dao = meetingRepository
+				.findByOrganisationIdAndId(meeting.getOrganisationId(),
+						meeting.getId())
+				.orElseThrow(MissingEntityException::new);
+		dao.update(meeting);
+		final var saved = meetingRepository.save(dao);
+		return saved.toBdo();
+	}
 }

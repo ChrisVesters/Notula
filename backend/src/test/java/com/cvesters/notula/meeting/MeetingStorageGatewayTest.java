@@ -3,6 +3,7 @@ package com.cvesters.notula.meeting;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.argThat;
+import static org.mockito.Mockito.inOrder;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -13,7 +14,9 @@ import java.util.Optional;
 
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
+import org.mockito.InOrder;
 
+import com.cvesters.notula.common.exception.MissingEntityException;
 import com.cvesters.notula.meeting.bdo.MeetingInfo;
 import com.cvesters.notula.meeting.dao.MeetingDao;
 import com.cvesters.notula.organisation.TestOrganisation;
@@ -158,6 +161,51 @@ class MeetingStorageGatewayTest {
 		void organisationNull() {
 			assertThatThrownBy(() -> gateway.create(null))
 					.isInstanceOf(NullPointerException.class);
+		}
+	}
+
+	@Nested
+	class Update {
+
+		@Test
+		void success() {
+			final MeetingDao foundDao = mock();
+			when(meetingRepository.findByOrganisationIdAndId(
+					ORGANISATION.getId(), MEETING.getId()))
+							.thenReturn(Optional.of(foundDao));
+
+			final MeetingDao updatedDao = mock();
+			final MeetingInfo updatedBdo = mock();
+			when(meetingRepository.save(foundDao)).thenReturn(updatedDao);
+			when(updatedDao.toBdo()).thenReturn(updatedBdo);
+
+			final MeetingInfo updateBdo = MEETING.info();
+			final MeetingInfo meetingInfo = gateway.update(updateBdo);
+
+			assertThat(meetingInfo).isEqualTo(updatedBdo);
+
+			final InOrder inOrder = inOrder(foundDao, updatedDao,
+					meetingRepository);
+			inOrder.verify(foundDao).update(updateBdo);
+			inOrder.verify(meetingRepository).save(foundDao);
+			inOrder.verify(updatedDao).toBdo();
+		}
+
+		@Test
+		void meetingNull() {
+			assertThatThrownBy(() -> gateway.update(null))
+					.isInstanceOf(NullPointerException.class);
+		}
+
+		@Test
+		void meetingNotFound() {
+			when(meetingRepository.findByOrganisationIdAndId(
+					ORGANISATION.getId(), MEETING.getId()))
+							.thenReturn(Optional.empty());
+
+			final MeetingInfo updateBdo = MEETING.info();
+			assertThatThrownBy(() -> gateway.update(updateBdo))
+					.isInstanceOf(MissingEntityException.class);
 		}
 	}
 }

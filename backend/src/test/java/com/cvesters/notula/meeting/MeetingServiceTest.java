@@ -4,6 +4,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import java.util.List;
@@ -24,55 +25,10 @@ import com.cvesters.notula.session.TestSession;
 class MeetingServiceTest {
 
 	private final MeetingStorageGateway meetingStorageGateway = mock();
+	private final MeetingPublisher meetingPublisher = mock();
 
 	private final MeetingService meetingService = new MeetingService(
-			meetingStorageGateway);
-
-	@Nested
-	class ExistsById {
-
-		private static final TestSession SESSION = TestSession.EDUARDO_CHRISTIANSEN_SPORER;
-		private static final Principal PRINCIPAL = SESSION.principal();
-
-		private static final TestMeeting MEETING = TestMeeting.SPORER_Q2_PLANNING;
-
-		@Test
-		void found() {
-			when(meetingStorageGateway.findByOrganisationIdAndId(
-					SESSION.getOrganisation().getId(), MEETING.getId()))
-							.thenReturn(Optional.of(MEETING.info()));
-
-			assertThat(meetingService.existsById(PRINCIPAL, MEETING.getId()))
-					.isTrue();
-		}
-
-		@Test
-		void notFound() {
-			when(meetingStorageGateway.findByOrganisationIdAndId(
-					SESSION.getOrganisation().getId(), MEETING.getId()))
-							.thenReturn(Optional.empty());
-
-			assertThat(meetingService.existsById(PRINCIPAL, MEETING.getId()))
-					.isFalse();
-		}
-
-		@Test
-		void noOrganisation() {
-			final var principal = TestSession.EDUARDO_CHRISTIANSEN.principal();
-			final long meetingId = MEETING.getId();
-
-			assertThatThrownBy(
-					() -> meetingService.existsById(principal, meetingId))
-							.isInstanceOf(IllegalStateException.class);
-		}
-
-		@Test
-		void principalNull() {
-			final long meetingId = MEETING.getId();
-			assertThatThrownBy(() -> meetingService.existsById(null, meetingId))
-					.isInstanceOf(NullPointerException.class);
-		}
-	}
+			meetingStorageGateway, meetingPublisher);
 
 	@Nested
 	class GetById {
@@ -184,8 +140,9 @@ class MeetingServiceTest {
 				return true;
 			}))).thenReturn(created);
 
+			final var create = new MeetingAction.Create(MEETING.getName());
 			final MeetingInfo result = meetingService
-					.create(SESSION.principal(), MEETING.create());
+					.create(SESSION.principal(), create);
 
 			assertThat(result).isEqualTo(created);
 		}
@@ -202,10 +159,85 @@ class MeetingServiceTest {
 		@Test
 		void principalNull() {
 			final Principal principal = null;
-			final var meeting = MEETING.create();
+			final var create = new MeetingAction.Create(MEETING.getName());
 
-			assertThatThrownBy(() -> meetingService.create(principal, meeting))
+			assertThatThrownBy(() -> meetingService.create(principal, create))
 					.isInstanceOf(NullPointerException.class);
+		}
+	}
+
+	@Nested
+	class Update {
+
+		private static final TestSession SESSION = TestSession.EDUARDO_CHRISTIANSEN_SPORER;
+		private static final TestMeeting MEETING = TestMeeting.SPORER_PROJECT;
+
+		@Test
+		void success() {
+			final Principal principal = SESSION.principal();
+			final long meetingId = MEETING.getId();
+			final MeetingInfo meetingInfo = MEETING.info();
+			final MeetingAction.Update action = new MeetingAction.UpdateName(8,
+					0, "Status ");
+
+			when(meetingStorageGateway
+					.findByOrganisationIdAndId(principal.userId(), meetingId))
+							.thenReturn(Optional.of(meetingInfo));
+
+			final MeetingInfo updated = mock();
+			when(meetingStorageGateway.update(argThat(info -> {
+				assertThat(info.getId()).isEqualTo(MEETING.getId());
+				assertThat(info.getOrganisationId()).isEqualTo(MEETING.getOrganisation().getId());
+				assertThat(info.getName()).isEqualTo("Project Status Meeting");
+				return true;
+			}))).thenReturn(updated);
+
+			final MeetingInfo result = meetingService
+					.update(SESSION.principal(), meetingId, action);
+
+			assertThat(result).isEqualTo(updated);
+
+			verify(meetingPublisher).publish(argThat(event -> {
+				assertThat(event.meetingId()).isEqualTo(MEETING.getId());
+				assertThat(event.action()).isEqualTo(action);
+				return true;
+			}));
+		}
+
+		@Test
+		void meetingNotFound() {
+			final Principal principal = SESSION.principal();
+			final long meetingId = MEETING.getId();
+			final MeetingAction.Update action = new MeetingAction.UpdateName(2,
+					4, "27");
+
+			when(meetingStorageGateway
+					.findByOrganisationIdAndId(principal.userId(), meetingId))
+							.thenReturn(Optional.empty());
+
+			assertThatThrownBy(() -> meetingService.update(SESSION.principal(),
+					meetingId, action))
+							.isInstanceOf(MissingEntityException.class);
+		}
+
+		@Test
+		void principalNull() {
+			final long meetingId = MEETING.getId();
+			final MeetingAction.Update action = new MeetingAction.UpdateName(2,
+					4, "27");
+
+			assertThatThrownBy(
+					() -> meetingService.update(null, meetingId, action))
+							.isInstanceOf(NullPointerException.class);
+		}
+
+		@Test
+		void actionNull() {
+			final Principal principal = SESSION.principal();
+			final long meetingId = MEETING.getId();
+			assertThatThrownBy(
+					() -> meetingService.update(principal, meetingId, null))
+							.isInstanceOf(NullPointerException.class);
 		}
 	}
 }
