@@ -9,28 +9,22 @@ import org.springframework.stereotype.Service;
 import com.cvesters.notula.common.domain.Principal;
 import com.cvesters.notula.common.exception.MissingEntityException;
 import com.cvesters.notula.meeting.bdo.MeetingAction;
+import com.cvesters.notula.meeting.bdo.MeetingEvent;
 import com.cvesters.notula.meeting.bdo.MeetingInfo;
 
 @Service
 public class MeetingService {
 
+	private final MeetingPublisher meetingPublisher;
 	private final MeetingStorageGateway meetingStorage;
 
-	public MeetingService(final MeetingStorageGateway meetingStorageGateway) {
+	public MeetingService(final MeetingStorageGateway meetingStorageGateway, MeetingPublisher meetingPublisher) {
 		this.meetingStorage = meetingStorageGateway;
-	}
-
-	public boolean existsById(final Principal principal, final long id) {
-		Objects.requireNonNull(principal);
-
-		return findById(principal, id).isPresent();
+		this.meetingPublisher = meetingPublisher;
 	}
 
 	public MeetingInfo getById(final Principal principal, final long id) {
-		Objects.requireNonNull(principal);
-
-		return findById(principal, id)
-				.orElseThrow(MissingEntityException::new);
+		return findById(principal, id).orElseThrow(MissingEntityException::new);
 	}
 
 	private Optional<MeetingInfo> findById(final Principal principal,
@@ -54,8 +48,22 @@ public class MeetingService {
 		Objects.requireNonNull(meeting);
 
 		final var meetingInfo = new MeetingInfo(principal.organisationId(),
-				meeting.name());
+				meeting.getName());
 
 		return meetingStorage.create(meetingInfo);
+	}
+
+	public MeetingInfo update(final Principal principal, final long id,
+			final MeetingAction.Update action) {
+		Objects.requireNonNull(action);
+
+		final MeetingInfo meetingInfo = getById(principal, id);
+		action.apply(meetingInfo);
+		final MeetingInfo updated = meetingStorage.update(meetingInfo);
+
+		final MeetingEvent event = new MeetingEvent(id, action);
+		meetingPublisher.publish(event);
+
+		return updated;
 	}
 }

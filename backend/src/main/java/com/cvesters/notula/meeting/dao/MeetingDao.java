@@ -38,6 +38,12 @@ public class MeetingDao {
 		this.name = bdo.getName();
 	}
 
+	public void update(final MeetingInfo bdo) {
+		Objects.requireNonNull(bdo);
+
+		this.name = bdo.getName();
+	}
+
 	public MeetingInfo toBdo() {
 		Validate.validState(id != null);
 

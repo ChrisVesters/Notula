@@ -5,6 +5,7 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 import java.util.Map;
+import java.util.Optional;
 
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -13,15 +14,16 @@ import org.springframework.messaging.support.MessageBuilder;
 import org.springframework.security.messaging.access.intercept.MessageAuthorizationContext;
 
 import com.cvesters.notula.common.domain.Principal;
+import com.cvesters.notula.meeting.bdo.MeetingInfo;
 
 class MeetingWebSocketAuthManagerTest {
 
 	private static final Principal PRINCIPAL = mock();
 	private static final long MEETING_ID = 4;
 
-	private final MeetingService meetingService = mock();
+	private final MeetingStorageGateway meetingStorage = mock();
 	private final MeetingWebSocketAuthManager authManager = new MeetingWebSocketAuthManager(
-			meetingService);
+			meetingStorage);
 
 	@Nested
 	class HasAccess {
@@ -35,8 +37,10 @@ class MeetingWebSocketAuthManagerTest {
 			final var context = new MessageAuthorizationContext<>(message,
 					Map.of("id", String.valueOf(MEETING_ID)));
 
-			when(meetingService.existsById(PRINCIPAL, MEETING_ID))
-					.thenReturn(true);
+			final MeetingInfo meetingInfo = mock();
+			when(meetingStorage.findByOrganisationIdAndId(
+					PRINCIPAL.organisationId(), MEETING_ID))
+							.thenReturn(Optional.of(meetingInfo));
 
 			assertThat(authManager.hasAccess(PRINCIPAL, context)).isTrue();
 		}
@@ -46,8 +50,9 @@ class MeetingWebSocketAuthManagerTest {
 			final var context = new MessageAuthorizationContext<>(message,
 					Map.of("id", String.valueOf(MEETING_ID)));
 
-			when(meetingService.existsById(PRINCIPAL, MEETING_ID))
-					.thenReturn(false);
+			when(meetingStorage.findByOrganisationIdAndId(
+					PRINCIPAL.organisationId(), MEETING_ID))
+							.thenReturn(Optional.empty());
 
 			assertThat(authManager.hasAccess(PRINCIPAL, context)).isFalse();
 		}

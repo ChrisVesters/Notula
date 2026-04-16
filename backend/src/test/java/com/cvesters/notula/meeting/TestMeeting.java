@@ -2,7 +2,6 @@ package com.cvesters.notula.meeting;
 
 import lombok.Getter;
 
-import com.cvesters.notula.meeting.bdo.MeetingAction;
 import com.cvesters.notula.meeting.bdo.MeetingInfo;
 import com.cvesters.notula.organisation.TestOrganisation;
 
@@ -25,10 +24,6 @@ public enum TestMeeting {
 
 	public MeetingInfo info() {
 		return new MeetingInfo(id, organisation.getId(), name);
-	}
-
-	public MeetingAction.Create create() {
-		return new MeetingAction.Create(name);
 	}
 
 }

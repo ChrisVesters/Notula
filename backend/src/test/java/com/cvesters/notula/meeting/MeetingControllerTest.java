@@ -1,6 +1,7 @@
 package com.cvesters.notula.meeting;
 
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
@@ -25,6 +26,7 @@ import org.springframework.security.test.context.support.WithAnonymousUser;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 
 import com.cvesters.notula.common.domain.Principal;
+import com.cvesters.notula.meeting.bdo.MeetingAction;
 import com.cvesters.notula.meeting.bdo.MeetingInfo;
 import com.cvesters.notula.session.TestSession;
 import com.cvesters.notula.test.ControllerTest;
@@ -98,8 +100,9 @@ class MeetingControllerTest extends ControllerTest {
 			final Principal principal = SESSION.principal();
 			final MeetingInfo info = MEETING.info();
 
-			when(meetingService.create(principal, MEETING.create()))
-					.thenReturn(info);
+			final var expected = new MeetingAction.Create(MEETING.getName());
+			when(meetingService.create(eq(principal),
+					MeetingActionMatcher.matches(expected))).thenReturn(info);
 
 			final String body = getBody(MEETING);
 			final String expectedResponse = getResponse(MEETING);

@@ -58,4 +58,32 @@ public class MeetingInfoTest {
 							.isInstanceOf(IllegalArgumentException.class);
 		}
 	}
+
+	@Nested
+	class SetName {
+
+		private final MeetingInfo info = MEETING.info();
+
+		@ParameterizedTest
+		@ValueSource(strings = { "Upated", "!@#$%^&*(){}[]|\\:;\"'<>,.?/",
+				"Встреча: 你好 مرحبا"  })
+		void success(final String name) {
+			info.setName(name);
+
+			assertThat(info.getName()).isEqualTo(name);
+		}
+
+		@Test
+		void nameNull() {
+			assertThatThrownBy(() -> info.setName(null))
+					.isInstanceOf(NullPointerException.class);
+		}
+
+		@ParameterizedTest
+		@ValueSource(strings = { "", " " })
+		void nameInvalid(final String name) {
+			assertThatThrownBy(() -> info.setName(name))
+					.isInstanceOf(IllegalArgumentException.class);
+		}
+	}
 }

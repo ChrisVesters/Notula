@@ -13,12 +13,13 @@ public class MeetingWebSocketAuthManager extends WebSocketAuthManager {
 
 	private static final String MEETING_DESTINATION = "/topic/meetings/{id:\\d+}";
 
-	private final MeetingService meetingService;
+	private final MeetingStorageGateway meetingStorage;
 
-	public MeetingWebSocketAuthManager(final MeetingService meetingService) {
+	public MeetingWebSocketAuthManager(
+			final MeetingStorageGateway meetingStorage) {
 		super(MEETING_DESTINATION);
 
-		this.meetingService = meetingService;
+		this.meetingStorage = meetingStorage;
 	}
 
 	@Override
@@ -26,8 +27,9 @@ public class MeetingWebSocketAuthManager extends WebSocketAuthManager {
 			final MessageAuthorizationContext<?> context) {
 		return Optional.ofNullable(context.getVariables().get("id"))
 				.map(Long::parseLong)
-				.map(id -> meetingService.existsById(principal, id))
-				.orElse(false);
+				.flatMap(id -> meetingStorage.findByOrganisationIdAndId(
+						principal.organisationId(), id))
+				.isPresent();
 	}
 
 }

@@ -9,7 +9,7 @@ public class MeetingInfo {
 
 	private final Long id;
 	private final long organisationId;
-	private final String name;
+	private String name;
 
 	public MeetingInfo(final long organisationId, final String name) {
 		this(null, organisationId, name);
@@ -28,4 +28,11 @@ public class MeetingInfo {
 
 		return id;
 	}
+
+	public void setName(final String name) {
+		Validate.notBlank(name);
+
+		this.name = name;
+	}
+
 }
