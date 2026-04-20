@@ -5,6 +5,9 @@
 	import { t } from "$lib/assets/translations";
 
 	import IconPlus from "$lib/assets/icons/IconPlus.svelte";
+
+	import { trim } from "$lib/common/NameUtils";
+
 	import FeedbackButton from "$lib/form/FeedbackButton.svelte";
 	import MeetingClient from "$lib/meeting/MeetingClient";
 	import type { MeetingInfo } from "$lib/meeting/MeetingTypes";
@@ -16,7 +19,7 @@
 	});
 
 	function addMeeting(): Promise<void> {
-		return MeetingClient.create({ name: $t("common.untitled") })
+		return MeetingClient.create({ name: "" })
 			.then(meeting => {
 				goto(`/meeting/${meeting.id}`);
 			})
@@ -40,7 +43,9 @@
 	<ul>
 		{#each meetings as meeting}
 			<li>
-				<a href={`/meeting/${meeting.id}`}>{meeting.name}</a>
+				<a href={`/meeting/${meeting.id}`}>
+					{trim(meeting.name, $t("common.untitled"))}
+				</a>
 			</li>
 		{/each}
 	</ul>

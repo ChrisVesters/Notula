@@ -1,5 +1,7 @@
 package com.cvesters.notula.meeting.bdo;
 
+import java.util.Objects;
+
 import org.apache.commons.lang3.Validate;
 
 import lombok.Getter;
@@ -16,7 +18,7 @@ public class MeetingInfo {
 	}
 
 	public MeetingInfo(final Long id, final long organisationId, final String name) {
-		Validate.notBlank(name);
+		Objects.requireNonNull(name);
 
 		this.id = id;
 		this.organisationId = organisationId;
@@ -30,7 +32,7 @@ public class MeetingInfo {
 	}
 
 	public void setName(final String name) {
-		Validate.notBlank(name);
+		Objects.requireNonNull(name);
 
 		this.name = name;
 	}

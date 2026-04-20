@@ -18,8 +18,6 @@ import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.MethodSource;
-import org.junit.jupiter.params.provider.NullAndEmptySource;
-import org.junit.jupiter.params.provider.ValueSource;
 import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
 import org.springframework.http.MediaType;
 import org.springframework.security.test.context.support.WithAnonymousUser;
@@ -138,18 +136,6 @@ class MeetingControllerTest extends ControllerTest {
 
 			mockMvc.perform(builder)
 					.andExpect(status().isInternalServerError());
-		}
-
-		@ParameterizedTest
-		@NullAndEmptySource
-		@ValueSource(strings = { " " })
-		void nameInvalid(final String name) throws Exception {
-			final String body = getBody(name);
-
-			final var builder = post(ENDPOINT).content(body)
-					.contentType(MediaType.APPLICATION_JSON);
-
-			mockMvc.perform(builder).andExpect(status().isBadRequest());
 		}
 
 		private String getBody(final TestMeeting meeting) {

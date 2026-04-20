@@ -1,6 +1,6 @@
 package com.cvesters.notula.meeting.dto;
 
-import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.PositiveOrZero;
 
 import com.cvesters.notula.meeting.bdo.MeetingAction;
@@ -13,7 +13,7 @@ public final class MeetingActionDto {
 	private MeetingActionDto() {
 	}
 
-	public static record Create(@NotBlank String name) {
+	public static record Create(@NotNull String name) {
 
 		public MeetingAction.Create toBdo() {
 			return new MeetingAction.Create(name);
@@ -27,7 +27,7 @@ public final class MeetingActionDto {
 		MeetingAction.Update toBdo();
 
 		public static record Name(@PositiveOrZero int position,
-				@PositiveOrZero int length, @NotBlank String value)
+				@PositiveOrZero int length, String value)
 				implements Update {
 
 			public MeetingAction.Update toBdo() {
