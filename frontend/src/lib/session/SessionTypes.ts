@@ -11,4 +11,4 @@ export type SessionCreateRequest = {
 
 export type SessionUpdateRequest = {
 	organisationId: number;
-}
+};

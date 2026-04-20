@@ -9,7 +9,12 @@
 		onAction: (action: UpdateAction) => void;
 	};
 
-	let { value = $bindable(), placeholder, className, onAction }: InputProps = $props();
+	let {
+		value = $bindable(),
+		placeholder,
+		className,
+		onAction
+	}: InputProps = $props();
 	let focused: boolean = $state(false);
 
 	function handleBeforeInput(e: InputEvent) {

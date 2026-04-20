@@ -7,9 +7,7 @@ import type {
 } from "./SessionTypes";
 
 export default class SessionClient extends Client {
-	public static create(
-		request: SessionCreateRequest
-	): Promise<SessionInfo> {
+	public static create(request: SessionCreateRequest): Promise<SessionInfo> {
 		return this.post(getEndpoint(), request);
 	}
 

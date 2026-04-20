@@ -8,7 +8,7 @@ export type MeetingInfo = {
 export type MeetingDetails = {
 	info: MeetingInfo;
 	topics: Array<TopicInfo>;
-}
+};
 
 export type MeetingCreateRequest = {
 	name: string;
@@ -20,16 +20,15 @@ export type MeetingUpdateNameAction = {
 	position: number;
 	length: number;
 	value: string;
-}
+};
 
 // TODO: proper union?
 // Or class? because of the type field!
 // TODO: event instead of response?
 export type MeetingActionResponse = MeetingAddTopicResponse;
 
-
 export type MeetingAddTopicResponse = {
 	type: "TOPIC_CREATE";
 	id: number;
 	name: string;
-}
+};
