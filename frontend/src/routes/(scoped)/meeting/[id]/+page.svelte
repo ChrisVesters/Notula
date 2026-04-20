@@ -9,10 +9,13 @@
 	import FeedbackButton from "$lib/form/FeedbackButton.svelte";
 	import type {
 		MeetingActionResponse,
-		MeetingDetails
+		MeetingDetails,
+		MeetingUpdateNameAction
 	} from "$lib/meeting/MeetingTypes";
 	import MeetingWebSocketClient from "$lib/meeting/MeetingWebSocketClient";
 	import TopicWebSocketClient from "$lib/topic/TopicWebSocketClient";
+	import Input from "$lib/editor/Input.svelte";
+	import type { UpdateAction } from "$lib/editor/ActionTypes";
 
 	const id = $derived(Number(page.params.id));
 
@@ -38,7 +41,19 @@
 		window.alert(message);
 	};
 
+	const handleUpdateName = (action: UpdateAction) => {
+		const request: MeetingUpdateNameAction = {
+			action: "UPDATE_NAME",
+			position: action.position,
+			length: action.length,
+			value: action.value
+		};
+
+		MeetingWebSocketClient.updateName(id, request);
+	};
+
 	const onEvent = (event: MeetingActionResponse) => {
+		// TODO: filter out events caused by use. We should do this directly locally.
 		if (event.type === "TOPIC_CREATE") {
 			// TODO: what if initial data is not yet loaded?
 			// TODO: keep in queue and apply once loaded.
@@ -46,6 +61,9 @@
 				id: event.id,
 				name: event.name
 			});
+		} else {
+			// TODO: process
+			console.log("Unhandled event:", event);
 		}
 	};
 
@@ -61,7 +79,13 @@
 
 <main class="container">
 	{#if meeting}
-		<h1>{meeting.info.name}</h1>
+		<Input
+			className="h1"
+			bind:value={meeting.info.name}
+			placeholder={$t("common.untitled")}
+			onAction={handleUpdateName}
+		/>
+
 		<h2>{$t("common.topics")}</h2>
 		<!-- TODO: regular button? Add ripple effect or some other feedback -->
 		<FeedbackButton className="primary" onClick={addTopic}>

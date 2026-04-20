@@ -72,6 +72,12 @@ h1 {
 	text-transform: capitalize;
 }
 
+.h1 {
+	font-family: "Noto Serif bold", serif;
+	font-size: 2rem;
+	font-weight: 700;
+}
+
 h2 {
 	text-transform: capitalize;
 	margin-bottom: 0.5rem;
