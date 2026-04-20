@@ -1,6 +1,10 @@
 import Session from "$lib/auth/Session";
 import WebSocketClient from "$lib/common/WebSocketClient";
-import type { MeetingActionResponse, MeetingDetails } from "./MeetingTypes";
+import type {
+	MeetingActionResponse,
+	MeetingDetails,
+	MeetingUpdateNameAction
+} from "./MeetingTypes";
 
 export type MeetingEventHandler = {
 	onLoad: (data: MeetingDetails) => void;
@@ -9,7 +13,7 @@ export type MeetingEventHandler = {
 };
 
 export default class MeetingWebSocketClient {
-	public static connect(id: number, handler: MeetingEventHandler) {
+	public static connect(id: number, handler: MeetingEventHandler): void {
 		const client: WebSocketClient = Session.getWebSocketClient();
 
 		client.subscribe("/user/queue/errors", message =>
@@ -23,11 +27,20 @@ export default class MeetingWebSocketClient {
 		);
 	}
 
-	public static disconnect(id: number) {
+	public static disconnect(id: number): void {
 		const client: WebSocketClient = Session.getWebSocketClient();
 
 		client.unsubscribe(`/app/meetings/${id}`);
 		client.unsubscribe(`/topic/meetings/${id}`);
 		client.unsubscribe("/user/queue/errors");
+	}
+
+	public static updateName(
+		id: number,
+		action: MeetingUpdateNameAction
+	): void {
+		const client: WebSocketClient = Session.getWebSocketClient();
+
+		client.send(`/app/meetings/${id}`, JSON.stringify(action));
 	}
 }
