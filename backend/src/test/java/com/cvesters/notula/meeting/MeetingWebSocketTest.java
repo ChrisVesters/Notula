@@ -6,7 +6,6 @@ import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.timeout;
 import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
 import java.util.List;
@@ -139,21 +138,6 @@ class MeetingWebSocketTest extends WebSocketTest {
 			final FrameHandler<String> errorFrameHandler = subscribeToErrors();
 			send(getDestination(MEETING.getId()), dto);
 
-			assertThat(errorFrameHandler.getResponse())
-					.succeedsWithin(WAIT_TIMEOUT.toSeconds(), TimeUnit.SECONDS)
-					.isNotNull()
-					.satisfies(message -> message.startsWith("Error"));
-		}
-
-		@Test
-		void invalid() throws Exception {
-			final Map<String, Object> dto = getDto("");
-
-			connect(SESSION);
-			final FrameHandler<String> errorFrameHandler = subscribeToErrors();
-			send(getDestination(MEETING.getId()), dto);
-
-			verifyNoInteractions(meetingService);
 			assertThat(errorFrameHandler.getResponse())
 					.succeedsWithin(WAIT_TIMEOUT.toSeconds(), TimeUnit.SECONDS)
 					.isNotNull()

@@ -7,7 +7,6 @@ import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
-import org.junit.jupiter.params.provider.ValueSource;
 
 import com.cvesters.notula.meeting.TestMeeting;
 
@@ -27,13 +26,6 @@ class MeetingActionTest {
 		void nameNull() {
 			assertThatThrownBy(() -> new MeetingAction.Create(null))
 					.isInstanceOf(NullPointerException.class);
-		}
-
-		@ParameterizedTest
-		@ValueSource(strings = { "", " " })
-		void nameInvalid(final String name) {
-			assertThatThrownBy(() -> new MeetingAction.Create(name))
-					.isInstanceOf(IllegalArgumentException.class);
 		}
 	}
 

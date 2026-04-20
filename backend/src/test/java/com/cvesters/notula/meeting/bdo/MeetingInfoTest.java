@@ -49,14 +49,6 @@ public class MeetingInfoTest {
 					ORGANISATION.getId(), null))
 							.isInstanceOf(NullPointerException.class);
 		}
-
-		@ParameterizedTest
-		@ValueSource(strings = { "", " " })
-		void nameInvalid(final String name) {
-			assertThatThrownBy(() -> new MeetingInfo(MEETING.getId(),
-					ORGANISATION.getId(), name))
-							.isInstanceOf(IllegalArgumentException.class);
-		}
 	}
 
 	@Nested
@@ -66,7 +58,7 @@ public class MeetingInfoTest {
 
 		@ParameterizedTest
 		@ValueSource(strings = { "Upated", "!@#$%^&*(){}[]|\\:;\"'<>,.?/",
-				"Встреча: 你好 مرحبا"  })
+				"Встреча: 你好 مرحبا" })
 		void success(final String name) {
 			info.setName(name);
 
@@ -77,13 +69,6 @@ public class MeetingInfoTest {
 		void nameNull() {
 			assertThatThrownBy(() -> info.setName(null))
 					.isInstanceOf(NullPointerException.class);
-		}
-
-		@ParameterizedTest
-		@ValueSource(strings = { "", " " })
-		void nameInvalid(final String name) {
-			assertThatThrownBy(() -> info.setName(name))
-					.isInstanceOf(IllegalArgumentException.class);
 		}
 	}
 }

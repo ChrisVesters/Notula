@@ -15,7 +15,7 @@ public abstract sealed interface MeetingAction {
 		private final String name;
 
 		public Create(final String name) {
-			Validate.notBlank(name);
+			Objects.requireNonNull(name);
 
 			this.name = name;
 		}
