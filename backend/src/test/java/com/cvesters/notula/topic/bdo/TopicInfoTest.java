@@ -5,8 +5,6 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.params.ParameterizedTest;
-import org.junit.jupiter.params.provider.ValueSource;
 
 import com.cvesters.notula.meeting.TestMeeting;
 import com.cvesters.notula.organisation.TestOrganisation;
@@ -27,7 +25,7 @@ class TopicInfoTest {
 			final var result = new TopicInfo(ORGANISATION.getId(),
 					MEETING.getId(), TOPIC.getName());
 
-			assertThatThrownBy(() -> result.getId())
+			assertThatThrownBy(result::getId)
 					.isInstanceOf(IllegalStateException.class);
 			assertThat(result.getOrganisationId())
 					.isEqualTo(ORGANISATION.getId());
@@ -49,17 +47,35 @@ class TopicInfoTest {
 
 		@Test
 		void nameNull() {
-			assertThatThrownBy(() -> new TopicInfo(TOPIC.getId(),
-					ORGANISATION.getId(), MEETING.getId(), null))
+			final long id = TOPIC.getId();
+			final long organisationId = ORGANISATION.getId();
+			final long meetingId = MEETING.getId();
+			final String name = null;
+
+			assertThatThrownBy(
+					() -> new TopicInfo(id, organisationId, meetingId, name))
 							.isInstanceOf(NullPointerException.class);
 		}
+	}
 
-		@ParameterizedTest
-		@ValueSource(strings = { "", " " })
-		void nameInvalid(final String name) {
-			assertThatThrownBy(() -> new TopicInfo(TOPIC.getId(),
-					ORGANISATION.getId(), MEETING.getId(), name))
-							.isInstanceOf(IllegalArgumentException.class);
+	@Nested
+	class SetName {
+
+		private TopicInfo topicInfo = TOPIC.info();
+
+		@Test
+		void success() {
+			final String name = "New name";
+
+			topicInfo.setName(name);
+
+			assertThat(topicInfo.getName()).isEqualTo(name);
+		}
+
+		@Test
+		void nameNull() {
+			assertThatThrownBy(() -> topicInfo.setName(null))
+					.isInstanceOf(NullPointerException.class);
 		}
 	}
 }

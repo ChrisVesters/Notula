@@ -1,41 +1,37 @@
 package com.cvesters.notula.meeting;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.ArgumentMatchers.argThat;
 
 import com.cvesters.notula.meeting.bdo.MeetingAction;
+import com.cvesters.notula.test.Matcher;
 
-public class MeetingActionMatcher {
+public final class MeetingActionMatcher {
 
-	public static MeetingAction.Create matches(
-			final MeetingAction.Create expected) {
-		return argThat(actual -> isEqualTo(actual, expected));
+	private MeetingActionMatcher() {
 	}
 
-	public static boolean isEqualTo(final MeetingAction actual,
-			final MeetingAction.Create expected) {
-		final var create = isInstanceOf(actual, MeetingAction.Create.class);
-		assertThat(create.getName()).isEqualTo(expected.getName());
-		return true;
+	public static class Create extends Matcher<MeetingAction.Create> {
+
+		public Create(final MeetingAction.Create expected) {
+			super(expected, MeetingAction.Create.class);
+		}
+
+		@Override
+		public void assertEquals(final MeetingAction.Create actual) {
+			assertThat(actual.getName()).isEqualTo(expected.getName());
+		}
 	}
 
-	public static MeetingAction.UpdateName matches(
-			final MeetingAction.UpdateName expected) {
-		return argThat(actual -> isEqualTo(actual, expected));
-	}
+	public static class UpdateName extends Matcher<MeetingAction.UpdateName> {
 
-	public static boolean isEqualTo(final MeetingAction actual,
-			final MeetingAction.UpdateName expected) {
-		final var update = isInstanceOf(actual, MeetingAction.UpdateName.class);
-		assertThat(update.getPosition()).isEqualTo(expected.getPosition());
-		assertThat(update.getLength()).isEqualTo(expected.getLength());
-		assertThat(update.getValue()).isEqualTo(expected.getValue());
-		return true;
-	}
+		public UpdateName(final MeetingAction.UpdateName expected) {
+			super(expected, MeetingAction.UpdateName.class);
+		}
 
-	private static <T extends MeetingAction> T isInstanceOf(
-			final MeetingAction actual, final Class<T> expected) {
-		assertThat(actual).isExactlyInstanceOf(expected);
-		return expected.cast(actual);
+		public void assertEquals(final MeetingAction.UpdateName actual) {
+			assertThat(actual.getPosition()).isEqualTo(expected.getPosition());
+			assertThat(actual.getLength()).isEqualTo(expected.getLength());
+			assertThat(actual.getValue()).isEqualTo(expected.getValue());
+		}
 	}
 }

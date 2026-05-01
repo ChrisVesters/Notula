@@ -3,16 +3,20 @@ package com.cvesters.notula.topic;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.argThat;
+import static org.mockito.Mockito.inOrder;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.Optional;
 
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
+import org.mockito.InOrder;
 
+import com.cvesters.notula.common.exception.MissingEntityException;
 import com.cvesters.notula.meeting.TestMeeting;
 import com.cvesters.notula.topic.bdo.TopicInfo;
 import com.cvesters.notula.topic.dao.TopicDao;
@@ -51,6 +55,43 @@ class TopicStorageGatewayTest {
 		void topicNull() {
 			assertThatThrownBy(() -> gateway.create(null))
 					.isInstanceOf(NullPointerException.class);
+		}
+	}
+
+	@Nested
+	class Find {
+
+		private static final TestTopic TOPIC = TestTopic.GLOVER_KICKOFF_2026_LOOKBACK;
+		private static final TestMeeting MEETING = TOPIC.getMeeting();
+
+		@Test
+		void success() {
+			final long meetingId = MEETING.getId();
+			final long topicId = TOPIC.getId();
+
+			final TopicDao topicDao = mock();
+			final TopicInfo topicInfo = TOPIC.info();
+			when(topicDao.toBdo()).thenReturn(topicInfo);
+
+			when(topicRepository.findByMeetingIdAndId(meetingId, topicId))
+					.thenReturn(Optional.of(topicDao));
+
+			final Optional<TopicInfo> result = gateway.find(meetingId, topicId);
+
+			assertThat(result).contains(topicInfo);
+		}
+
+		@Test
+		void notFound() {
+			final long meetingId = MEETING.getId();
+			final long topicId = TOPIC.getId();
+
+			when(topicRepository.findByMeetingIdAndId(meetingId, topicId))
+					.thenReturn(Optional.empty());
+
+			final Optional<TopicInfo> result = gateway.find(meetingId, topicId);
+
+			assertThat(result).isEmpty();
 		}
 	}
 
@@ -118,4 +159,57 @@ class TopicStorageGatewayTest {
 		}
 	}
 
+	@Nested
+	class Update {
+
+		private static final TestTopic TOPIC = TestTopic.GLOVER_KICKOFF_2026_LOOKBACK;
+		private static final TestMeeting MEETING = TOPIC.getMeeting();
+
+		@Test
+		void success() {
+			final long meetingId = MEETING.getId();
+			final long topicId = TOPIC.getId();
+
+			final TopicDao topicDao = mock();
+
+			when(topicRepository.findByMeetingIdAndId(meetingId, topicId))
+					.thenReturn(Optional.of(topicDao));
+
+			final TopicDao updatedDao = mock();
+			final TopicInfo updatedBdo = mock();
+			when(updatedDao.toBdo()).thenReturn(updatedBdo);
+
+			when(topicRepository.save(topicDao)).thenReturn(updatedDao);
+
+			final TopicInfo update = TOPIC.info();
+
+			final TopicInfo result = gateway.update(update);
+
+			assertThat(result).isEqualTo(updatedBdo);
+
+			final InOrder inOrder = inOrder(topicDao, topicRepository);
+			inOrder.verify(topicDao).update(update);
+			inOrder.verify(topicRepository).save(topicDao);
+		}
+
+		@Test
+		void notFound() {
+			final long meetingId = MEETING.getId();
+			final long topicId = TOPIC.getId();
+
+			when(topicRepository.findByMeetingIdAndId(meetingId, topicId))
+					.thenReturn(Optional.empty());
+
+			final TopicInfo update = TOPIC.info();
+
+			assertThatThrownBy(() -> gateway.update(update))
+					.isInstanceOf(MissingEntityException.class);
+		}
+
+		@Test
+		void topicNull() {
+			assertThatThrownBy(() -> gateway.update(null))
+					.isInstanceOf(NullPointerException.class);
+		}
+	}
 }
