@@ -5,45 +5,27 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.params.ParameterizedTest;
-import org.junit.jupiter.params.provider.ValueSource;
 
-import com.cvesters.notula.topic.TestTopic;
+import com.cvesters.notula.meeting.bdo.MeetingEvent;
 
 class TopicEventTest {
 
 	@Nested
-	class Create {
-
-		private static final TestTopic TOPIC = TestTopic.GLOVER_KICKOFF_2026_LOOKBACK;
+	class Constructor {
 
 		@Test
-		void ofInfo() {
-			final var info = TOPIC.info();
-			final var event = new TopicEvent.Create(info);
+		void success() {
+			final var action = new TopicAction.Create("New");
+			final var event = new TopicEvent(1L, action);
 
-			assertThat(event).isEqualTo(TOPIC.createEvent());
+			assertThat(event.topicId()).isEqualTo(1L);
+			assertThat(event.action()).isEqualTo(action);
 		}
 
 		@Test
-		void ofInfoNull() {
-			assertThatThrownBy(() -> new TopicEvent.Create(null))
+		void actionNull() {
+			assertThatThrownBy(() -> new MeetingEvent(1L, null))
 					.isInstanceOf(NullPointerException.class);
-		}
-
-		@Test
-		void nameNull() {
-			final long id = TOPIC.getId();
-			assertThatThrownBy(() -> new TopicEvent.Create(id, null))
-					.isInstanceOf(NullPointerException.class);
-		}
-
-		@ParameterizedTest
-		@ValueSource(strings = { "", " " })
-		void nameInvalid(final String name) {
-			final long id = TOPIC.getId();
-			assertThatThrownBy(() -> new TopicEvent.Create(id, name))
-					.isInstanceOf(IllegalArgumentException.class);
 		}
 	}
 }

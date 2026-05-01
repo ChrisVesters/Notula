@@ -42,6 +42,12 @@ public class TopicDao {
 		this.name = topic.getName();
 	}
 
+	public void update(final TopicInfo bdo) {
+		Objects.requireNonNull(bdo);
+
+		this.name = bdo.getName();
+	}
+
 	public TopicInfo toBdo() {
 		Validate.validState(id != null);
 

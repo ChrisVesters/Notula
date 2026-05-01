@@ -3,62 +3,44 @@ package com.cvesters.notula.topic.dto;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
-import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 
-import com.cvesters.notula.topic.TestTopic;
+import com.cvesters.notula.topic.bdo.TopicAction;
 import com.cvesters.notula.topic.bdo.TopicEvent;
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
 
 class TopicEventDtoTest {
 
-	private static final ObjectMapper MAPPER = new ObjectMapper();
+	@Test
+	void eventNull() {
+		assertThatThrownBy(() -> TopicEventDto.of(null))
+				.isExactlyInstanceOf(NullPointerException.class);
+	}
 
-	@Nested
-	class Create {
+	@Test
+	void create() {
+		final var action = new TopicAction.Create("New");
+		final var event = new TopicEvent(1L, action);
 
-		private static final TestTopic TOPIC = TestTopic.SPORER_PROJECT_BLOCKERS;
-		private static final TopicEvent.Create bdo = TOPIC.createEvent();
+		final var dto = TopicEventDto.of(event);
+		assertThat(dto).isExactlyInstanceOf(TopicEventDto.Create.class);
+		assertThat(dto.getTopicId()).isEqualTo(1L);
 
-		@Test
-		void of() {
-			final var dto = TopicEventDto.of(bdo);
+		final var createDto = (TopicEventDto.Create) dto;
+		assertThat(createDto.getName()).isEqualTo("New");
+	}
 
-			assertThat(dto).isInstanceOfSatisfying(TopicEventDto.Create.class,
-					create -> {
-						assertThat(create.id()).isEqualTo(TOPIC.getId());
-						assertThat(create.name()).isEqualTo(TOPIC.getName());
-					});
-		}
+	@Test
+	void updateName() {
+		final var action = new TopicAction.UpdateName(2, 4, "27");
+		final var event = new TopicEvent(1L, action);
 
-		@Test
-		void ofBdo() {
-			final var dto = new TopicEventDto.Create(bdo);
+		final var dto = TopicEventDto.of(event);
+		assertThat(dto).isExactlyInstanceOf(TopicEventDto.UpdateName.class);
+		assertThat(dto.getTopicId()).isEqualTo(1L);
 
-			assertThat(dto.id()).isEqualTo(TOPIC.getId());
-			assertThat(dto.name()).isEqualTo(TOPIC.getName());
-		}
-
-		@Test
-		void ofBdoNull() {
-			assertThatThrownBy(() -> new TopicEventDto.Create(null))
-					.isInstanceOf(NullPointerException.class);
-		}
-
-		@Test
-		void jackson() throws JsonProcessingException {
-			final var dto = TopicEventDto.of(bdo);
-
-			final String json = MAPPER.writeValueAsString(dto);
-
-			assertThat(json).isEqualToIgnoringWhitespace("""
-				{
-					"type": "TOPIC_CREATE",
-					"id": %d,
-					"name": "%s"
-				}
-			""".formatted(TOPIC.getId(), TOPIC.getName()));
-		}
+		final var updateDto = (TopicEventDto.UpdateName) dto;
+		assertThat(updateDto.getPosition()).isEqualTo(2);
+		assertThat(updateDto.getLength()).isEqualTo(4);
+		assertThat(updateDto.getValue()).isEqualTo("27");
 	}
 }

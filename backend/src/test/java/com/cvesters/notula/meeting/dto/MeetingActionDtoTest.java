@@ -34,8 +34,8 @@ class MeetingActionDtoTest {
 			final MeetingAction.Update bdo = dto.toBdo();
 
 			final var expected = new MeetingAction.UpdateName(5, 2, "Updated");
-			assertThat(bdo).satisfies(
-					actual -> MeetingActionMatcher.isEqualTo(actual, expected));
+			final var matcher = new MeetingActionMatcher.UpdateName(expected);
+			assertThat(bdo).is(matcher.equal());
 		}
 	}
 

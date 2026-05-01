@@ -1,5 +1,7 @@
 package com.cvesters.notula.meeting.dto;
 
+import java.util.Objects;
+
 import lombok.Getter;
 
 import com.cvesters.notula.meeting.bdo.MeetingAction;
@@ -13,7 +15,7 @@ import com.fasterxml.jackson.annotation.JsonTypeInfo;
 @JsonSubTypes({
 		@Type(value = MeetingEventDto.Create.class, name = "MEETING_CREATE"),
 		@Type(value = MeetingEventDto.UpdateName.class, name = "MEETING_UPDATE_NAME") })
-public sealed abstract class MeetingEventDto {
+public sealed class MeetingEventDto {
 
 	private final long meetingId;
 
@@ -22,6 +24,8 @@ public sealed abstract class MeetingEventDto {
 	}
 
 	public static MeetingEventDto of(final MeetingEvent event) {
+		Objects.requireNonNull(event);
+
 		return switch (event.action()) {
 			case MeetingAction.Create create -> new Create(event.meetingId(),
 					create);
@@ -35,7 +39,8 @@ public sealed abstract class MeetingEventDto {
 
 		private final String name;
 
-		private Create(final long meetingId, final MeetingAction.Create create) {
+		private Create(final long meetingId,
+				final MeetingAction.Create create) {
 			super(meetingId);
 
 			this.name = create.getName();

@@ -41,6 +41,28 @@ class TopicDaoTest {
 	}
 
 	@Nested
+	class Update {
+		
+		private final TopicDao dao = new TopicDao(TOPIC.info());
+
+		@Test
+		void success() {
+			final var updated = new TopicInfo(ORGANISATION.getId(),
+					MEETING.getId(), "Updated name");
+
+			dao.update(updated);
+
+			assertThat(dao.getName()).isEqualTo(updated.getName());
+		}
+
+		@Test
+		void bdoNull() {
+			assertThatThrownBy(() -> dao.update(null))
+					.isInstanceOf(NullPointerException.class);
+		}
+	}
+
+	@Nested
 	class ToBdo {
 
 		private final TopicDao dao = new TopicDao(TOPIC.info());

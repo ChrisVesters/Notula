@@ -1,6 +1,7 @@
 package com.cvesters.notula.meeting;
 
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
@@ -99,8 +100,9 @@ class MeetingControllerTest extends ControllerTest {
 			final MeetingInfo info = MEETING.info();
 
 			final var expected = new MeetingAction.Create(MEETING.getName());
+			final var matcher = new MeetingActionMatcher.Create(expected);
 			when(meetingService.create(eq(principal),
-					MeetingActionMatcher.matches(expected))).thenReturn(info);
+					argThat(matcher::matches))).thenReturn(info);
 
 			final String body = getBody(MEETING);
 			final String expectedResponse = getResponse(MEETING);

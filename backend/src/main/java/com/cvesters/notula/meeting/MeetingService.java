@@ -18,7 +18,8 @@ public class MeetingService {
 	private final MeetingPublisher meetingPublisher;
 	private final MeetingStorageGateway meetingStorage;
 
-	public MeetingService(final MeetingStorageGateway meetingStorageGateway, MeetingPublisher meetingPublisher) {
+	public MeetingService(final MeetingStorageGateway meetingStorageGateway,
+			MeetingPublisher meetingPublisher) {
 		this.meetingStorage = meetingStorageGateway;
 		this.meetingPublisher = meetingPublisher;
 	}
@@ -61,7 +62,7 @@ public class MeetingService {
 		action.apply(meetingInfo);
 		final MeetingInfo updated = meetingStorage.update(meetingInfo);
 
-		final MeetingEvent event = new MeetingEvent(id, action);
+		final var event = new MeetingEvent(id, action);
 		meetingPublisher.publish(event);
 
 		return updated;

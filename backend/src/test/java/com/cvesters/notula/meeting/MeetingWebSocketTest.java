@@ -3,6 +3,7 @@ package com.cvesters.notula.meeting;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
+import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.timeout;
 import static org.mockito.Mockito.verify;
@@ -121,9 +122,10 @@ class MeetingWebSocketTest extends WebSocketTest {
 			send(getDestination(MEETING.getId()), dto);
 
 			final var expected = new MeetingAction.UpdateName(5, 2, name);
+			final var matcher = new MeetingActionMatcher.UpdateName(expected);
 			verify(meetingService, timeout(WAIT_TIMEOUT.toMillis())).update(
 					eq(PRINCIPAL), eq(MEETING.getId()),
-					MeetingActionMatcher.matches(expected));
+					argThat(matcher::matches));
 		}
 
 		@Test
