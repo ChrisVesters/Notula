@@ -6,8 +6,6 @@ import java.util.List;
 import lombok.Getter;
 
 import com.cvesters.notula.meeting.TestMeeting;
-import com.cvesters.notula.topic.bdo.TopicAction;
-import com.cvesters.notula.topic.bdo.TopicEvent;
 import com.cvesters.notula.topic.bdo.TopicInfo;
 
 @Getter
@@ -36,13 +34,5 @@ public enum TestTopic {
 
 	public TopicInfo info() {
 		return new TopicInfo(id, meeting.getOrganisation().getId(), meeting.getId(), name);
-	}
-
-	public TopicAction.Create createAction() {
-		return new TopicAction.Create(name);
-	}
-
-	public TopicEvent.Create createEvent() {
-		return new TopicEvent.Create(id, name);
 	}
 }

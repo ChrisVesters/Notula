@@ -60,13 +60,41 @@ class TopicRepositoryTest extends RepositoryTest {
 					.isEmpty();
 		}
 
-		private void assertEquals(final TopicDao dao, final TestTopic topic) {
-			assertThat(dao.getId()).isEqualTo(topic.getId());
-			assertThat(dao.getOrganisationId())
-					.isEqualTo(topic.getMeeting().getOrganisation().getId());
-			assertThat(dao.getMeetingId())
-					.isEqualTo(topic.getMeeting().getId());
-			assertThat(dao.getName()).isEqualTo(topic.getName());
+	}
+
+	@Nested
+	class FindByMeetingIdAndId {
+
+		@Test
+		void found() {
+			final TestTopic topic = TestTopic.GLOVER_KICKOFF_2026_LOOKBACK;
+
+			final var result = topicRepository.findByMeetingIdAndId(
+					topic.getMeeting().getId(), topic.getId());
+
+			assertThat(result)
+					.hasValueSatisfying(dao -> assertEquals(dao, topic));
+		}
+
+		@Test
+		void topicNotFound() {
+			final TestTopic topic = TestTopic.GLOVER_KICKOFF_2026_LOOKBACK;
+			final TestMeeting meeting = topic.getMeeting();
+
+			final var result = topicRepository
+					.findByMeetingIdAndId(meeting.getId(), Long.MAX_VALUE);
+
+			assertThat(result).isEmpty();
+		}
+
+		@Test
+		void meetingNotFound() {
+			final TestTopic topic = TestTopic.GLOVER_KICKOFF_2026_LOOKBACK;
+
+			final var result = topicRepository
+					.findByMeetingIdAndId(Long.MAX_VALUE, topic.getId());
+
+			assertThat(result).isEmpty();
 		}
 	}
 
@@ -105,5 +133,14 @@ class TopicRepositoryTest extends RepositoryTest {
 			assertThatThrownBy(() -> topicRepository.save(null))
 					.isInstanceOf(InvalidDataAccessApiUsageException.class);
 		}
+	}
+
+	private static void assertEquals(final TopicDao dao,
+			final TestTopic topic) {
+		assertThat(dao.getId()).isEqualTo(topic.getId());
+		assertThat(dao.getOrganisationId())
+				.isEqualTo(topic.getMeeting().getOrganisation().getId());
+		assertThat(dao.getMeetingId()).isEqualTo(topic.getMeeting().getId());
+		assertThat(dao.getName()).isEqualTo(topic.getName());
 	}
 }

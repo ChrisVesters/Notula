@@ -1,6 +1,7 @@
 package com.cvesters.notula.meeting.dto;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import org.junit.jupiter.api.Test;
 
@@ -10,9 +11,15 @@ import com.cvesters.notula.meeting.bdo.MeetingEvent;
 class MeetingEventDtoTest {
 
 	@Test
+	void eventNull() {
+		assertThatThrownBy(() -> MeetingEventDto.of(null))
+				.isExactlyInstanceOf(NullPointerException.class);
+	}
+
+	@Test
 	void create() {
-		final MeetingAction action = new MeetingAction.Create("New");
-		final MeetingEvent event = new MeetingEvent(1L, action);
+		final var action = new MeetingAction.Create("New");
+		final var event = new MeetingEvent(1L, action);
 
 		final var dto = MeetingEventDto.of(event);
 		assertThat(dto).isExactlyInstanceOf(MeetingEventDto.Create.class);
@@ -24,8 +31,8 @@ class MeetingEventDtoTest {
 
 	@Test
 	void updateName() {
-		final MeetingAction action = new MeetingAction.UpdateName(2, 4, "27");
-		final MeetingEvent event = new MeetingEvent(1L, action);
+		final var action = new MeetingAction.UpdateName(2, 4, "27");
+		final var event = new MeetingEvent(1L, action);
 
 		final var dto = MeetingEventDto.of(event);
 		assertThat(dto).isExactlyInstanceOf(MeetingEventDto.UpdateName.class);

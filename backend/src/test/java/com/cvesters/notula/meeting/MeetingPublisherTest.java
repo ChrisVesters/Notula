@@ -44,6 +44,7 @@ class MeetingPublisherTest {
 								.isInstanceOf(MeetingEventDto.Create.class);
 
 						final var createDto = (MeetingEventDto.Create) dto;
+						assertThat(createDto.getMeetingId()).isEqualTo(MEETING_ID);
 						assertThat(createDto.getName()).isEqualTo("New");
 						return true;
 					}));
@@ -62,6 +63,7 @@ class MeetingPublisherTest {
 								.isInstanceOf(MeetingEventDto.UpdateName.class);
 
 						final var updateDto = (MeetingEventDto.UpdateName) dto;
+						assertThat(updateDto.getMeetingId()).isEqualTo(MEETING_ID);
 						assertThat(updateDto.getPosition()).isEqualTo(4);
 						assertThat(updateDto.getLength()).isEqualTo(12);
 						assertThat(updateDto.getValue()).isEqualTo("Updated");

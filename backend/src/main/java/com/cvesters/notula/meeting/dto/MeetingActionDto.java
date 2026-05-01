@@ -27,7 +27,7 @@ public final class MeetingActionDto {
 		MeetingAction.Update toBdo();
 
 		public static record Name(@PositiveOrZero int position,
-				@PositiveOrZero int length, String value)
+				@PositiveOrZero int length, @NotNull String value)
 				implements Update {
 
 			public MeetingAction.Update toBdo() {

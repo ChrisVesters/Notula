@@ -32,4 +32,14 @@ public class TopicWebSocket extends BaseController {
 		topicService.create(principal, meetingId, action);
 	}
 
+	@MessageMapping(BASE_ENDPOINT + "/{topicId}")
+	public void update(@DestinationVariable final long meetingId,
+			@DestinationVariable final long topicId,
+			@Valid @Payload final TopicActionDto.Update dto) {
+		final Principal principal = getPrincipal();
+
+		final TopicAction.Update action = dto.toBdo();
+		topicService.update(principal, meetingId, topicId, action);
+	}
+
 }

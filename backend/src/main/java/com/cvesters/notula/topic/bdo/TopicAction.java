@@ -1,16 +1,38 @@
 package com.cvesters.notula.topic.bdo;
 
-import org.apache.commons.lang3.Validate;
+import java.util.Objects;
 
-public final class TopicAction {
+import lombok.Getter;
 
-	private TopicAction() {
+import com.cvesters.notula.common.domain.TextUpdate;
+
+public sealed interface TopicAction {
+
+	@Getter
+	final class Create implements TopicAction {
+
+		private final String name;
+
+		public Create(final String name) {
+			Objects.requireNonNull(name);
+
+			this.name = name;
+		}
 	}
 
-	public final static record Create(String name) {
+	sealed interface Update extends TopicAction {
 
-		public Create {
-			Validate.notBlank(name);
+		void apply(final TopicInfo object);
+	}
+
+	@Getter
+	final class UpdateName extends TextUpdate<TopicInfo>
+			implements TopicAction.Update {
+
+		public UpdateName(final int position, final int length,
+				final String value) {
+			super(TopicInfo::getName, TopicInfo::setName, position, length,
+					value);
 		}
 	}
 }
