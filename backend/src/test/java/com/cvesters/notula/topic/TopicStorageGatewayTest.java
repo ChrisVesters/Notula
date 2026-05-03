@@ -55,6 +55,11 @@ class TopicStorageGatewayTest {
 	}
 
 	@Nested
+	class Find {
+		// TODO
+	}
+
+	@Nested
 	class FindAllByMeetingId {
 
 		@Test
@@ -118,4 +123,9 @@ class TopicStorageGatewayTest {
 		}
 	}
 
+
+	@Nested
+	class Update {
+		// TODO
+	}
 }

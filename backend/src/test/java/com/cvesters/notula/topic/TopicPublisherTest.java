@@ -1,6 +1,9 @@
 package com.cvesters.notula.topic;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.ArgumentMatchers.argThat;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 
@@ -8,6 +11,8 @@ import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
 
+import com.cvesters.notula.topic.bdo.TopicAction;
+import com.cvesters.notula.topic.bdo.TopicEvent;
 import com.cvesters.notula.topic.dto.TopicEventDto;
 
 class TopicPublisherTest {
@@ -29,14 +34,25 @@ class TopicPublisherTest {
 
 		@Test
 		void create() {
-			final var event = TOPIC.createEvent();
+			final var action = new TopicAction.Create("New");
+			final var event = new TopicEvent(TOPIC.getId(), action);
 
 			publisher.publish(MEETING_ID, event);
 
-			final var dto = new TopicEventDto.Create(TOPIC.getId(),
-					TOPIC.getName());
+			verify(messagingTemplate).convertAndSend(eq(DESTINATION),
+					argThat((TopicEventDto dto) -> {
+						assertThat(dto)
+								.isInstanceOf(TopicEventDto.Create.class);
 
-			verify(messagingTemplate).convertAndSend(DESTINATION, dto);
+						final var createDto = (TopicEventDto.Create) dto;
+						assertThat(createDto.getName()).isEqualTo("New");
+						return true;
+					}));
+		}
+
+		@Test
+		void updateName() {
+			// TODO
 		}
 
 		@Test

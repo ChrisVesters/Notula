@@ -3,6 +3,8 @@ package com.cvesters.notula.topic;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
+import static org.mockito.ArgumentMatchers.argThat;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.timeout;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
@@ -28,7 +30,7 @@ import com.cvesters.notula.topic.bdo.TopicAction;
 
 public class TopicWebSocketTest extends WebSocketTest {
 
-	private static final String DESTINATION_PREFIX = "/app/meetings/";
+	private static final String DESTINATION_PREFIX = "/app/meetings";
 	private static final String DESTINATION_SUFFIX = "/topics";
 
 	private static final TestSession SESSION = TestSession.EDUARDO_CHRISTIANSEN_SPORER;
@@ -42,7 +44,8 @@ public class TopicWebSocketTest extends WebSocketTest {
 	class Create {
 
 		@ParameterizedTest
-		@ValueSource(strings = {"topic", "!@#$%^&*(){}[]|\\:;\"'<>,.?/", "Встреча: 你好 مرحبا"})
+		@ValueSource(strings = { "topic", "!@#$%^&*(){}[]|\\:;\"'<>,.?/",
+				"Встреча: 你好 مرحبا" })
 		void success(final String name) throws Exception {
 			final Map<String, String> dto = Map
 					.ofEntries(Map.entry("name", name));
@@ -71,7 +74,8 @@ public class TopicWebSocketTest extends WebSocketTest {
 			assertThat(errorFrameHandler.getResponse())
 					.succeedsWithin(WAIT_TIMEOUT.toSeconds(), TimeUnit.SECONDS)
 					.isNotNull()
-					.satisfies(message -> message.startsWith("Error"));
+					.satisfies(
+							message -> assertThat(message).startsWith("Error"));
 		}
 
 		@Test
@@ -87,7 +91,8 @@ public class TopicWebSocketTest extends WebSocketTest {
 			assertThat(errorFrameHandler.getResponse())
 					.succeedsWithin(WAIT_TIMEOUT.toSeconds(), TimeUnit.SECONDS)
 					.isNotNull()
-					.satisfies(message -> message.startsWith("Error"));
+					.satisfies(
+							message -> assertThat(message).startsWith("Error"));
 		}
 
 		@Test
@@ -104,7 +109,70 @@ public class TopicWebSocketTest extends WebSocketTest {
 		}
 
 		private String getDestination(final long meetingId) {
-			return DESTINATION_PREFIX + meetingId + DESTINATION_SUFFIX;
+			return DESTINATION_PREFIX + "/" + meetingId + DESTINATION_SUFFIX;
+		}
+	}
+
+	@Nested
+	class UpdateName {
+
+		private static final TestTopic TOPIC = TestTopic.SPORER_PROJECT_BLOCKERS;
+
+		@ParameterizedTest
+		@ValueSource(strings = { "meet", "!@#$%^&*(){}[]|\\:;\"'<>,.?/",
+				"Встреча: 你好 مرحبا" })
+		void success(final String name) throws Exception {
+			final Map<String, Object> dto = getDto(name);
+
+			connect(SESSION);
+			send(getDestination(MEETING.getId(), TOPIC.getId()), dto);
+
+			final var expected = new TopicAction.UpdateName(5, 2, name);
+			final var matcher = new TopicActionMatcher.UpdateName(expected);
+			verify(topicService, timeout(WAIT_TIMEOUT.toMillis())).update(
+					eq(PRINCIPAL), eq(MEETING.getId()), eq(TOPIC.getId()),
+					argThat(matcher::matches));
+		}
+
+		@Test
+		void notFound() throws Exception {
+			final Map<String, Object> dto = getDto(TOPIC.getName());
+
+			when(topicService.update(any(), anyLong(), anyLong(), any()))
+					.thenThrow(new MissingEntityException());
+
+			connect(SESSION);
+			final FrameHandler<String> errorFrameHandler = subscribeToErrors();
+			send(getDestination(MEETING.getId(), TOPIC.getId()), dto);
+
+			assertThat(errorFrameHandler.getResponse())
+					.succeedsWithin(WAIT_TIMEOUT.toSeconds(), TimeUnit.SECONDS)
+					.isNotNull()
+					.satisfies(message -> assertThat(message).startsWith("Error"));
+		}
+
+		@Test
+		void unauthenticated() throws Exception {
+			final Map<String, Object> dto = getDto("Updated");
+
+			connect();
+			send(getDestination(MEETING.getId(), TOPIC.getId()), dto);
+
+			assertThat(stompSessionHandler.getError())
+					.succeedsWithin(WAIT_TIMEOUT.toSeconds(), TimeUnit.SECONDS)
+					.isInstanceOf(ConnectionLostException.class);
+		}
+
+		private Map<String, Object> getDto(final String name) {
+			return Map.ofEntries(Map.entry("action", "UPDATE_NAME"),
+					Map.entry("position", 5), Map.entry("length", 2),
+					Map.entry("value", name));
+		}
+
+		private String getDestination(final long meetingId,
+				final long topicId) {
+			return DESTINATION_PREFIX + "/" + meetingId + DESTINATION_SUFFIX
+					+ "/" + topicId;
 		}
 	}
 }
