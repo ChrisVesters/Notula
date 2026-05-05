@@ -29,6 +29,6 @@ export type MeetingActionResponse = MeetingAddTopicResponse;
 
 export type MeetingAddTopicResponse = {
 	type: "TOPIC_CREATE";
-	id: number;
+	topicId: number;
 	name: string;
 };

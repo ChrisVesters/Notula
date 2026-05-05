@@ -6,6 +6,8 @@
 
 	import IconPlus from "$lib/assets/icons/IconPlus.svelte";
 	import Loading from "$lib/common/Loading.svelte";
+	import type { UpdateAction } from "$lib/editor/ActionTypes";
+	import Input from "$lib/editor/Input.svelte";
 	import FeedbackButton from "$lib/form/FeedbackButton.svelte";
 	import type {
 		MeetingActionResponse,
@@ -13,9 +15,8 @@
 		MeetingUpdateNameAction
 	} from "$lib/meeting/MeetingTypes";
 	import MeetingWebSocketClient from "$lib/meeting/MeetingWebSocketClient";
+	import type { TopicUpdateNameAction } from "$lib/topic/TopicTypes";
 	import TopicWebSocketClient from "$lib/topic/TopicWebSocketClient";
-	import Input from "$lib/editor/Input.svelte";
-	import type { UpdateAction } from "$lib/editor/ActionTypes";
 
 	const id = $derived(Number(page.params.id));
 
@@ -58,7 +59,7 @@
 			// TODO: what if initial data is not yet loaded?
 			// TODO: keep in queue and apply once loaded.
 			meeting?.topics.push({
-				id: event.id,
+				id: event.topicId,
 				name: event.name
 			});
 		} else {
@@ -69,16 +70,28 @@
 
 	function addTopic(): Promise<void> {
 		const request = {
-			name: $t("common.untitled")
+			name: ""
 		};
 
 		TopicWebSocketClient.create(id, request);
 		return Promise.resolve();
 	}
+
+	const handleUpdateTopicName = (topicId: number, action: UpdateAction) => {
+		const request: TopicUpdateNameAction = {
+			action: "UPDATE_NAME",
+			position: action.position,
+			length: action.length,
+			value: action.value
+		};
+
+		TopicWebSocketClient.updateName(id, topicId, request);
+	};
 </script>
 
 <main class="container">
 	{#if meeting}
+		<!-- TODO: Move to Meeting view? -->
 		<Input
 			className="h1"
 			bind:value={meeting.info.name}
@@ -95,8 +108,14 @@
 			</span>
 		</FeedbackButton>
 
+		<!-- // TODO: move to topic View -->
 		{#each meeting.topics as topic}
-			<h3>{topic.name}</h3>
+			<Input
+				className="h2"
+				bind:value={topic.name}
+				placeholder={$t("common.untitled")}
+				onAction={action => handleUpdateTopicName(topic.id, action)}
+			/>
 		{/each}
 	{:else}
 		<Loading />

@@ -35,6 +35,10 @@
 				});
 				break;
 			case "deleteContentBackward":
+				if (start == 0 && length == 0) {
+					break;
+				}
+
 				onAction({
 					position: length > 0 ? start : start - 1,
 					length: length > 0 ? length : 1,
@@ -42,6 +46,10 @@
 				});
 				break;
 			case "deleteContentForward":
+				if (start == value.length) {
+					break;
+				}
+
 				onAction({
 					position: start,
 					length: length > 0 ? length : 1,
