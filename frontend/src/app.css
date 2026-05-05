@@ -85,6 +85,12 @@ h2 {
 	color: #2d7ff9;
 }
 
+.h2 {
+	font-family: "Noto Serif bold", serif;
+	font-size: 1.5rem;
+	font-weight: 600;
+}
+
 form {
 	width: 100%;
 	display: flex;
