@@ -5,7 +5,6 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 import java.time.Duration;
-import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
 
@@ -14,9 +13,6 @@ import org.junit.jupiter.api.BeforeEach;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.web.server.LocalServerPort;
 import org.springframework.context.annotation.Import;
-import org.springframework.messaging.converter.CompositeMessageConverter;
-import org.springframework.messaging.converter.JacksonJsonMessageConverter;
-import org.springframework.messaging.converter.StringMessageConverter;
 import org.springframework.messaging.simp.stomp.StompHeaders;
 import org.springframework.messaging.simp.stomp.StompSession;
 import org.springframework.security.oauth2.jwt.Jwt;
@@ -57,10 +53,6 @@ public abstract class WebSocketTest {
 	void setup() {
 		final var webSocketClient = new StandardWebSocketClient();
 		stompClient = new WebSocketStompClient(webSocketClient);
-		stompClient.setMessageConverter(new CompositeMessageConverter(
-				List.of(new JacksonJsonMessageConverter(),
-						new StringMessageConverter())));
-
 		url = "ws://localhost:" + port + "/ws";
 	}
 
@@ -99,15 +91,14 @@ public abstract class WebSocketTest {
 		assertThat(stompSession.isConnected()).isTrue();
 	}
 
-	protected <T> FrameHandler<T> subscribe(final String destination,
-			final Class<T> clazz) {
-		final FrameHandler<T> frameHandler = new FrameHandler<>(clazz);
+	protected FrameHandler subscribe(final String destination) {
+		final FrameHandler frameHandler = new FrameHandler();
 		stompSession.subscribe(destination, frameHandler);
 		return frameHandler;
 	}
 
-	protected FrameHandler<String> subscribeToErrors() {
-		return subscribe("/user/queue/errors", String.class);
+	protected FrameHandler subscribeToErrors() {
+		return subscribe("/user/queue/errors");
 	}
 
 	protected void send(final String destination, final Object dto) {

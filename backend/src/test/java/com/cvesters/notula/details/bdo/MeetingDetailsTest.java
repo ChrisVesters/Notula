@@ -1,16 +1,17 @@
-package com.cvesters.notula.meeting.bdo;
+package com.cvesters.notula.details.bdo;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
+import java.util.Collections;
 import java.util.List;
 
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 
 import com.cvesters.notula.meeting.TestMeeting;
+import com.cvesters.notula.meeting.bdo.MeetingInfo;
 import com.cvesters.notula.topic.TestTopic;
-import com.cvesters.notula.topic.bdo.TopicInfo;
 
 class MeetingDetailsTest {
 
@@ -24,32 +25,37 @@ class MeetingDetailsTest {
 		@Test
 		void success() {
 			final MeetingInfo meetingInfo = MEETING.info();
-			final List<TopicInfo> topicsInfo = TOPICS.stream()
+			final List<TopicDetails> topicsDetails = TOPICS.stream()
 					.map(TestTopic::info)
+					.map(info -> new TopicDetails(info,
+							Collections.emptyList()))
 					.toList();
 
-			final var details = new MeetingDetails(meetingInfo, topicsInfo);
+			final var details = new MeetingDetails(meetingInfo, topicsDetails);
 
-			assertThat(details.info()).isEqualTo(meetingInfo);
-			assertThat(details.topics()).isEqualTo(topicsInfo);
+			assertThat(details.getId()).isEqualTo(MEETING.getId());
+			assertThat(details.getName()).isEqualTo(MEETING.getName());
+			assertThat(details.getTopics()).isEqualTo(topicsDetails);
 		}
 
 		@Test
 		void infoNull() {
 			final MeetingInfo meetingInfo = null;
-			final List<TopicInfo> topicsInfo = TOPICS.stream()
+			final List<TopicDetails> topicsDetails = TOPICS.stream()
 					.map(TestTopic::info)
+					.map(info -> new TopicDetails(info,
+							Collections.emptyList()))
 					.toList();
 
 			assertThatThrownBy(
-					() -> new MeetingDetails(meetingInfo, topicsInfo))
+					() -> new MeetingDetails(meetingInfo, topicsDetails))
 							.isInstanceOf(NullPointerException.class);
 		}
 
 		@Test
 		void topicsNull() {
 			final MeetingInfo meetingInfo = MEETING.info();
-			final List<TopicInfo> topicsInfo = null;
+			final List<TopicDetails> topicsInfo = null;
 
 			assertThatThrownBy(
 					() -> new MeetingDetails(meetingInfo, topicsInfo))

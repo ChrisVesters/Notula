@@ -20,7 +20,7 @@ public abstract class WebSocketAuthManager
 
 	private final String pattern;
 
-	public WebSocketAuthManager(final String pattern) {
+	protected WebSocketAuthManager(final String pattern) {
 		Validate.notBlank(pattern);
 
 		this.pattern = pattern;

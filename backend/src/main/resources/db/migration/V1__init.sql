@@ -68,3 +68,19 @@ CREATE TABLE topics(
 
 CREATE INDEX ON topics(organisation_id);
 CREATE INDEX ON topics(meeting_id);
+
+
+CREATE TABLE blocks(
+	id BIGINT NOT NULL GENERATED ALWAYS AS IDENTITY,
+	organisation_id BIGINT NOT NULL,
+	topic_id BIGINT NOT NULL,
+	type INTEGER NOT NULL,
+	sequence_id INTEGER NOT NULL,
+
+	PRIMARY KEY(id),
+	FOREIGN KEY(organisation_id) REFERENCES organisations(id) ON DELETE CASCADE,
+	FOREIGN KEY(topic_id) REFERENCES topics(id) ON DELETE CASCADE
+);
+
+CREATE INDEX ON blocks(organisation_id);
+CREATE INDEX ON blocks(topic_id);

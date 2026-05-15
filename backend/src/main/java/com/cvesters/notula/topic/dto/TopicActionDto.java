@@ -13,7 +13,7 @@ public final class TopicActionDto {
 	private TopicActionDto() {
 	}
 
-	public record Create(@NotNull String name) {
+	public static record Create(@NotNull String name) {
 
 		public TopicAction.Create toBdo() {
 			return new TopicAction.Create(name);

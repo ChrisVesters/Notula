@@ -28,9 +28,9 @@ public sealed interface MeetingAction {
 	final class UpdateName extends TextUpdate<MeetingInfo>
 			implements MeetingAction.Update {
 
-		public UpdateName(final int offset, final int length,
+		public UpdateName(final int position, final int length,
 				final String value) {
-			super(MeetingInfo::getName, MeetingInfo::setName, offset, length,
+			super(MeetingInfo::getName, MeetingInfo::setName, position, length,
 					value);
 		}
 	}
