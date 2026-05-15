@@ -47,7 +47,7 @@ public class TextUpdate<T> {
 		setter.accept(object, updated);
 	}
 
-	protected String execute(final String input) {
+	protected final String execute(final String input) {
 		Objects.requireNonNull(input);
 		Validate.isTrue(input.length() >= position + length);
 

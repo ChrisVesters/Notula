@@ -6,6 +6,7 @@ import java.util.List;
 import lombok.Getter;
 
 import com.cvesters.notula.meeting.TestMeeting;
+import com.cvesters.notula.organisation.TestOrganisation;
 import com.cvesters.notula.topic.bdo.TopicInfo;
 
 @Getter
@@ -34,5 +35,9 @@ public enum TestTopic {
 
 	public TopicInfo info() {
 		return new TopicInfo(id, meeting.getOrganisation().getId(), meeting.getId(), name);
+	}
+
+	public TestOrganisation getOrganisation() {
+		return meeting.getOrganisation();
 	}
 }

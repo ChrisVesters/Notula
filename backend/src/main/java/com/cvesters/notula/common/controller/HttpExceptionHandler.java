@@ -9,10 +9,13 @@ import org.springframework.web.bind.MissingRequestCookieException;
 import org.springframework.web.bind.annotation.ControllerAdvice;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 
+import lombok.extern.slf4j.Slf4j;
+
 import com.cvesters.notula.common.exception.DuplicateEntityException;
 import com.cvesters.notula.common.exception.MissingEntityException;
 
 // TODO: make sure all exceptions are handled properly
+@Slf4j
 @ControllerAdvice
 public class HttpExceptionHandler { // extends ResponseEntityExceptionHandler {
 
@@ -50,6 +53,7 @@ public class HttpExceptionHandler { // extends ResponseEntityExceptionHandler {
 
 	@ExceptionHandler(Exception.class)
 	public ResponseEntity<Void> handleUnexpected(final Exception e) {
+		log.error("Unexpected exception", e);
 		return ResponseEntity.internalServerError().build();
 	}
 }

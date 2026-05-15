@@ -1,4 +1,4 @@
-package com.cvesters.notula.topic.dao;
+package com.cvesters.notula.block.dao;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -8,34 +8,37 @@ import java.lang.reflect.Field;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 
+import com.cvesters.notula.block.TestBlock;
+import com.cvesters.notula.block.bdo.BlockInfo;
 import com.cvesters.notula.meeting.TestMeeting;
 import com.cvesters.notula.organisation.TestOrganisation;
 import com.cvesters.notula.topic.TestTopic;
-import com.cvesters.notula.topic.bdo.TopicInfo;
 
-class TopicDaoTest {
+class BlockDaoTest {
 
-	private static final TestTopic TOPIC = TestTopic.SPORER_PROJECT_BLOCKERS;
+	private static final TestBlock BLOCK = TestBlock.SPORER_PROJECT_BLOCKERS_FIRST;
+	private static final TestTopic TOPIC = BLOCK.getTopic();
 	private static final TestMeeting MEETING = TOPIC.getMeeting();
 	private static final TestOrganisation ORGANISATION = MEETING
 			.getOrganisation();
 
 	@Nested
-	class Constructor {
+	class Contructor {
 
 		@Test
 		void success() {
-			final var dao = new TopicDao(TOPIC.info());
+			final var dao = new BlockDao(BLOCK.info());
 
 			assertThat(dao.getId()).isNull();
 			assertThat(dao.getOrganisationId()).isEqualTo(ORGANISATION.getId());
-			assertThat(dao.getMeetingId()).isEqualTo(MEETING.getId());
-			assertThat(dao.getName()).isEqualTo(TOPIC.getName());
+			assertThat(dao.getTopicId()).isEqualTo(TOPIC.getId());
+			assertThat(dao.getType()).isEqualTo(BLOCK.getTypeId());
+			assertThat(dao.getSequenceId()).isEqualTo(BLOCK.getSequenceId());
 		}
 
 		@Test
 		void bdoNull() {
-			assertThatThrownBy(() -> new TopicDao(null))
+			assertThatThrownBy(() -> new BlockDao(null))
 					.isInstanceOf(NullPointerException.class);
 		}
 	}
@@ -43,16 +46,16 @@ class TopicDaoTest {
 	@Nested
 	class Update {
 
-		private final TopicDao dao = new TopicDao(TOPIC.info());
+		final BlockDao dao = new BlockDao(BLOCK.info());
 
 		@Test
 		void success() {
-			final var updated = new TopicInfo(ORGANISATION.getId(),
-					MEETING.getId(), "Updated name");
+			final var updated = new BlockInfo(BLOCK.getId(), ORGANISATION.getId(),
+					TOPIC.getId(), BLOCK.getType(), BLOCK.getSequenceId() + 1);
 
 			dao.update(updated);
 
-			assertThat(dao.getName()).isEqualTo(updated.getName());
+			assertThat(dao.getSequenceId()).isEqualTo(updated.getSequenceId());
 		}
 
 		@Test
@@ -65,7 +68,7 @@ class TopicDaoTest {
 	@Nested
 	class ToBdo {
 
-		private final TopicDao dao = new TopicDao(TOPIC.info());
+		private final BlockDao dao = new BlockDao(BLOCK.info());
 
 		@Test
 		void success() throws Exception {
@@ -73,12 +76,13 @@ class TopicDaoTest {
 			idField.setAccessible(true);
 			idField.set(dao, TOPIC.getId());
 
-			final TopicInfo bdo = dao.toBdo();
+			final BlockInfo bdo = dao.toBdo();
 
 			assertThat(bdo.getId()).isEqualTo(TOPIC.getId());
 			assertThat(bdo.getOrganisationId()).isEqualTo(ORGANISATION.getId());
-			assertThat(bdo.getMeetingId()).isEqualTo(MEETING.getId());
-			assertThat(bdo.getName()).isEqualTo(TOPIC.getName());
+			assertThat(bdo.getTopicId()).isEqualTo(TOPIC.getId());
+			assertThat(bdo.getType()).isEqualTo(BLOCK.getType());
+			assertThat(bdo.getSequenceId()).isEqualTo(BLOCK.getSequenceId());
 		}
 
 		@Test
@@ -86,5 +90,6 @@ class TopicDaoTest {
 			assertThatThrownBy(dao::toBdo)
 					.isInstanceOf(IllegalStateException.class);
 		}
+
 	}
 }

@@ -1,31 +1,28 @@
 package com.cvesters.notula.test;
 
 import java.lang.reflect.Type;
+import java.nio.charset.StandardCharsets;
 import java.util.concurrent.CompletableFuture;
 
 import org.springframework.messaging.simp.stomp.StompFrameHandler;
 import org.springframework.messaging.simp.stomp.StompHeaders;
 
-public class FrameHandler<T> implements StompFrameHandler {
+public class FrameHandler implements StompFrameHandler {
 
-	private final Class<T> clazz;
-	private final CompletableFuture<T> response = new CompletableFuture<>();
-
-	public FrameHandler(final Class<T> clazz) {
-		this.clazz = clazz;
-	}
+	private final CompletableFuture<String> response = new CompletableFuture<>();
 
 	@Override
 	public Type getPayloadType(final StompHeaders headers) {
-		return clazz;
+		return byte[].class;
 	}
 
 	@Override
 	public void handleFrame(final StompHeaders headers, final Object payload) {
-		response.complete(clazz.cast(payload));
+		final var data = new String((byte[]) payload, StandardCharsets.UTF_8);
+		response.complete(data);
 	}
 
-	public CompletableFuture<T> getResponse() throws Exception {
+	public CompletableFuture<String> getResponse() {
 		return response;
 	}
 }

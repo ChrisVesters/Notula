@@ -10,7 +10,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
-import java.util.Map;
+import java.nio.charset.StandardCharsets;
 import java.util.concurrent.TimeUnit;
 
 import org.junit.jupiter.api.Nested;
@@ -44,14 +44,13 @@ public class TopicWebSocketTest extends WebSocketTest {
 	class Create {
 
 		@ParameterizedTest
-		@ValueSource(strings = { "topic", "!@#$%^&*(){}[]|\\:;\"'<>,.?/",
+		@ValueSource(strings = { "topic", "!@#$%^&*(){}[]|:;'<>,.?/",
 				"Встреча: 你好 مرحبا" })
 		void success(final String name) throws Exception {
-			final Map<String, String> dto = Map
-					.ofEntries(Map.entry("name", name));
+			final byte[] payload = getRequestPayload(name);
 
 			connect(SESSION);
-			send(getDestination(MEETING.getId()), dto);
+			send(getDestination(MEETING.getId()), payload);
 
 			final var action = new TopicAction.Create(name);
 			final var matcher = new TopicActionMatcher.Create(action);
@@ -63,15 +62,14 @@ public class TopicWebSocketTest extends WebSocketTest {
 		@Test
 		void notFound() throws Exception {
 			final var topic = TestTopic.SPORER_PROJECT_BLOCKERS;
-			final Map<String, String> dto = Map
-					.ofEntries(Map.entry("name", topic.getName()));
+			final byte[] payload = getRequestPayload(topic.getName());
 
 			when(topicService.create(any(), anyLong(), any()))
 					.thenThrow(new MissingEntityException());
 
 			connect(SESSION);
-			final FrameHandler<String> errorFrameHandler = subscribeToErrors();
-			send(getDestination(MEETING.getId()), dto);
+			final FrameHandler errorFrameHandler = subscribeToErrors();
+			send(getDestination(MEETING.getId()), payload);
 
 			assertThat(errorFrameHandler.getResponse())
 					.succeedsWithin(WAIT_TIMEOUT.toSeconds(), TimeUnit.SECONDS)
@@ -82,11 +80,11 @@ public class TopicWebSocketTest extends WebSocketTest {
 
 		@Test
 		void invalid() throws Exception {
-			final Map<String, String> dto = Map
-					.ofEntries(Map.entry("name", ""));
+			final byte[] dto = "{\"name\": null}"
+					.getBytes(StandardCharsets.UTF_8);
 
 			connect(SESSION);
-			final FrameHandler<String> errorFrameHandler = subscribeToErrors();
+			final FrameHandler errorFrameHandler = subscribeToErrors();
 			send(getDestination(MEETING.getId()), dto);
 
 			verifyNoInteractions(topicService);
@@ -99,11 +97,10 @@ public class TopicWebSocketTest extends WebSocketTest {
 
 		@Test
 		void unauthenticated() throws Exception {
-			final Map<String, String> dto = Map
-					.ofEntries(Map.entry("name", "topic"));
+			final byte[] payload = getRequestPayload("topic");
 
 			connect();
-			send(getDestination(MEETING.getId()), dto);
+			send(getDestination(MEETING.getId()), payload);
 
 			assertThat(stompSessionHandler.getError())
 					.succeedsWithin(WAIT_TIMEOUT.toSeconds(), TimeUnit.SECONDS)
@@ -113,6 +110,16 @@ public class TopicWebSocketTest extends WebSocketTest {
 		private String getDestination(final long meetingId) {
 			return DESTINATION_PREFIX + "/" + meetingId + DESTINATION_SUFFIX;
 		}
+
+		private byte[] getRequestPayload(final String name) {
+			final String json = """
+					{
+						"name": "%s"
+					}
+					""".formatted(name);
+
+			return json.getBytes(StandardCharsets.UTF_8);
+		}
 	}
 
 	@Nested
@@ -121,13 +128,13 @@ public class TopicWebSocketTest extends WebSocketTest {
 		private static final TestTopic TOPIC = TestTopic.SPORER_PROJECT_BLOCKERS;
 
 		@ParameterizedTest
-		@ValueSource(strings = { "topic", "!@#$%^&*(){}[]|\\:;\"'<>,.?/",
+		@ValueSource(strings = { "topic", "!@#$%^&*(){}[]|:;'<>,.?/",
 				"Встреча: 你好 مرحبا" })
 		void success(final String name) throws Exception {
-			final Map<String, Object> dto = getDto(name);
+			final byte[] payload = getRequestPayload(name);
 
 			connect(SESSION);
-			send(getDestination(MEETING.getId(), TOPIC.getId()), dto);
+			send(getDestination(MEETING.getId(), TOPIC.getId()), payload);
 
 			final var expected = new TopicAction.UpdateName(5, 2, name);
 			final var matcher = new TopicActionMatcher.UpdateName(expected);
@@ -138,14 +145,14 @@ public class TopicWebSocketTest extends WebSocketTest {
 
 		@Test
 		void notFound() throws Exception {
-			final Map<String, Object> dto = getDto(TOPIC.getName());
+			final byte[] payload = getRequestPayload(TOPIC.getName());
 
 			when(topicService.update(any(), anyLong(), anyLong(), any()))
 					.thenThrow(new MissingEntityException());
 
 			connect(SESSION);
-			final FrameHandler<String> errorFrameHandler = subscribeToErrors();
-			send(getDestination(MEETING.getId(), TOPIC.getId()), dto);
+			final FrameHandler errorFrameHandler = subscribeToErrors();
+			send(getDestination(MEETING.getId(), TOPIC.getId()), payload);
 
 			assertThat(errorFrameHandler.getResponse())
 					.succeedsWithin(WAIT_TIMEOUT.toSeconds(), TimeUnit.SECONDS)
@@ -156,20 +163,27 @@ public class TopicWebSocketTest extends WebSocketTest {
 
 		@Test
 		void unauthenticated() throws Exception {
-			final Map<String, Object> dto = getDto("Updated");
+			final byte[] payload = getRequestPayload("Updated");
 
 			connect();
-			send(getDestination(MEETING.getId(), TOPIC.getId()), dto);
+			send(getDestination(MEETING.getId(), TOPIC.getId()), payload);
 
 			assertThat(stompSessionHandler.getError())
 					.succeedsWithin(WAIT_TIMEOUT.toSeconds(), TimeUnit.SECONDS)
 					.isInstanceOf(ConnectionLostException.class);
 		}
 
-		private Map<String, Object> getDto(final String name) {
-			return Map.ofEntries(Map.entry("action", "UPDATE_NAME"),
-					Map.entry("position", 5), Map.entry("length", 2),
-					Map.entry("value", name));
+		private byte[] getRequestPayload(final String name) {
+			final String json = """
+					{
+						"action": "UPDATE_NAME",
+						"position": 5,
+						"length": 2,
+						"value": "%s"
+					}
+					""".formatted(name);
+
+			return json.getBytes(StandardCharsets.UTF_8);
 		}
 
 		private String getDestination(final long meetingId,
