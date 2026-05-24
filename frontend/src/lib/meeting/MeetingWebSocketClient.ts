@@ -1,8 +1,8 @@
 import Session from "$lib/auth/Session";
 import WebSocketClient from "$lib/common/WebSocketClient";
+import type { MeetingDetails } from "$lib/details/DetailTypes";
 import type {
 	MeetingActionResponse,
-	MeetingDetails,
 	MeetingUpdateNameAction
 } from "./MeetingTypes";
 
@@ -12,6 +12,7 @@ export type MeetingEventHandler = {
 	onEvent: (event: MeetingActionResponse) => void;
 };
 
+// TODO: Split
 export default class MeetingWebSocketClient {
 	public static connect(id: number, handler: MeetingEventHandler): void {
 		const client: WebSocketClient = Session.getWebSocketClient();

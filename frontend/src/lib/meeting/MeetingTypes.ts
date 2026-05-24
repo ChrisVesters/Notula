@@ -1,13 +1,8 @@
-import type { TopicInfo } from "$lib/topic/TopicTypes";
+import type { BlockEvent } from "$lib/block/BlockTypes";
 
 export type MeetingInfo = {
 	id: number;
 	name: string;
-};
-
-export type MeetingDetails = {
-	info: MeetingInfo;
-	topics: Array<TopicInfo>;
 };
 
 export type MeetingCreateRequest = {
@@ -25,7 +20,7 @@ export type MeetingUpdateNameAction = {
 // TODO: proper union?
 // Or class? because of the type field!
 // TODO: event instead of response?
-export type MeetingActionResponse = MeetingAddTopicResponse;
+export type MeetingActionResponse = MeetingAddTopicResponse | BlockEvent;
 
 export type MeetingAddTopicResponse = {
 	type: "TOPIC_CREATE";
