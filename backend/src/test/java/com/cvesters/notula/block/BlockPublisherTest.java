@@ -37,13 +37,13 @@ class BlockPublisherTest {
 		private static final long TOPIC_ID = TOPIC.getId();
 		private static final long BLOCK_ID = BLOCK.getId();
 
-
 		private static final String DESTINATION = DESTINATION_PREFIX + "/"
 				+ MEETING_ID;
 
 		@Test
 		void create() {
-			final var action = new BlockAction.Create(BLOCK.getType(), BLOCK.getSequenceId());
+			final var action = new BlockAction.Create(BLOCK.getType(),
+					BLOCK.getSequenceId());
 			final var event = new BlockEvent(TOPIC_ID, BLOCK_ID, action);
 
 			publisher.publish(MEETING_ID, event);
@@ -53,13 +53,15 @@ class BlockPublisherTest {
 						assertThat(dto.getTopicId()).isEqualTo(TOPIC_ID);
 						assertThat(dto.getBlockId()).isEqualTo(BLOCK_ID);
 
-						assertThat(dto.getMutation()).isInstanceOf(
-								BlockMutationDto.Create.class);
+						assertThat(dto.getMutation())
+								.isInstanceOf(BlockMutationDto.Create.class);
 
 						final var mutation = (BlockMutationDto.Create) dto
 								.getMutation();
-						assertThat(mutation.type()).isEqualTo(BLOCK.getTypeString());
-						assertThat(mutation.sequenceId()).isEqualTo(BLOCK.getSequenceId());
+						assertThat(mutation.getType())
+								.isEqualTo(BLOCK.getTypeString());
+						assertThat(mutation.getSequenceId())
+								.isEqualTo(BLOCK.getSequenceId());
 						return true;
 					}));
 		}

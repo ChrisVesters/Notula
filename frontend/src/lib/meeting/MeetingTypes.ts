@@ -1,4 +1,5 @@
 import type { BlockEvent } from "$lib/block/BlockTypes";
+import type { TopicEvent } from "$lib/topic/TopicTypes";
 
 export type MeetingInfo = {
 	id: number;
@@ -17,13 +18,25 @@ export type MeetingUpdateNameAction = {
 	value: string;
 };
 
-// TODO: proper union?
-// Or class? because of the type field!
-// TODO: event instead of response?
-export type MeetingActionResponse = MeetingAddTopicResponse | BlockEvent;
+// TODO: move somewhere else?
+export type MeetingMessage = MeetingEvent | TopicEvent | BlockEvent;
 
-export type MeetingAddTopicResponse = {
-	type: "TOPIC_CREATE";
-	topicId: number;
+export type MeetingEvent = {
+	target: "MEETING";
+	meetingId: number;
+	mutation: MeetingMutation;
+};
+
+export type MeetingMutation = MeetingMutationCreate | MeetingMutationUpdateName;
+
+export type MeetingMutationCreate = {
+	action: "CREATE";
 	name: string;
+};
+
+export type MeetingMutationUpdateName = {
+	action: "UPDATE_NAME";
+	position: number;
+	length: number;
+	value: string;
 };

@@ -20,8 +20,9 @@ public class TopicPublisher {
 	public void publish(final long meetingId, final TopicEvent event) {
 		Objects.requireNonNull(event);
 
-		final var dto = TopicEventDto.of(event);
-		messagingTemplate.convertAndSend("/topic/meetings/" + meetingId, dto);
+		final var eventDto = new TopicEventDto(event);
+		messagingTemplate.convertAndSend("/topic/meetings/" + meetingId,
+				eventDto);
 	}
 
 }

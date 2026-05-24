@@ -3,6 +3,7 @@ package com.cvesters.notula.meeting.dto;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
+import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 
 import com.cvesters.notula.meeting.bdo.MeetingAction;
@@ -10,37 +11,31 @@ import com.cvesters.notula.meeting.bdo.MeetingEvent;
 
 class MeetingEventDtoTest {
 
-	@Test
-	void eventNull() {
-		assertThatThrownBy(() -> MeetingEventDto.of(null))
-				.isExactlyInstanceOf(NullPointerException.class);
-	}
+	@Nested
+	class Constructor {
 
-	@Test
-	void create() {
-		final var action = new MeetingAction.Create("New");
-		final var event = new MeetingEvent(1L, action);
+		private static final long MEETING_ID = 18L;
 
-		final var dto = MeetingEventDto.of(event);
-		assertThat(dto).isExactlyInstanceOf(MeetingEventDto.Create.class);
-		assertThat(dto.getMeetingId()).isEqualTo(1L);
+		@Test
+		void success() {
+			final var action = new MeetingAction.Create("New");
+			final var event = new MeetingEvent(MEETING_ID, action);
 
-		final var createDto = (MeetingEventDto.Create) dto;
-		assertThat(createDto.getName()).isEqualTo("New");
-	}
+			final var dto = new MeetingEventDto(event);
 
-	@Test
-	void updateName() {
-		final var action = new MeetingAction.UpdateName(2, 4, "27");
-		final var event = new MeetingEvent(1L, action);
+			assertThat(dto.getTarget()).isEqualTo("MEETING");
+			assertThat(dto.getMeetingId()).isEqualTo(MEETING_ID);
+			assertThat(dto.getMutation())
+					.isInstanceOf(MeetingMutationDto.Create.class);
 
-		final var dto = MeetingEventDto.of(event);
-		assertThat(dto).isExactlyInstanceOf(MeetingEventDto.UpdateName.class);
-		assertThat(dto.getMeetingId()).isEqualTo(1L);
+			final var mutation = (MeetingMutationDto.Create) dto.getMutation();
+			assertThat(mutation.getName()).isEqualTo("New");
+		}
 
-		final var updateDto = (MeetingEventDto.UpdateName) dto;
-		assertThat(updateDto.getPosition()).isEqualTo(2);
-		assertThat(updateDto.getLength()).isEqualTo(4);
-		assertThat(updateDto.getValue()).isEqualTo("27");
+		@Test
+		void eventNull() {
+			assertThatThrownBy(() -> new MeetingEventDto(null))
+					.isInstanceOf(NullPointerException.class);
+		}
 	}
 }

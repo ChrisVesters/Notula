@@ -28,22 +28,22 @@ class BlockEventDtoTest {
 
 			final var dto = new BlockEventDto(event);
 
+			assertThat(dto.getTarget()).isEqualTo("BLOCK");
 			assertThat(dto.getTopicId()).isEqualTo(TOPIC_ID);
 			assertThat(dto.getBlockId()).isEqualTo(BLOCK_ID);
-			assertThat(dto.getTarget()).isEqualTo("BLOCK");
 			assertThat(dto.getMutation())
 					.isInstanceOf(BlockMutationDto.Create.class);
 
 			final var mutation = (BlockMutationDto.Create) dto.getMutation();
-			assertThat(mutation.type()).isEqualTo(BLOCK.getTypeString());
-			assertThat(mutation.sequenceId()).isEqualTo(BLOCK.getSequenceId());
+			assertThat(mutation.getType()).isEqualTo(BLOCK.getTypeString());
+			assertThat(mutation.getSequenceId())
+					.isEqualTo(BLOCK.getSequenceId());
 		}
 
 		@Test
 		void eventNull() {
-			assertThatThrownBy(
-					() -> new BlockEventDto(null))
-							.isInstanceOf(NullPointerException.class);
+			assertThatThrownBy(() -> new BlockEventDto(null))
+					.isInstanceOf(NullPointerException.class);
 		}
 	}
 

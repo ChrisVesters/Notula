@@ -14,6 +14,7 @@ import org.springframework.messaging.simp.SimpMessagingTemplate;
 import com.cvesters.notula.meeting.bdo.MeetingAction;
 import com.cvesters.notula.meeting.bdo.MeetingEvent;
 import com.cvesters.notula.meeting.dto.MeetingEventDto;
+import com.cvesters.notula.meeting.dto.MeetingMutationDto;
 
 class MeetingPublisherTest {
 
@@ -40,12 +41,13 @@ class MeetingPublisherTest {
 
 			verify(messagingTemplate).convertAndSend(eq(DESTINATION),
 					argThat((MeetingEventDto dto) -> {
-						assertThat(dto)
-								.isInstanceOf(MeetingEventDto.Create.class);
+						assertThat(dto.getMeetingId()).isEqualTo(MEETING_ID);
+						assertThat(dto.getMutation())
+								.isInstanceOf(MeetingMutationDto.Create.class);
 
-						final var createDto = (MeetingEventDto.Create) dto;
-						assertThat(createDto.getMeetingId()).isEqualTo(MEETING_ID);
-						assertThat(createDto.getName()).isEqualTo("New");
+						final var mutation = (MeetingMutationDto.Create) dto
+								.getMutation();
+						assertThat(mutation.getName()).isEqualTo("New");
 						return true;
 					}));
 		}
@@ -59,14 +61,15 @@ class MeetingPublisherTest {
 
 			verify(messagingTemplate).convertAndSend(eq(DESTINATION),
 					argThat((MeetingEventDto dto) -> {
-						assertThat(dto)
-								.isInstanceOf(MeetingEventDto.UpdateName.class);
+						assertThat(dto.getMeetingId()).isEqualTo(MEETING_ID);
+						assertThat(dto.getMutation()).isInstanceOf(
+								MeetingMutationDto.UpdateName.class);
 
-						final var updateDto = (MeetingEventDto.UpdateName) dto;
-						assertThat(updateDto.getMeetingId()).isEqualTo(MEETING_ID);
-						assertThat(updateDto.getPosition()).isEqualTo(4);
-						assertThat(updateDto.getLength()).isEqualTo(12);
-						assertThat(updateDto.getValue()).isEqualTo("Updated");
+						final var mutation = (MeetingMutationDto.UpdateName) dto
+								.getMutation();
+						assertThat(mutation.getPosition()).isEqualTo(4);
+						assertThat(mutation.getLength()).isEqualTo(12);
+						assertThat(mutation.getValue()).isEqualTo("Updated");
 						return true;
 					}));
 		}

@@ -2,14 +2,14 @@ import Session from "$lib/auth/Session";
 import WebSocketClient from "$lib/common/WebSocketClient";
 import type { MeetingDetails } from "$lib/details/DetailTypes";
 import type {
-	MeetingActionResponse,
+	MeetingMessage,
 	MeetingUpdateNameAction
 } from "./MeetingTypes";
 
 export type MeetingEventHandler = {
 	onLoad: (data: MeetingDetails) => void;
 	onError: (message: string) => void;
-	onEvent: (event: MeetingActionResponse) => void;
+	onEvent: (event: MeetingMessage) => void;
 };
 
 // TODO: Split
