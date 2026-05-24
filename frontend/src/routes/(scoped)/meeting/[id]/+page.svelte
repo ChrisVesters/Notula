@@ -5,7 +5,7 @@
 	import { t } from "$lib/assets/translations";
 
 	import IconPlus from "$lib/assets/icons/IconPlus.svelte";
-	import { BlockType } from "$lib/block/BlockTypes";
+	import { BlockType, type BlockMutation } from "$lib/block/BlockTypes";
 	import BlockWebSocketClient from "$lib/block/BlockWebSocketClient";
 	import Loading from "$lib/common/Loading.svelte";
 	import type {
@@ -16,9 +16,12 @@
 	import Input from "$lib/editor/Input.svelte";
 	import FeedbackButton from "$lib/form/FeedbackButton.svelte";
 	import MeetingInfoView from "$lib/meeting/MeetingInfoView.svelte";
-	import type { MeetingActionResponse } from "$lib/meeting/MeetingTypes";
+	import type { MeetingEvent, MeetingMessage } from "$lib/meeting/MeetingTypes";
 	import MeetingWebSocketClient from "$lib/meeting/MeetingWebSocketClient";
-	import type { TopicUpdateNameAction } from "$lib/topic/TopicTypes";
+	import type {
+		TopicMutation,
+		TopicUpdateNameAction
+	} from "$lib/topic/TopicTypes";
 	import TopicWebSocketClient from "$lib/topic/TopicWebSocketClient";
 	import TopicAgendaView from "$lib/topic/TopicAgendaView.svelte";
 
@@ -46,25 +49,30 @@
 		window.alert(message);
 	};
 
-	const onEvent = (event: MeetingActionResponse) => {
+	const onEvent = (event: MeetingMessage) => {
 		// TODO: filter out events caused by use. We should do this directly locally.
-		// TODO: always use target
-		if ("type" in event && event.type === "TOPIC_CREATE") {
-			// TODO: what if initial data is not yet loaded?
-			// TODO: keep in queue and apply once loaded.
-			meeting?.topics.push({
-				id: event.topicId,
-				name: event.name,
-				blocks: []
-			});
-		} else if ("target" in event && event.target === "BLOCK") {
-			if (event.mutation.action === "CREATE") {
+		// TODO: what if initial data is not yet loaded?
+		// TODO: keep in queue and apply once loaded.
+		// TODO: swich case?
+		if (event.target == "TOPIC") {
+			const mutation: TopicMutation = event.mutation;
+			if (mutation.action === "CREATE") {
+				meeting?.topics.push({
+					id: event.topicId,
+					name: mutation.name,
+					blocks: []
+				});
+			}
+		} else if (event.target === "BLOCK") {
+			const mutation: BlockMutation = event.mutation;
+			if (mutation.action === "CREATE") {
 				const topic = meeting?.topics.find(t => t.id === event.topicId);
+				// TODO: what if topic does not exist? Out of sync?
 				if (topic) {
 					topic.blocks.push({
 						id: event.blockId,
-						type: event.mutation.type,
-						sequenceId: event.mutation.sequenceId
+						type: mutation.type,
+						sequenceId: mutation.sequenceId
 					});
 				}
 			}

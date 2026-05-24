@@ -22,7 +22,7 @@ public class MeetingPublisher {
 	public void publish(final MeetingEvent event) {
 		Objects.requireNonNull(event);
 
-		final var dto = MeetingEventDto.of(event);
+		final var dto = new MeetingEventDto(event);
 		messagingTemplate.convertAndSend(TOPIC + event.meetingId(), dto);
 	}
 

@@ -16,7 +16,6 @@ export type BlockCreateRequest = {
 	sequenceId: number;
 };
 
-
 export type BlockEvent = {
 	target: "BLOCK";
 	topicId: number;

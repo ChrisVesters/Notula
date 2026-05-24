@@ -14,6 +14,7 @@ import org.springframework.messaging.simp.SimpMessagingTemplate;
 import com.cvesters.notula.topic.bdo.TopicAction;
 import com.cvesters.notula.topic.bdo.TopicEvent;
 import com.cvesters.notula.topic.dto.TopicEventDto;
+import com.cvesters.notula.topic.dto.TopicMutationDto;
 
 class TopicPublisherTest {
 
@@ -41,12 +42,13 @@ class TopicPublisherTest {
 
 			verify(messagingTemplate).convertAndSend(eq(DESTINATION),
 					argThat((TopicEventDto dto) -> {
-						assertThat(dto)
-								.isInstanceOf(TopicEventDto.Create.class);
+						assertThat(dto.getTopicId()).isEqualTo(TOPIC_ID);
+						assertThat(dto.getMutation())
+								.isInstanceOf(TopicMutationDto.Create.class);
 
-						final var createDto = (TopicEventDto.Create) dto;
-						assertThat(createDto.getTopicId()).isEqualTo(TOPIC_ID);
-						assertThat(createDto.getName()).isEqualTo("New");
+						final var mutation = (TopicMutationDto.Create) dto
+								.getMutation();
+						assertThat(mutation.getName()).isEqualTo("New");
 						return true;
 					}));
 		}
@@ -60,14 +62,15 @@ class TopicPublisherTest {
 
 			verify(messagingTemplate).convertAndSend(eq(DESTINATION),
 					argThat((TopicEventDto dto) -> {
-						assertThat(dto)
-								.isInstanceOf(TopicEventDto.UpdateName.class);
+						assertThat(dto.getTopicId()).isEqualTo(TOPIC_ID);
+						assertThat(dto.getMutation()).isInstanceOf(
+								TopicMutationDto.UpdateName.class);
 
-						final var updateDto = (TopicEventDto.UpdateName) dto;
-						assertThat(updateDto.getTopicId()).isEqualTo(TOPIC_ID);
-						assertThat(updateDto.getPosition()).isEqualTo(4);
-						assertThat(updateDto.getLength()).isEqualTo(12);
-						assertThat(updateDto.getValue()).isEqualTo("Updated");
+						final var mutation = (TopicMutationDto.UpdateName) dto
+								.getMutation();
+						assertThat(mutation.getPosition()).isEqualTo(4);
+						assertThat(mutation.getLength()).isEqualTo(12);
+						assertThat(mutation.getValue()).isEqualTo("Updated");
 						return true;
 					}));
 		}
