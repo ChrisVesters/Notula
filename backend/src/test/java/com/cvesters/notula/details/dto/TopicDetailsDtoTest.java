@@ -9,6 +9,7 @@ import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 
 import com.cvesters.notula.block.TestBlock;
+import com.cvesters.notula.details.bdo.BlockContent;
 import com.cvesters.notula.details.bdo.BlockDetails;
 import com.cvesters.notula.details.bdo.TopicDetails;
 import com.cvesters.notula.topic.TestTopic;
@@ -27,7 +28,7 @@ class TopicDetailsDtoTest {
 			final List<TestBlock> blocks = TestBlock.ofTopic(topic);
 			final List<BlockDetails> blocksDetails = blocks.stream()
 					.map(TestBlock::info)
-					.map(BlockDetails::new)
+					.map(info -> new BlockDetails(info, new BlockContent.Text()))
 					.toList();
 					
 			final var details = new TopicDetails(topicInfo, blocksDetails);
@@ -40,8 +41,6 @@ class TopicDetailsDtoTest {
 			blocks.forEach(block -> {
 				assertThat(dto.getBlocks()).anySatisfy(b -> {
 					assertThat(b.getId()).isEqualTo(block.getId());
-					assertThat(b.getType())
-							.isEqualTo(block.getTypeString());
 					assertThat(b.getSequenceId())
 							.isEqualTo(block.getSequenceId());
 				});

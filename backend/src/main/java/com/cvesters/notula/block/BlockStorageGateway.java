@@ -3,6 +3,7 @@ package com.cvesters.notula.block;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
+import java.util.Optional;
 
 import org.springframework.stereotype.Service;
 
@@ -25,6 +26,11 @@ public class BlockStorageGateway {
 		final var dao = new BlockDao(block);
 		final var saved = blockRepository.save(dao);
 		return saved.toBdo();
+	}
+
+	public Optional<BlockInfo> find(final long topicId, final long id) {
+		return blockRepository.findByTopicIdAndId(topicId, id)
+				.map(BlockDao::toBdo);
 	}
 
 	public List<BlockInfo> findAllByTopicId(final long topicId) {

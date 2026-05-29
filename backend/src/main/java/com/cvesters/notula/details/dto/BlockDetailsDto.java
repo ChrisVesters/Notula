@@ -4,22 +4,23 @@ import java.util.Objects;
 
 import lombok.Getter;
 
-import com.cvesters.notula.block.dto.BlockTypeDto;
 import com.cvesters.notula.details.bdo.BlockDetails;
+import com.fasterxml.jackson.annotation.JsonUnwrapped;
 
 @Getter
 public class BlockDetailsDto {
 
 	private final long id;
-	private final String type;
 	private final int sequenceId;
 
-	public BlockDetailsDto(final BlockDetails details) {
+	@JsonUnwrapped
+	private final BlockContentDto content;
+
+	protected BlockDetailsDto(final BlockDetails details) {
 		Objects.requireNonNull(details);
 
 		this.id = details.getId();
-		this.type = BlockTypeDto.toDto(details.getType());
 		this.sequenceId = details.getSequenceId();
+		this.content = BlockContentDto.of(details.getContent());
 	}
-
 }

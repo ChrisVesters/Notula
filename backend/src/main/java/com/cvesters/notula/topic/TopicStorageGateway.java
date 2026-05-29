@@ -42,11 +42,11 @@ public class TopicStorageGateway {
 	public TopicInfo update(final TopicInfo topic) {
 		Objects.requireNonNull(topic);
 
-		final var dao = topicRepository
+		final TopicDao dao = topicRepository
 				.findByMeetingIdAndId(topic.getMeetingId(), topic.getId())
 				.orElseThrow(MissingEntityException::new);
 		dao.update(topic);
-		final var saved = topicRepository.save(dao);
+		final TopicDao saved = topicRepository.save(dao);
 		return saved.toBdo();
 	}
 

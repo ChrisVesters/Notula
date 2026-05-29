@@ -5,21 +5,20 @@ import java.util.Objects;
 import lombok.Getter;
 
 import com.cvesters.notula.block.bdo.BlockInfo;
-import com.cvesters.notula.block.bdo.BlockType;
 
 @Getter
 public class BlockDetails {
 
 	private final long id;
-	private final BlockType type;
 	private final int sequenceId;
+	private final BlockContent content;
 
-	public BlockDetails(final BlockInfo info) {
+	public BlockDetails(final BlockInfo info, final BlockContent content) {
 		Objects.requireNonNull(info);
-		
-		this.id = info.getId();
-		this.type = info.getType();
-		this.sequenceId = info.getSequenceId();
-	}
+		Objects.requireNonNull(content);
 
+		this.id = info.getId();
+		this.sequenceId = info.getSequenceId();
+		this.content = content;
+	}
 }

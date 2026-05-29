@@ -21,6 +21,7 @@ import com.cvesters.notula.meeting.MeetingStorageGateway;
 import com.cvesters.notula.meeting.TestMeeting;
 import com.cvesters.notula.meeting.bdo.MeetingInfo;
 import com.cvesters.notula.session.TestSession;
+import com.cvesters.notula.textblock.TextBlockStorageGateway;
 import com.cvesters.notula.topic.TestTopic;
 import com.cvesters.notula.topic.TopicStorageGateway;
 import com.cvesters.notula.topic.bdo.TopicInfo;
@@ -30,9 +31,10 @@ class DetailsServiceTest {
 	private final MeetingStorageGateway meetingStorage = mock();
 	private final TopicStorageGateway topicStorage = mock();
 	private final BlockStorageGateway blockStorage = mock();
+	private final TextBlockStorageGateway textBlockStorage = mock();
 
 	private final DetailsService meetingActionService = new DetailsService(
-			meetingStorage, topicStorage, blockStorage);
+			meetingStorage, topicStorage, blockStorage, textBlockStorage);
 
 	@Nested
 	class Get {
@@ -84,7 +86,6 @@ class DetailsServiceTest {
 					blocks.forEach(block -> {
 						assertThat(t.getBlocks()).anySatisfy(b -> {
 							assertThat(b.getId()).isEqualTo(block.getId());
-							assertThat(b.getType()).isEqualTo(block.getType());
 							assertThat(b.getSequenceId())
 									.isEqualTo(block.getSequenceId());
 						});

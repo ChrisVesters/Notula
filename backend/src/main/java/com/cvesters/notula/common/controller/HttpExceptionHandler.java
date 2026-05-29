@@ -12,6 +12,7 @@ import org.springframework.web.bind.annotation.ExceptionHandler;
 import lombok.extern.slf4j.Slf4j;
 
 import com.cvesters.notula.common.exception.DuplicateEntityException;
+import com.cvesters.notula.common.exception.InvalidActionException;
 import com.cvesters.notula.common.exception.MissingEntityException;
 
 // TODO: make sure all exceptions are handled properly
@@ -40,8 +41,14 @@ public class HttpExceptionHandler { // extends ResponseEntityExceptionHandler {
 		return ResponseEntity.badRequest().build();
 	}
 
+	// TODO: how is this a 400 and not a 404?
 	@ExceptionHandler(MissingEntityException.class)
 	public ResponseEntity<Void> handle(final MissingEntityException e) {
+		return ResponseEntity.badRequest().build();
+	}
+
+	@ExceptionHandler(InvalidActionException.class)
+	public ResponseEntity<Void> handle(final InvalidActionException e) {
 		return ResponseEntity.badRequest().build();
 	}
 
