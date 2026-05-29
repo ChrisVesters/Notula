@@ -25,7 +25,8 @@ class TopicDetailsTest {
 			final TopicInfo topicInfo = TOPICS.info();
 			final List<BlockDetails> blocksDetails = BLOCKS.stream()
 					.map(TestBlock::info)
-					.map(BlockDetails::new)
+					.map(info -> new BlockDetails(info,
+							new BlockContent.Text()))
 					.toList();
 
 			final var details = new TopicDetails(topicInfo, blocksDetails);
@@ -40,7 +41,8 @@ class TopicDetailsTest {
 			final TopicInfo topicInfo = null;
 			final List<BlockDetails> blocksDetails = BLOCKS.stream()
 					.map(TestBlock::info)
-					.map(BlockDetails::new)
+					.map(info -> new BlockDetails(info,
+							new BlockContent.Text()))
 					.toList();
 
 			assertThatThrownBy(() -> new TopicDetails(topicInfo, blocksDetails))

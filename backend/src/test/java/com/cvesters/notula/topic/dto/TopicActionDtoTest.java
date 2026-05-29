@@ -11,10 +11,10 @@ import com.cvesters.notula.topic.bdo.TopicAction;
 
 class TopicActionDtoTest {
 
-	private static final TestTopic TOPIC = TestTopic.SPORER_PROJECT_BLOCKERS;
-
 	@Nested
 	class Create {
+
+		private static final TestTopic TOPIC = TestTopic.SPORER_PROJECT_BLOCKERS;
 
 		@Test
 		void toBdo() {

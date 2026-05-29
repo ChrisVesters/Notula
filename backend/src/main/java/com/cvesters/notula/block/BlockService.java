@@ -9,6 +9,7 @@ import com.cvesters.notula.block.bdo.BlockAction;
 import com.cvesters.notula.block.bdo.BlockEvent;
 import com.cvesters.notula.block.bdo.BlockInfo;
 import com.cvesters.notula.common.domain.Principal;
+import com.cvesters.notula.common.exception.MissingEntityException;
 import com.cvesters.notula.topic.TopicService;
 import com.cvesters.notula.topic.bdo.TopicInfo;
 
@@ -26,6 +27,17 @@ public class BlockService {
 		this.topicService = topicService;
 		this.blockStorage = blockStorage;
 		this.blockPublisher = blockPublisher;
+	}
+
+	public BlockInfo getById(final Principal principal, final long meetingId,
+			final long topicId, final long blockId) {
+		Objects.requireNonNull(principal);
+
+		final TopicInfo topic = topicService.getById(principal, meetingId,
+				topicId);
+
+		return blockStorage.find(topic.getId(), blockId)
+				.orElseThrow(MissingEntityException::new);
 	}
 
 	public BlockInfo create(final Principal principal, final long meetingId,

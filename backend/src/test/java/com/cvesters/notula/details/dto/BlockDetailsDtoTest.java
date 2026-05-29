@@ -8,7 +8,7 @@ import org.junit.jupiter.api.Test;
 
 import com.cvesters.notula.block.TestBlock;
 import com.cvesters.notula.block.bdo.BlockInfo;
-import com.cvesters.notula.block.dto.BlockTypeDto;
+import com.cvesters.notula.details.bdo.BlockContent;
 import com.cvesters.notula.details.bdo.BlockDetails;
 
 class BlockDetailsDtoTest {
@@ -20,14 +20,15 @@ class BlockDetailsDtoTest {
 		void success() {
 			final BlockInfo info = TestBlock.SPORER_PROJECT_BLOCKERS_FIRST
 					.info();
-			final BlockDetails details = new BlockDetails(info);
+			final var content = new BlockContent.Text("Text");
+			final BlockDetails details = new BlockDetails(info, content);
 
 			final var dto = new BlockDetailsDto(details);
 
 			assertThat(dto.getId()).isEqualTo(details.getId());
-			assertThat(dto.getType())
-					.isEqualTo(BlockTypeDto.toDto(details.getType()));
 			assertThat(dto.getSequenceId()).isEqualTo(details.getSequenceId());
+			assertThat(dto.getContent())
+					.isInstanceOf(BlockContentDto.Text.class);
 		}
 
 		@Test

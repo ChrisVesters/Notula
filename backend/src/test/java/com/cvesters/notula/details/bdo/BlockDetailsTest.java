@@ -18,20 +18,30 @@ class BlockDetailsTest {
 		void success() {
 			final TestBlock block = TestBlock.SPORER_PROJECT_BLOCKERS_FIRST;
 			final var blockInfo = block.info();
+			final var content = new BlockContent.Text("Text");
 
-			final var details = new BlockDetails(blockInfo);
+			final var details = new BlockDetails(blockInfo, content);
 
 			assertThat(details.getId()).isEqualTo(block.getId());
-			assertThat(details.getType()).isEqualTo(block.getType());
 			assertThat(details.getSequenceId())
 					.isEqualTo(block.getSequenceId());
+			assertThat(details.getContent()).isEqualTo(content);
 		}
 
 		@Test
 		void infoNull() {
 			final BlockInfo blockInfo = null;
 
-			assertThatThrownBy(() -> new BlockDetails(blockInfo))
+			assertThatThrownBy(() -> new BlockDetails(blockInfo, null))
+					.isInstanceOf(NullPointerException.class);
+		}
+
+		@Test
+		void contentNull() {
+			final TestBlock block = TestBlock.SPORER_PROJECT_BLOCKERS_FIRST;
+			final var blockInfo = block.info();
+
+			assertThatThrownBy(() -> new BlockDetails(blockInfo, null))
 					.isInstanceOf(NullPointerException.class);
 		}
 	}

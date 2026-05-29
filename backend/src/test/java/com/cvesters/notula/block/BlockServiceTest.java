@@ -14,6 +14,7 @@ import static org.mockito.Mockito.when;
 
 import java.util.Collections;
 import java.util.List;
+import java.util.Optional;
 
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -22,13 +23,18 @@ import org.mockito.InOrder;
 import com.cvesters.notula.block.bdo.BlockAction;
 import com.cvesters.notula.block.bdo.BlockInfo;
 import com.cvesters.notula.common.domain.Principal;
+import com.cvesters.notula.common.exception.MissingEntityException;
 import com.cvesters.notula.meeting.TestMeeting;
 import com.cvesters.notula.organisation.TestOrganisation;
 import com.cvesters.notula.session.TestSession;
 import com.cvesters.notula.topic.TestTopic;
 import com.cvesters.notula.topic.TopicService;
+import com.cvesters.notula.topic.bdo.TopicInfo;
 
 class BlockServiceTest {
+
+	private static final TestSession SESSION = TestSession.EDUARDO_CHRISTIANSEN_SPORER;
+	private static final Principal PRINCIPAL = SESSION.principal();
 
 	private final TopicService topicService = mock();
 
@@ -39,10 +45,59 @@ class BlockServiceTest {
 			blockStorageGateway, blockPublisher);
 
 	@Nested
-	class Create {
+	class GetById {
 
-		private static final TestSession SESSION = TestSession.EDUARDO_CHRISTIANSEN_SPORER;
-		private static final Principal PRINCIPAL = SESSION.principal();
+		private static final TestBlock BLOCK = TestBlock.SPORER_PROJECT_BLOCKERS_FIRST;
+		private static final TestTopic TOPIC = BLOCK.getTopic();
+		private static final TestMeeting MEETING = TOPIC.getMeeting();
+
+		@Test
+		void success() {
+			final TopicInfo topicInfo = TOPIC.info();
+			when(topicService.getById(PRINCIPAL, MEETING.getId(),
+					TOPIC.getId())).thenReturn(topicInfo);
+
+			final BlockInfo blockInfo = BLOCK.info();
+			when(blockStorageGateway.find(TOPIC.getId(), BLOCK.getId()))
+					.thenReturn(Optional.of(blockInfo));
+
+			final BlockInfo result = blockService.getById(PRINCIPAL,
+					MEETING.getId(), TOPIC.getId(), BLOCK.getId());
+
+			assertThat(result).isEqualTo(blockInfo);
+		}
+
+		@Test
+		void notFound() {
+			final TopicInfo topicInfo = TOPIC.info();
+			when(topicService.getById(PRINCIPAL, MEETING.getId(),
+					TOPIC.getId())).thenReturn(topicInfo);
+
+			when(blockStorageGateway.find(TOPIC.getId(), BLOCK.getId()))
+					.thenReturn(Optional.empty());
+
+			final long meetingId = MEETING.getId();
+			final long topicId = TOPIC.getId();
+			final long blockId = BLOCK.getId();
+
+			assertThatThrownBy(() -> blockService.getById(PRINCIPAL, meetingId,
+					topicId, blockId))
+							.isInstanceOf(MissingEntityException.class);
+		}
+
+		@Test
+		void principalNull() {
+			final long meetingId = MEETING.getId();
+			final long topicId = TOPIC.getId();
+			final long blockId = BLOCK.getId();
+
+			assertThatThrownBy(() -> blockService.getById(null, meetingId,
+					topicId, blockId)).isInstanceOf(NullPointerException.class);
+		}
+	}
+
+	@Nested
+	class Create {
 
 		private static final TestBlock BLOCK = TestBlock.SPORER_PROJECT_BLOCKERS_FIRST;
 		private static final TestTopic TOPIC = BLOCK.getTopic();

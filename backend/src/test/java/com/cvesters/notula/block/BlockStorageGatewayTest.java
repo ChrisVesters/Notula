@@ -70,6 +70,37 @@ class BlockStorageGatewayTest {
 	}
 
 	@Nested
+	class FindById {
+
+		private static final TestBlock BLOCK = TestBlock.SPORER_PROJECT_BLOCKERS_FIRST;
+		private static final TestTopic TOPIC = BLOCK.getTopic();
+
+		@Test
+		void success() {
+			final BlockDao dao = mock();
+			final BlockInfo bdo = mock();
+			when(dao.toBdo()).thenReturn(bdo);
+
+			when(blockRepository.findByTopicIdAndId(TOPIC.getId(),
+					BLOCK.getId())).thenReturn(Optional.of(dao));
+
+			final Optional<BlockInfo> result = gateway.find(TOPIC.getId(),
+					BLOCK.getId());
+
+			assertThat(result).contains(bdo);
+		}
+
+		@Test
+		void notFound() {
+			when(blockRepository.findByTopicIdAndId(TOPIC.getId(),
+					BLOCK.getId())).thenReturn(Optional.empty());
+
+			assertThat(gateway.find(TOPIC.getId(), BLOCK.getId())).isEmpty();
+		}
+
+	}
+
+	@Nested
 	class FindAllByTopicId {
 
 		private static final long TOPIC_ID = 1L;
@@ -173,8 +204,7 @@ class BlockStorageGatewayTest {
 				updatedBdos.add(updatedBdo);
 			}
 
-			when(blockRepository.saveAll(foundDaos))
-					.thenReturn(updatedDaos);
+			when(blockRepository.saveAll(foundDaos)).thenReturn(updatedDaos);
 
 			final var result = gateway.updateAll(updateBdos);
 

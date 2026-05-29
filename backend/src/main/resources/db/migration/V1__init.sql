@@ -84,3 +84,12 @@ CREATE TABLE blocks(
 
 CREATE INDEX ON blocks(organisation_id);
 CREATE INDEX ON blocks(topic_id);
+
+
+CREATE TABLE text_blocks(
+	block_id BIGINT NOT NULL,
+	content TEXT NOT NULL,
+
+	PRIMARY KEY(block_id),
+	FOREIGN KEY(block_id) REFERENCES blocks(id) ON DELETE CASCADE
+);
