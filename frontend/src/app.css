@@ -1,3 +1,8 @@
+:root {
+	--title-font: "Noto Serif bold", serif;
+	--body-font: "Noto Sans", sans-serif;
+}
+
 .landing-flex {
 	display: flex;
 	min-height: 80vh;
@@ -73,7 +78,7 @@ h1 {
 }
 
 .h1 {
-	font-family: "Noto Serif bold", serif;
+	font-family: var(--title-font);
 	font-size: 2rem;
 	font-weight: 700;
 }
@@ -86,7 +91,7 @@ h2 {
 }
 
 .h2 {
-	font-family: "Noto Serif bold", serif;
+	font-family: var(--title-font);
 	font-size: 1.5rem;
 	font-weight: 600;
 }
@@ -192,4 +197,14 @@ button.primary:hover {
 
 .card-title {
 	margin-top: 0rem;
+}
+
+.text-block {
+	font: var(--body-font);
+
+	border: none;
+	overflow: auto;
+    outline: none;
+	box-shadow: none;
+	resize: none;
 }

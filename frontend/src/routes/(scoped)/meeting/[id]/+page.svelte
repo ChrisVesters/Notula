@@ -5,7 +5,8 @@
 	import { t } from "$lib/assets/translations";
 
 	import IconPlus from "$lib/assets/icons/IconPlus.svelte";
-	import { BlockType, type BlockMutation } from "$lib/block/BlockTypes";
+	import type { BlockMutation } from "$lib/block/BlockTypes";
+	import { BlockType } from "$lib/block/BlockTypes";
 	import BlockWebSocketClient from "$lib/block/BlockWebSocketClient";
 	import Loading from "$lib/common/Loading.svelte";
 	import type {
@@ -16,14 +17,15 @@
 	import Input from "$lib/editor/Input.svelte";
 	import FeedbackButton from "$lib/form/FeedbackButton.svelte";
 	import MeetingInfoView from "$lib/meeting/MeetingInfoView.svelte";
-	import type { MeetingEvent, MeetingMessage } from "$lib/meeting/MeetingTypes";
+	import type { MeetingMessage } from "$lib/meeting/MeetingTypes";
 	import MeetingWebSocketClient from "$lib/meeting/MeetingWebSocketClient";
+	import TopicAgendaView from "$lib/topic/TopicAgendaView.svelte";
 	import type {
 		TopicMutation,
 		TopicUpdateNameAction
 	} from "$lib/topic/TopicTypes";
 	import TopicWebSocketClient from "$lib/topic/TopicWebSocketClient";
-	import TopicAgendaView from "$lib/topic/TopicAgendaView.svelte";
+	import BlockView from "$lib/block/BlockView.svelte";
 
 	const id = $derived(Number(page.params.id));
 
@@ -68,12 +70,20 @@
 			if (mutation.action === "CREATE") {
 				const topic = meeting?.topics.find(t => t.id === event.topicId);
 				// TODO: what if topic does not exist? Out of sync?
-				if (topic) {
+				if (!topic) {
+					console.error("Topic does not exist");
+					return;
+				}
+
+				if (mutation.type === BlockType.TEXT) {
 					topic.blocks.push({
 						id: event.blockId,
 						type: mutation.type,
-						sequenceId: mutation.sequenceId
+						sequenceId: mutation.sequenceId,
+						content: ""
 					});
+				} else {
+					console.error("Unhandled block type:", mutation.type);
 				}
 			}
 		} else {
@@ -131,8 +141,8 @@
 			<!-- $: sortedItems = items
   .slice()
   .sort((a, b) => a.id - b.id); -->
-			{#each topic.blocks as block (block.id)}
-				<div>{block.type}</div>
+			{#each topic.blocks as block, index (block.id)}
+				<BlockView meetingId={id} topicId={topic.id} bind:block={topic.blocks[index]} />
 			{/each}
 		{/each}
 	{:else}

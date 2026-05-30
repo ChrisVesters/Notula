@@ -1,4 +1,4 @@
-import type { BlockType } from "$lib/block/BlockTypes";
+import { BlockType } from "$lib/block/BlockTypes";
 
 export type MeetingDetails = {
 	id: number;
@@ -16,6 +16,13 @@ export type TopicDetails = {
 
 export type BlockDetails = {
 	id: number;
-	type: BlockType;
 	sequenceId: number;
+} & BlockContent;
+
+export type BlockContent = TextBlockContent;
+
+export type TextBlockContent = {
+	type: typeof BlockType.TEXT;
+	content: string;
 };
+
