@@ -3,6 +3,7 @@ import { BlockType } from "$lib/block/BlockTypes";
 export type MeetingDetails = {
 	id: number;
 	name: string;
+	description: string;
 
 	topics: Array<TopicDetails>;
 };

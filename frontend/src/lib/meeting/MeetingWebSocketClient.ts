@@ -3,6 +3,7 @@ import WebSocketClient from "$lib/common/WebSocketClient";
 import type { MeetingDetails } from "$lib/details/DetailTypes";
 import type {
 	MeetingMessage,
+	MeetingUpdateDescriptionAction,
 	MeetingUpdateNameAction
 } from "./MeetingTypes";
 
@@ -36,9 +37,19 @@ export default class MeetingWebSocketClient {
 		client.unsubscribe("/user/queue/errors");
 	}
 
+	// TODO: merge together with updateDescription
 	public static updateName(
 		id: number,
 		action: MeetingUpdateNameAction
+	): void {
+		const client: WebSocketClient = Session.getWebSocketClient();
+
+		client.send(`/app/meetings/${id}`, JSON.stringify(action));
+	}
+
+	public static updateDescription(
+		id: number,
+		action: MeetingUpdateDescriptionAction
 	): void {
 		const client: WebSocketClient = Session.getWebSocketClient();
 
