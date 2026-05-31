@@ -59,7 +59,7 @@ class BaseControllerTest {
 			final Object principal = mock();
 			when(authentication.getPrincipal()).thenReturn(principal);
 
-			assertThatThrownBy(() -> controller.getPrincipal())
+			assertThatThrownBy(controller::getPrincipal)
 					.isInstanceOf(IllegalStateException.class)
 					.hasMessageContaining(
 							"Unsupported Authentication principal type");
@@ -69,7 +69,7 @@ class BaseControllerTest {
 		void authenticationNull() {
 			when(securityContext.getAuthentication()).thenReturn(null);
 
-			assertThatThrownBy(() -> controller.getPrincipal())
+			assertThatThrownBy(controller::getPrincipal)
 					.isInstanceOf(IllegalStateException.class)
 					.hasMessageContaining("User not authenticated");
 		}
@@ -108,7 +108,7 @@ class BaseControllerTest {
 		void success() {
 			final var uri = controller.getLocation("/{id}", 42);
 
-			assertThat(uri.toString()).isEqualTo(BASE_URL + "/42");
+			assertThat(uri).hasToString(BASE_URL + "/42");
 		}
 
 		@Test
@@ -119,8 +119,10 @@ class BaseControllerTest {
 
 		@Test
 		void uriVariablesNull() {
-			assertThatThrownBy(() -> controller.getLocation("/{id}}", null))
-					.isInstanceOf(NullPointerException.class);
+			final String uriVariables = null;
+			assertThatThrownBy(
+					() -> controller.getLocation("/{id}}", uriVariables))
+							.isInstanceOf(NullPointerException.class);
 		}
 
 		@Test
@@ -133,7 +135,7 @@ class BaseControllerTest {
 		void uriVariablesTooMany() {
 			final var uri = controller.getLocation("/{id}", 42, 7);
 
-			assertThat(uri.toString()).isEqualTo(BASE_URL + "/42");
+			assertThat(uri).hasToString(BASE_URL + "/42");
 		}
 	}
 }

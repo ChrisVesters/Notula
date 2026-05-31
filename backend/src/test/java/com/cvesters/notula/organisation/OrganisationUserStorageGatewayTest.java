@@ -40,7 +40,7 @@ class OrganisationUserStorageGatewayTest {
 
 			final var daos = new ArrayList<OrganisationUserDao>();
 			final var bdos = new ArrayList<OrganisationUserInfo>();
-			for (final TestOrganisationUser user : found) {
+			for (final var _ : found) {
 				final OrganisationUserDao dao = mock();
 				final OrganisationUserInfo bdo = mock();
 				when(dao.toBdo()).thenReturn(bdo);
@@ -67,7 +67,7 @@ class OrganisationUserStorageGatewayTest {
 
 			final var daos = new ArrayList<OrganisationUserDao>();
 			final var bdos = new ArrayList<OrganisationUserInfo>();
-			for (final TestOrganisationUser user : found) {
+			for (final var _ : found) {
 				final OrganisationUserDao dao = mock();
 				final OrganisationUserInfo bdo = mock();
 				when(dao.toBdo()).thenReturn(bdo);
