@@ -35,6 +35,8 @@ class MeetingDetailsTest {
 
 			assertThat(details.getId()).isEqualTo(MEETING.getId());
 			assertThat(details.getName()).isEqualTo(MEETING.getName());
+			assertThat(details.getDescription())
+					.isEqualTo(MEETING.getDescription());
 			assertThat(details.getTopics()).isEqualTo(topicsDetails);
 		}
 

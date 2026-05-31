@@ -25,28 +25,49 @@ public class MeetingInfoTest {
 			final var result = new MeetingInfo(ORGANISATION.getId(),
 					MEETING.getName());
 
-			assertThatThrownBy(() -> result.getId())
+			assertThatThrownBy(result::getId)
 					.isInstanceOf(IllegalStateException.class);
 			assertThat(result.getOrganisationId())
 					.isEqualTo(ORGANISATION.getId());
 			assertThat(result.getName()).isEqualTo(MEETING.getName());
+			assertThat(result.getDescription()).isEmpty();
 		}
 
 		@Test
 		void withId() {
 			final var result = new MeetingInfo(MEETING.getId(),
-					ORGANISATION.getId(), MEETING.getName());
+					ORGANISATION.getId(), MEETING.getName(),
+					MEETING.getDescription());
 
 			assertThat(result.getId()).isEqualTo(MEETING.getId());
 			assertThat(result.getOrganisationId())
 					.isEqualTo(ORGANISATION.getId());
 			assertThat(result.getName()).isEqualTo(MEETING.getName());
+			assertThat(result.getDescription())
+					.isEqualTo(MEETING.getDescription());
 		}
 
 		@Test
 		void nameNull() {
-			assertThatThrownBy(() -> new MeetingInfo(MEETING.getId(),
-					ORGANISATION.getId(), null))
+			final long meetingId = MEETING.getId();
+			final long organisationId = ORGANISATION.getId();
+			final String name = null;
+			final String description = MEETING.getDescription();
+
+			assertThatThrownBy(() -> new MeetingInfo(meetingId, organisationId,
+					name, description))
+							.isInstanceOf(NullPointerException.class);
+		}
+
+		@Test
+		void descriptionNull() {
+			final long meetingId = MEETING.getId();
+			final long organisationId = ORGANISATION.getId();
+			final String name = MEETING.getName();
+			final String description = null;
+
+			assertThatThrownBy(() -> new MeetingInfo(meetingId, organisationId,
+					name, description))
 							.isInstanceOf(NullPointerException.class);
 		}
 	}
@@ -68,6 +89,27 @@ public class MeetingInfoTest {
 		@Test
 		void nameNull() {
 			assertThatThrownBy(() -> info.setName(null))
+					.isInstanceOf(NullPointerException.class);
+		}
+	}
+
+	@Nested
+	class SetDescription {
+
+		private final MeetingInfo info = MEETING.info();
+
+		@ParameterizedTest
+		@ValueSource(strings = { "Upated", "!@#$%^&*(){}[]|\\:;\"'<>,.?/",
+				"Встреча: 你好 مرحبا" })
+		void success(final String description) {
+			info.setDescription(description);
+
+			assertThat(info.getDescription()).isEqualTo(description);
+		}
+
+		@Test
+		void descriptionNull() {
+			assertThatThrownBy(() -> info.setDescription(null))
 					.isInstanceOf(NullPointerException.class);
 		}
 	}

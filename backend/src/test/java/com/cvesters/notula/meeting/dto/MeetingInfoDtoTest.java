@@ -24,6 +24,7 @@ class MeetingInfoDtoTest {
 
 			assertThat(dto.id()).isEqualTo(MEETING.getId());
 			assertThat(dto.name()).isEqualTo(MEETING.getName());
+			assertThat(dto.description()).isEqualTo(MEETING.getDescription());
 		}
 
 		@Test

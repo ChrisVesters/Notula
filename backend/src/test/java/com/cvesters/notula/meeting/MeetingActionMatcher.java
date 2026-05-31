@@ -22,6 +22,7 @@ public final class MeetingActionMatcher {
 		}
 	}
 
+	// TODO: Can be made more generic.
 	public static class UpdateName extends Matcher<MeetingAction.UpdateName> {
 
 		public UpdateName(final MeetingAction.UpdateName expected) {
@@ -29,6 +30,20 @@ public final class MeetingActionMatcher {
 		}
 
 		public void assertEquals(final MeetingAction.UpdateName actual) {
+			assertThat(actual.getPosition()).isEqualTo(expected.getPosition());
+			assertThat(actual.getLength()).isEqualTo(expected.getLength());
+			assertThat(actual.getValue()).isEqualTo(expected.getValue());
+		}
+	}
+
+	public static class UpdateDescription
+			extends Matcher<MeetingAction.UpdateDescription> {
+
+		public UpdateDescription(final MeetingAction.UpdateDescription expected) {
+			super(expected, MeetingAction.UpdateDescription.class);
+		}
+
+		public void assertEquals(final MeetingAction.UpdateDescription actual) {
 			assertThat(actual.getPosition()).isEqualTo(expected.getPosition());
 			assertThat(actual.getLength()).isEqualTo(expected.getLength());
 			assertThat(actual.getValue()).isEqualTo(expected.getValue());
