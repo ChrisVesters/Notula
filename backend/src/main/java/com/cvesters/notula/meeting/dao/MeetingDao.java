@@ -31,22 +31,27 @@ public class MeetingDao {
 	@Column(nullable = false)
 	private String name;
 
+	@Column(nullable = false)
+	private String description;
+
 	public MeetingDao(final MeetingInfo bdo) {
 		Objects.requireNonNull(bdo);
 
 		this.organisationId = bdo.getOrganisationId();
 		this.name = bdo.getName();
+		this.description = bdo.getDescription();
 	}
 
 	public void update(final MeetingInfo bdo) {
 		Objects.requireNonNull(bdo);
 
 		this.name = bdo.getName();
+		this.description = bdo.getDescription();
 	}
 
 	public MeetingInfo toBdo() {
 		Validate.validState(id != null);
 
-		return new MeetingInfo(id, organisationId, name);
+		return new MeetingInfo(id, organisationId, name, description);
 	}
 }

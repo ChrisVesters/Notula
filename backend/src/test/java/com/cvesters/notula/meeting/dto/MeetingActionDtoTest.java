@@ -39,4 +39,21 @@ class MeetingActionDtoTest {
 		}
 	}
 
+	@Nested
+	class UpdateDescription {
+
+		@Test
+		void toBdo() {
+			final var dto = new MeetingActionDto.Update.Description(10, 3,
+					"New description");
+			final MeetingAction.Update bdo = dto.toBdo();
+
+			final var expected = new MeetingAction.UpdateDescription(10, 3,
+					"New description");
+			final var matcher = new MeetingActionMatcher.UpdateDescription(
+					expected);
+			assertThat(bdo).is(matcher.equal());
+		}
+	}
+
 }

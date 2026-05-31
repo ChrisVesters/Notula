@@ -12,6 +12,7 @@ public class MeetingDetailsDto {
 
 	private final long id;
 	private final String name;
+	private final String description;
 
 	private final List<TopicDetailsDto> topics;
 
@@ -20,6 +21,7 @@ public class MeetingDetailsDto {
 
 		this.id = details.getId();
 		this.name = details.getName();
+		this.description = details.getDescription();
 		this.topics = details.getTopics()
 				.stream()
 				.map(TopicDetailsDto::new)

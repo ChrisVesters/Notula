@@ -35,4 +35,15 @@ public sealed interface MeetingAction {
 		}
 	}
 
+	@Getter
+	final class UpdateDescription extends TextUpdate<MeetingInfo>
+			implements MeetingAction.Update {
+
+		public UpdateDescription(final int position, final int length,
+				final String value) {
+			super(MeetingInfo::getDescription, MeetingInfo::setDescription,
+					position, length, value);
+		}
+	}
+
 }
