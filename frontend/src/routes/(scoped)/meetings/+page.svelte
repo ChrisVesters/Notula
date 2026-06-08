@@ -18,10 +18,10 @@
 		meetings = await MeetingClient.getAll();
 	});
 
-	function addMeeting(): Promise<void> {
+	const addMeeting = (): Promise<void> => {
 		return MeetingClient.create({ name: "" })
 			.then(meeting => {
-				goto(`/meeting/${meeting.id}`);
+				goto(`/meetings/${meeting.id}`);
 			})
 			.catch(error => {
 				// TODO: better error handling
@@ -30,23 +30,21 @@
 	}
 </script>
 
-<main class="container">
-	<h1>{$t("common.dashboard")}</h1>
+<h1>{$t("common.meetings")}</h1>
 
-	<FeedbackButton className="primary" onClick={addMeeting}>
-		<span class="label">
-			<IconPlus />
-			{$t("common.add")}
-		</span>
-	</FeedbackButton>
+<FeedbackButton className="primary" onClick={addMeeting}>
+	<span class="label">
+		<IconPlus />
+		{$t("common.add")}
+	</span>
+</FeedbackButton>
 
-	<ul>
-		{#each meetings as meeting}
-			<li>
-				<a href={`/meeting/${meeting.id}`}>
-					{trim(meeting.name, $t("common.untitled"))}
-				</a>
-			</li>
-		{/each}
-	</ul>
-</main>
+<ul>
+	{#each meetings as meeting}
+		<li>
+			<a href={`/meetings/${meeting.id}`}>
+				{trim(meeting.name, $t("common.untitled"))}
+			</a>
+		</li>
+	{/each}
+</ul>

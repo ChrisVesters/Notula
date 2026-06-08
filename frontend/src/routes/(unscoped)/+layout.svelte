@@ -7,5 +7,7 @@
 </script>
 
 <ProtectedRoute visiblity={Visibility.UNSCOPED}>
-	{@render children?.()}
+	<main class="container">
+		{@render children?.()}
+	</main>
 </ProtectedRoute>

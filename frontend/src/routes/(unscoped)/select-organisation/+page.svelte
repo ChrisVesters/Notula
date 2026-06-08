@@ -53,29 +53,27 @@
 	}
 </script>
 
-<main class="container">
-	<section class="card">
-		<h2 class="card-title">{$t("common.selectOrganisation")}</h2>
-		{#each organisations as organisation}
-			<button onclick={() => selectOrganisation(organisation.id)}>
-				{organisation.name}
-			</button>
-		{/each}
+<section class="card">
+	<h2 class="card-title">{$t("common.selectOrganisation")}</h2>
+	{#each organisations as organisation}
+		<button onclick={() => selectOrganisation(organisation.id)}>
+			{organisation.name}
+		</button>
+	{/each}
 
-		<h2 class="card-title">{$t("common.createOrganisation")}</h2>
-		<form novalidate onsubmit={createOrganisation}>
-			<TextField
-				bind:value={name}
-				label={$t("common.name")}
-				id="name"
-				type="text"
-				required
-				error={nameError}
-				autocomplete="organization"
-			/>
-			<button class="primary full-width" type="submit">
-				{$t("common.create")}
-			</button>
-		</form>
-	</section>
-</main>
+	<h2 class="card-title">{$t("common.createOrganisation")}</h2>
+	<form novalidate onsubmit={createOrganisation}>
+		<TextField
+			bind:value={name}
+			label={$t("common.name")}
+			id="name"
+			type="text"
+			required
+			error={nameError}
+			autocomplete="organization"
+		/>
+		<button class="primary full-width" type="submit">
+			{$t("common.create")}
+		</button>
+	</form>
+</section>
