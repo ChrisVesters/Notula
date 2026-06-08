@@ -47,46 +47,44 @@
 	}
 </script>
 
-<main class="landing-flex">
-	<section class="landing-left">
-		<h1>{$t("common.createAccountMessage")}</h1>
-		<p class="subtitle">{$t("common.startTodayMessage")}</p>
-	</section>
-	<section class="landing-right card">
-		<h2 class="card-title">{$t("common.register")}</h2>
+<section class="landing-left">
+	<h1>{$t("common.createAccountMessage")}</h1>
+	<p class="subtitle">{$t("common.startTodayMessage")}</p>
+</section>
+<section class="landing-right card">
+	<h2 class="card-title">{$t("common.register")}</h2>
 
-		<form novalidate onsubmit={register}>
-			<TextField
-				bind:value={email}
-				label={$t("common.email")}
-				id="email"
-				type="email"
-				required
-				autocomplete="username"
-				error={emailError}
-			/>
-			<PasswordField
-				bind:value={password}
-				label={$t("common.password")}
-				id="password"
-				error={passwordError}
-				autocomplete="new-password"
-			/>
-			<PasswordField
-				bind:value={repeatPassword}
-				label="Repeat Password"
-				id="repeat-password"
-				error={repeatPasswordError}
-				autocomplete="new-password"
-			/>
-			<button class="primary full-width" type="submit">
-				{$t("common.register")}
-			</button>
-		</form>
+	<form novalidate onsubmit={register}>
+		<TextField
+			bind:value={email}
+			label={$t("common.email")}
+			id="email"
+			type="email"
+			required
+			autocomplete="username"
+			error={emailError}
+		/>
+		<PasswordField
+			bind:value={password}
+			label={$t("common.password")}
+			id="password"
+			error={passwordError}
+			autocomplete="new-password"
+		/>
+		<PasswordField
+			bind:value={repeatPassword}
+			label="Repeat Password"
+			id="repeat-password"
+			error={repeatPasswordError}
+			autocomplete="new-password"
+		/>
+		<button class="btn primary full-width" type="submit">
+			{$t("common.register")}
+		</button>
+	</form>
 
-		<div class="register-link">
-			<span>{$t("common.alreadyAccountMessage")}</span>
-			<a href="/">{$t("common.login")}</a>
-		</div>
-	</section>
-</main>
+	<div class="register-link">
+		<span>{$t("common.alreadyAccountMessage")}</span>
+		<a href="/">{$t("common.login")}</a>
+	</div>
+</section>

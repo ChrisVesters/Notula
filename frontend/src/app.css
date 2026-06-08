@@ -3,6 +3,93 @@
 	--body-font: "Noto Sans", sans-serif;
 }
 
+html {
+	--color-primary-50: #f5f3ff;
+	--color-primary-100: #ede9fe;
+	--color-primary-200: #ddd6fe;
+	--color-primary-300: #c4b5fd;
+	--color-primary-400: #a78bfa;
+	--color-primary-500: #8b5cf6;
+	--color-primary-600: #7c3aed;
+	--color-primary-700: #6d28d9;
+	--color-primary-800: #5b21b6;
+	--color-primary-900: #4c1d95;
+
+	--color-secondary-400: #d8b4fe;
+	--color-secondary-500: #c084fc;
+	--color-secondary-600: #a855f7;
+	--color-secondary-700: #9333ea;
+
+	--color-background: #f8fafc;
+	--color-surface: #ffffff;
+	--color-surface-elevated: #f8f7fd;
+
+	--color-border: #e5e7eb;
+	--color-divider: #e5e7eb;
+
+	--color-text-primary: #111827;
+	--color-text-secondary: #6b7280;
+	--color-text-muted: #9ca3af;
+
+	--color-success: #10b981;
+	--color-warning: #f59e0b;
+	--color-error: #ef4444;
+	--color-info: #3b82f6;
+}
+
+html[data-theme="dark"] {
+	--color-primary-50: #1e1b4b;
+	--color-primary-100: #2e1065;
+	--color-primary-200: #4c1d95;
+	--color-primary-300: #5b21b6;
+	--color-primary-400: #6d28d9;
+	--color-primary-500: #7c3aed;
+	--color-primary-600: #8b5cf6;
+	--color-primary-700: #a78bfa;
+	--color-primary-800: #c4b5fd;
+	--color-primary-900: #ddd6fe;
+
+	--color-secondary-400: #7e22ce;
+	--color-secondary-500: #9333ea;
+	--color-secondary-600: #a855f7;
+	--color-secondary-700: #c084fc;
+
+	--color-background: #0b0b0d;
+	--color-surface: #141417;
+	--color-surface-elevated: #1a1a1d;
+
+	--color-border: #2a2a31;
+	--color-divider: #27272a;
+
+	--color-text-primary: #fafafa;
+	--color-text-secondary: #a1a1aa;
+	--color-text-muted: #71717a;
+
+	--color-success: #34d399;
+	--color-warning: #fbbf24;
+	--color-error: #f87171;
+	--color-info: #60a5fa;
+}
+
+body {
+	margin: 0;
+	padding: 0;
+
+	background: var(--color-background);
+	color: var(--color-text-primary);
+	font-family: var(--body-font);
+}
+
+.app {
+	display: flex;
+	gap: 2rem;
+	min-height: 100vh;
+}
+
+main {
+	flex: 1;
+}
+
 .landing-flex {
 	display: flex;
 	min-height: 80vh;
@@ -32,7 +119,7 @@
 }
 
 .subtitle {
-	color: #666;
+	color: var(--color-text-secondary);
 	margin-bottom: 2rem;
 }
 
@@ -46,15 +133,14 @@
 	margin-top: 1.2rem;
 	text-align: center;
 	font-size: 1rem;
-	color: #444;
+	color: var(--color-text-secondary);
 	display: flex;
 	flex-direction: column;
 	gap: 0.2rem;
 }
 
 .error-message {
-	color: #d32f2f;
-	font-size: 0.98rem;
+	color: var(--color-error);
 	margin-top: 0.2rem;
 	margin-bottom: 0.2rem;
 }
@@ -73,27 +159,30 @@
 	}
 }
 
-h1 {
-	text-transform: capitalize;
-}
-
+h1,
 .h1 {
 	font-family: var(--title-font);
 	font-size: 2rem;
 	font-weight: 700;
+	margin-left: 0rem;
+	margin-top: 1.5rem;
+	margin-right: 0rem;
+	margin-bottom: 1rem;
 }
 
-h2 {
-	text-transform: capitalize;
-	margin-bottom: 0.5rem;
-	font-size: 1.5rem;
-	color: #2d7ff9;
-}
 
+h2,
 .h2 {
 	font-family: var(--title-font);
 	font-size: 1.5rem;
 	font-weight: 600;
+	margin-bottom: 0.5rem;
+}
+
+h1,
+h2 {
+	text-transform: capitalize;
+	color: var(--color-primary-700);
 }
 
 form {
@@ -106,43 +195,17 @@ form {
 form label {
 	text-transform: capitalize;
 	font-weight: 500;
-	color: #333;
 }
 
 a {
-	color: #2d7ff9;
+	color: var(--color-primary-500);
 	text-decoration: underline;
 	font-weight: 500;
 	transition: color 0.2s;
 }
 
 a:hover {
-	color: #1a5fcc;
-}
-
-/* TODO: move to class, since menuItems are also buttons! */
-button {
-	text-transform: capitalize;
-	text-decoration: none;
-	padding: 0.75rem 2.5rem;
-	border-radius: 6px;
-	font-size: 1rem;
-	font-weight: 600;
-	transition:
-		background 0.2s,
-		color 0.2s;
-	box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
-	cursor: pointer;
-}
-
-button.primary {
-	background: #2d7ff9;
-	color: #fff;
-	border: none;
-}
-
-button.primary:hover {
-	background: #1a5fcc;
+	color: var(--color-primary-700);
 }
 
 .btn {
@@ -160,13 +223,13 @@ button.primary:hover {
 }
 
 .btn.primary {
-	background: #2d7ff9;
-	color: #fff;
+	background: var(--color-primary-500);
+	color: var(--color-surface);
 	border: none;
 }
 
 .btn.primary:hover {
-	background: #1a5fcc;
+	background: var(--color-primary-700);
 }
 
 .btn .label {
@@ -180,12 +243,11 @@ button.primary:hover {
 
 .container {
 	max-width: 720px;
-	margin: 2rem auto;
-	padding: 1rem;
+	margin: 0rem auto;
 }
 
 .card {
-	background: #fff;
+	background: var(--color-surface);
 	padding: 2rem;
 	border-radius: 10px;
 	box-shadow: 0 2px 16px rgba(0, 0, 0, 0.07);
@@ -204,7 +266,119 @@ button.primary:hover {
 
 	border: none;
 	overflow: auto;
-    outline: none;
+	outline: none;
 	box-shadow: none;
 	resize: none;
+}
+
+.sidebar {
+	background-color: var(--color-primary-100);
+	color: var(--color-primary-600);
+	transition: width 0.3s ease;
+	flex-shrink: 0;
+}
+
+.sidebar.open {
+	width: 12rem;
+}
+
+.sidebar.closed {
+	width: 3rem;
+}
+
+.sidebar-nav {
+	display: flex;
+	flex-direction: column;
+	height: 100%;
+}
+
+.sidebar-header {
+	padding: 0.5rem 1rem;
+	border-bottom: 1px solid var(--color-primary-600);
+	display: flex;
+	align-items: center;
+}
+
+.sidebar-header h1 {
+	margin: 0;
+	font-size: 1.5rem;
+	font-weight: 700;
+	white-space: nowrap;
+	opacity: 1;
+	transition: opacity 0.3s ease;
+	overflow: hidden;
+}
+
+.sidebar.closed .sidebar-header h1 {
+	opacity: 0;
+	width: 0;
+	flex: 0;
+}
+
+.toggle-btn {
+	background: none;
+	border: none;
+	color: currentColor;
+	font-size: 1.5rem;
+	cursor: pointer;
+	padding: 0rem;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	transition: color 0.3s ease;
+	flex-shrink: 0;
+}
+
+.nav-menu {
+	list-style: none;
+	margin: 0;
+	padding: 0.5rem 0;
+	flex: 1;
+	display: flex;
+	flex-direction: column;
+}
+
+.nav-link {
+	display: flex;
+	align-items: center;
+	padding: 0.5rem 1rem;
+	color: var(--color-primary-600);
+	text-decoration: none;
+	transition: background-color 0.3s ease, padding-left 0.3s ease;
+}
+
+.sidebar.open .sidebar-header {
+	gap: 0.75rem;
+}
+
+.sidebar.open .nav-link {
+	gap: 0.75rem;
+}
+
+.nav-link:hover {
+	background-color: var(--color-primary-200);
+}
+
+.nav-link.active {
+	background-color: var(--color-primary-300);
+	color: var(--color-primary-700);
+	font-weight: 600;
+}
+
+.nav-icon {
+	flex-shrink: 0;
+}
+
+.nav-link span {
+	flex: 1;
+	text-align: left;
+	white-space: nowrap;
+	opacity: 1;
+	overflow: hidden;
+}
+
+.sidebar.closed .nav-link span {
+	opacity: 0;
+	width: 0;
+	flex: 0;
 }

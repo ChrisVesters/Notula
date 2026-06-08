@@ -41,39 +41,37 @@
 	}
 </script>
 
-<main class="landing-flex">
-	<section class="landing-left">
-		<h1>{$t("common.welcomeMessage")}</h1>
-		<p class="subtitle">{$t("common.effectiveMeetingsMessage")}</p>
-	</section>
-	<section class="landing-right card">
-		<h2 class="card-title">{$t("common.login")}</h2>
+<section class="landing-left">
+	<h1>{$t("common.welcomeMessage")}</h1>
+	<p class="subtitle">{$t("common.effectiveMeetingsMessage")}</p>
+</section>
+<section class="landing-right card">
+	<h2 class="card-title">{$t("common.login")}</h2>
 
-		<form novalidate onsubmit={login}>
-			<TextField
-				bind:value={email}
-				label={$t("common.email")}
-				id="email"
-				type="email"
-				required={true}
-				autocomplete="username"
-				error={emailError}
-			/>
-			<PasswordField
-				bind:value={password}
-				label={$t("common.password")}
-				id="password"
-				autocomplete="current-password"
-				error={passwordError}
-			/>
-			<button type="submit" class="btn primary" style="width:100%">
-				{$t("common.login")}
-			</button>
-		</form>
+	<form novalidate onsubmit={login}>
+		<TextField
+			bind:value={email}
+			label={$t("common.email")}
+			id="email"
+			type="email"
+			required={true}
+			autocomplete="username"
+			error={emailError}
+		/>
+		<PasswordField
+			bind:value={password}
+			label={$t("common.password")}
+			id="password"
+			autocomplete="current-password"
+			error={passwordError}
+		/>
+		<button type="submit" class="btn primary" style="width:100%">
+			{$t("common.login")}
+		</button>
+	</form>
 
-		<div class="register-link">
-			<span>{$t("common.noAccountMessage")}</span>
-			<a href="/register">{$t("common.register")}</a>
-		</div>
-	</section>
-</main>
+	<div class="register-link">
+		<span>{$t("common.noAccountMessage")}</span>
+		<a href="/register">{$t("common.register")}</a>
+	</div>
+</section>

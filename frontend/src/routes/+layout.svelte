@@ -19,6 +19,8 @@
 	<link rel="icon" href={favicon} />
 </svelte:head>
 
-{#if loaded}
-	{@render children?.()}
-{/if}
+<div class="app">
+	{#if loaded}
+		{@render children?.()}
+	{/if}
+</div>

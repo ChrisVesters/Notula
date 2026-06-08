@@ -116,36 +116,38 @@
 	}
 </script>
 
-<main class="container">
-	{#if meeting}
-		<MeetingInfoView bind:meeting />
+{#if meeting}
+	<MeetingInfoView bind:meeting />
 
-		<TopicAgendaView meetingId={meeting.id} bind:topics={meeting.topics} />
+	<TopicAgendaView meetingId={meeting.id} bind:topics={meeting.topics} />
 
-		<h2>{$t("common.notes")}</h2>
-		{#each meeting.topics as topic (topic.id)}
-			<Input
-				className="h2"
-				bind:value={topic.name}
-				placeholder={$t("common.untitled")}
-				onAction={action => handleUpdateTopicName(topic.id, action)}
-			/>
-			<FeedbackButton className="primary" onClick={() => addBlock(topic)}>
-				<span class="label">
-					<IconPlus />
-					{$t("common.addObject", { object: $t("common.note") })}
-				</span>
-			</FeedbackButton>
+	<h2>{$t("common.notes")}</h2>
+	{#each meeting.topics as topic (topic.id)}
+		<Input
+			className="h2"
+			bind:value={topic.name}
+			placeholder={$t("common.untitled")}
+			onAction={action => handleUpdateTopicName(topic.id, action)}
+		/>
+		<FeedbackButton className="primary" onClick={() => addBlock(topic)}>
+			<span class="label">
+				<IconPlus />
+				{$t("common.addObject", { object: $t("common.note") })}
+			</span>
+		</FeedbackButton>
 
-			<!-- TODO: Sort -->
-			<!-- $: sortedItems = items
+		<!-- TODO: Sort -->
+		<!-- $: sortedItems = items
   .slice()
   .sort((a, b) => a.id - b.id); -->
-			{#each topic.blocks as block, index (block.id)}
-				<BlockView meetingId={id} topicId={topic.id} bind:block={topic.blocks[index]} />
-			{/each}
+		{#each topic.blocks as block, index (block.id)}
+			<BlockView
+				meetingId={id}
+				topicId={topic.id}
+				bind:block={topic.blocks[index]}
+			/>
 		{/each}
-	{:else}
-		<Loading />
-	{/if}
-</main>
+	{/each}
+{:else}
+	<Loading />
+{/if}

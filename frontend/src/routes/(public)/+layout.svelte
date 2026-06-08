@@ -7,5 +7,7 @@
 </script>
 
 <ProtectedRoute visiblity={Visibility.PUBLIC}>
-	{@render children?.()}
+	<main class="landing-flex">
+		{@render children?.()}
+	</main>
 </ProtectedRoute>
