@@ -119,10 +119,17 @@ class BaseControllerTest {
 
 		@Test
 		void uriVariablesNull() {
+			assertThatThrownBy(
+					() -> controller.getLocation("/{id}}", (Object[]) null))
+							.isInstanceOf(NullPointerException.class);
+		}
+
+		@Test
+		void uriVariablesAnyNull() {
 			final String uriVariables = null;
 			assertThatThrownBy(
 					() -> controller.getLocation("/{id}}", uriVariables))
-							.isInstanceOf(NullPointerException.class);
+							.isInstanceOf(IllegalArgumentException.class);
 		}
 
 		@Test
