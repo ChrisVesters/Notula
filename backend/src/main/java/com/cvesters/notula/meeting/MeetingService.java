@@ -67,4 +67,12 @@ public class MeetingService {
 
 		return updated;
 	}
+
+	public void delete(final Principal principal, final long id) {
+		final MeetingInfo meetingInfo = getById(principal, id);
+
+		meetingStorage.delete(meetingInfo);
+
+		// TODO: publish event?
+	}
 }

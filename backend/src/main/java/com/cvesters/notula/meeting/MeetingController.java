@@ -5,7 +5,9 @@ import java.util.List;
 import jakarta.validation.Valid;
 
 import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -50,6 +52,14 @@ public class MeetingController extends BaseController {
 		final var dto = new MeetingInfoDto(created);
 
 		return ResponseEntity.created(getLocation("/{id}", dto.id())).body(dto);
+	}
+
+	@DeleteMapping("/{id}")
+	public ResponseEntity<Void> delete(@PathVariable final long id) {
+		final Principal principal = getPrincipal();
+
+		meetingService.delete(principal, id);
+		return ResponseEntity.noContent().build();
 	}
 
 }
