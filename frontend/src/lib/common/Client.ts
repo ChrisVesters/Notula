@@ -31,6 +31,14 @@ export default abstract class Client {
 		return this.callAuthenticated(endpoint, this.putRequest(request));
 	}
 
+	public static del(endpoint: string): Promise<void> {
+		return this.call(endpoint, this.deleteRequest());
+	}
+
+	public static delAuthenticated(endpoint: string): Promise<void> {
+		return this.callAuthenticated(endpoint, this.deleteRequest());
+	}
+
 	private static getRequest(): RequestInit {
 		return {
 			method: "GET"
@@ -54,6 +62,12 @@ export default abstract class Client {
 				"Content-Type": "application/json"
 			},
 			body: JSON.stringify(request)
+		};
+	}
+
+	private static deleteRequest(): RequestInit {
+		return {
+			method: "DELETE"
 		};
 	}
 

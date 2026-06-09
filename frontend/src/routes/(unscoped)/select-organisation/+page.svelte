@@ -22,7 +22,7 @@
 		SessionClient.update(Session.getId(), { organisationId })
 			.then(session => {
 				Session.update(session);
-				goto("/dashboard");
+				goto("/meetings");
 			})
 			.catch(error => {
 				// TODO: better error handling
@@ -44,7 +44,7 @@
 			.then(organisation => {
 				// TODO: refresh token with created organisation.
 				// Then redirect to dashboard
-				goto("/dashboard");
+				goto("/meetings");
 			})
 			.catch(error => {
 				// TODO: better error handling:
@@ -53,10 +53,13 @@
 	}
 </script>
 
-<section class="card">
+<section class="card" style="margin-top: 2rem;">
 	<h2 class="card-title">{$t("common.selectOrganisation")}</h2>
 	{#each organisations as organisation}
-		<button onclick={() => selectOrganisation(organisation.id)}>
+		<button
+			class="btn primary"
+			onclick={() => selectOrganisation(organisation.id)}
+		>
 			{organisation.name}
 		</button>
 	{/each}
@@ -72,7 +75,7 @@
 			error={nameError}
 			autocomplete="organization"
 		/>
-		<button class="primary full-width" type="submit">
+		<button class="btn primary" type="submit">
 			{$t("common.create")}
 		</button>
 	</form>

@@ -27,6 +27,7 @@
 	let principal = Auth.getPrincipal();
 
 	onMount(async () => {
+		// TODO: if failed to refresh token, delete it!
 		if ($principal?.hasExpired()) {
 			await Session.refresh();
 		}
@@ -38,7 +39,7 @@
 			if (visiblity !== Visibility.PUBLIC) {
 				allowed = true;
 			} else {
-				goto("/dashboard");
+				goto("/meetings");
 			}
 		} else if (isLoggedIn) {
 			if (visiblity === Visibility.UNSCOPED) {
