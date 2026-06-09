@@ -32,7 +32,7 @@
 		SessionClient.create({ email, password })
 			.then(session => {
 				Session.update(session);
-				goto("/dashboard");
+				goto("/meetings");
 			})
 			.catch(error => {
 				// TODO: better error handling

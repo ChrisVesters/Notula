@@ -17,6 +17,10 @@ export default class SessionClient extends Client {
 	): Promise<SessionInfo> {
 		return this.putAuthenticated(`${getEndpoint()}/${id}`, request);
 	}
+
+	public static delete(id: number): Promise<void> {
+		return this.delAuthenticated(`${getEndpoint()}/${id}`);
+	}
 }
 
 function getEndpoint(): string {
