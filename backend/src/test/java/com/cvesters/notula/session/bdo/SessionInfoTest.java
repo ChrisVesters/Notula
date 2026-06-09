@@ -3,6 +3,7 @@ package com.cvesters.notula.session.bdo;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.assertj.core.api.Assertions.within;
+import static org.mockito.Mockito.mock;
 
 import java.time.Duration;
 import java.time.OffsetDateTime;
@@ -25,7 +26,7 @@ class SessionInfoTest {
 			final var sessionInfo = new SessionInfo(SESSION.getUser().getId(),
 					SESSION.getOrganisation().getId());
 
-			assertThatThrownBy(() -> sessionInfo.getId())
+			assertThatThrownBy(sessionInfo::getId)
 					.isInstanceOf(IllegalStateException.class);
 			assertThat(sessionInfo.getUserId())
 					.isEqualTo(SESSION.getUser().getId());
@@ -103,6 +104,19 @@ class SessionInfoTest {
 			assertThatThrownBy(() -> sessionInfo.update(null))
 					.isInstanceOf(NullPointerException.class);
 		}
+
+		@Test
+		void inactive() {
+			final SessionUpdate update = mock();
+
+			final var sessionInfo = new SessionInfo(SESSION.getId(),
+					SESSION.getUser().getId(),
+					SESSION.getOrganisation().getId(),
+					OffsetDateTime.now().minus(Duration.ofHours(4)));
+
+			assertThatThrownBy(() -> sessionInfo.update(update))
+					.isInstanceOf(IllegalStateException.class);
+		}
 	}
 
 	@Nested
@@ -134,8 +148,56 @@ class SessionInfoTest {
 					SESSION.getOrganisation().getId(),
 					OffsetDateTime.now().minus(Duration.ofHours(4)));
 
-			assertThatThrownBy(() -> sessionInfo.refresh())
+			assertThatThrownBy(sessionInfo::refresh)
 					.isInstanceOf(IllegalStateException.class);
+		}
+	}
+
+	@Nested
+	class Invactivate {
+
+		@Test
+		void success() {
+			final var sessionInfo = SESSION.info();
+
+			sessionInfo.invactivate();
+
+			final var now = OffsetDateTime.now();
+			assertThat(sessionInfo.getActiveUntil()).isBefore(now);
+			assertThat(sessionInfo.getActiveUntil()).isCloseTo(now,
+					within(Duration.ofSeconds(1)));
+		}
+
+		@Test
+		void expiredSession() {
+			final var sessionInfo = new SessionInfo(SESSION.getId(),
+					SESSION.getUser().getId(),
+					SESSION.getOrganisation().getId(),
+					OffsetDateTime.now().minus(Duration.ofHours(4)));
+
+			assertThatThrownBy(sessionInfo::invactivate)
+					.isInstanceOf(IllegalStateException.class);
+		}
+	}
+
+	@Nested
+	class IsActive {
+
+		@Test
+		void active() {
+			final var sessionInfo = SESSION.info();
+
+			assertThat(sessionInfo.isActive()).isTrue();
+		}
+
+		@Test
+		void inactive() {
+			final var sessionInfo = new SessionInfo(SESSION.getId(),
+					SESSION.getUser().getId(),
+					SESSION.getOrganisation().getId(),
+					OffsetDateTime.now().minus(Duration.ofHours(4)));
+
+			assertThat(sessionInfo.isActive()).isFalse();
 		}
 	}
 }

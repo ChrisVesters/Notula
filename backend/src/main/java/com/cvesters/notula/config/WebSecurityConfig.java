@@ -44,6 +44,8 @@ public class WebSecurityConfig {
 			// Unscoped
 			auth.requestMatchers(HttpMethod.PUT, "/api/sessions/*")
 					.authenticated();
+			auth.requestMatchers(HttpMethod.DELETE, "/api/sessions/*")
+					.authenticated();
 			auth.requestMatchers(HttpMethod.GET, "/api/organisations")
 					.authenticated();
 			auth.requestMatchers(HttpMethod.POST, "/api/organisations")
