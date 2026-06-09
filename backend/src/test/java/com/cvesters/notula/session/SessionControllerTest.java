@@ -5,7 +5,10 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.doThrow;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
@@ -14,6 +17,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import java.time.Duration;
+import java.time.OffsetDateTime;
 
 import jakarta.servlet.http.Cookie;
 
@@ -26,6 +30,7 @@ import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
 import org.springframework.http.MediaType;
 import org.springframework.security.test.context.support.WithAnonymousUser;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
+import org.springframework.test.web.servlet.ResultMatcher;
 
 import com.cvesters.notula.common.exception.DuplicateEntityException;
 import com.cvesters.notula.organisation.TestOrganisation;
@@ -42,7 +47,7 @@ class SessionControllerTest extends ControllerTest {
 
 	private static final String REFRESH_TOKEN_COOKIE = "refreshToken";
 
-	private static final TestSession SESSION = TestSession.EDUARDO_CHRISTIANSEN;
+	private static final TestSession SESSION = TestSession.ALISON_DACH;
 	private static final TestUser USER = SESSION.getUser();
 	private static final String ACCESS_TOKEN = "access";
 
@@ -73,16 +78,7 @@ class SessionControllerTest extends ControllerTest {
 					.andExpect(header().string("location",
 							SERVER + BASE_ENDPOINT + "/" + SESSION.getId()))
 					.andExpect(content().json(expectedResponse))
-					.andExpectAll(
-							cookie().value(REFRESH_TOKEN_COOKIE,
-									SESSION.getRefreshToken()),
-							cookie().httpOnly(REFRESH_TOKEN_COOKIE, true),
-							cookie().secure(REFRESH_TOKEN_COOKIE, true),
-							cookie().path(REFRESH_TOKEN_COOKIE,
-									BASE_ENDPOINT + "/" + SESSION.getId()
-											+ "/refresh"),
-							cookie().maxAge(REFRESH_TOKEN_COOKIE,
-									(int) Duration.ofDays(7).toSeconds()));
+					.andExpect(refreshCookie(SESSION));
 		}
 
 		@Test
@@ -156,7 +152,7 @@ class SessionControllerTest extends ControllerTest {
 	}
 
 	@Nested
-	@WithSession(TestSession.EDUARDO_CHRISTIANSEN)
+	@WithSession(TestSession.ALISON_DACH)
 	class Update {
 
 		private static final String ENDPOINT = BASE_ENDPOINT + "/{id}";
@@ -184,6 +180,22 @@ class SessionControllerTest extends ControllerTest {
 			mockMvc.perform(builder)
 					.andExpect(status().isOk())
 					.andExpect(content().json(expectedResponse));
+		}
+
+		@Test
+		void serverError() throws Exception {
+			final TestOrganisation organisation = TestOrganisation.SPORER;
+
+			when(sessionService.update(any(), anyLong(), any()))
+					.thenThrow(new RuntimeException());
+
+			final String body = getBody(organisation);
+
+			final var builder = put(ENDPOINT, SESSION_ID).content(body)
+					.contentType(MediaType.APPLICATION_JSON);
+
+			mockMvc.perform(builder)
+					.andExpect(status().isInternalServerError());
 		}
 
 		@Test
@@ -224,16 +236,7 @@ class SessionControllerTest extends ControllerTest {
 			mockMvc.perform(builder)
 					.andExpect(status().isOk())
 					.andExpect(content().json(expectedResponse))
-					.andExpectAll(
-							cookie().value(REFRESH_TOKEN_COOKIE,
-									SESSION.getRefreshToken()),
-							cookie().httpOnly(REFRESH_TOKEN_COOKIE, true),
-							cookie().secure(REFRESH_TOKEN_COOKIE, true),
-							cookie().path(REFRESH_TOKEN_COOKIE,
-									BASE_ENDPOINT + "/" + SESSION.getId()
-											+ "/refresh"),
-							cookie().maxAge(REFRESH_TOKEN_COOKIE,
-									(int) Duration.ofDays(7).toSeconds()));
+					.andExpect(refreshCookie(SESSION));
 		}
 
 		@Test
@@ -265,6 +268,50 @@ class SessionControllerTest extends ControllerTest {
 		}
 	}
 
+	@Nested
+	@WithSession(TestSession.ALISON_DACH)
+	class Delete {
+
+		private static final String ENDPOINT = BASE_ENDPOINT + "/{id}";
+		private static final long SESSION_ID = SESSION.getId();
+
+		@Test
+		void success() throws Exception {
+			final var builder = delete(ENDPOINT, SESSION_ID);
+
+			mockMvc.perform(builder)
+					.andExpect(status().isNoContent())
+					.andExpectAll(cookie().value(REFRESH_TOKEN_COOKIE, ""),
+							cookie().httpOnly(REFRESH_TOKEN_COOKIE, true),
+							cookie().secure(REFRESH_TOKEN_COOKIE, true),
+							cookie().path(REFRESH_TOKEN_COOKIE,
+									BASE_ENDPOINT + "/" + SESSION.getId()
+											+ "/refresh"),
+							cookie().maxAge(REFRESH_TOKEN_COOKIE, 0));
+
+			verify(sessionService).delete(SESSION.principal(), SESSION_ID);
+		}
+
+		@Test
+		void serverError() throws Exception {
+			doThrow(new RuntimeException()).when(sessionService)
+					.delete(any(), anyLong());
+
+			final var builder = delete(ENDPOINT, SESSION_ID);
+
+			mockMvc.perform(builder)
+					.andExpect(status().isInternalServerError());
+		}
+
+		@Test
+		@WithAnonymousUser
+		void notAuthenticated() throws Exception {
+			final var builder = put(ENDPOINT, SESSION_ID);
+
+			mockMvc.perform(builder).andExpect(status().isUnauthorized());
+		}
+	}
+
 	private String getResponse(final TestSession session,
 			final String accessToken) {
 		return """
@@ -276,4 +323,24 @@ class SessionControllerTest extends ControllerTest {
 				""".formatted(session.getId(), accessToken,
 				session.getActiveUntil().toString());
 	}
+
+	private ResultMatcher refreshCookie(final TestSession session) {
+		return result -> {
+			final Cookie cookie = result.getResponse()
+					.getCookie(REFRESH_TOKEN_COOKIE);
+
+			assertThat(cookie).isNotNull();
+			assertThat(cookie.getValue()).isEqualTo(session.getRefreshToken());
+			assertThat(cookie.isHttpOnly()).isTrue();
+			assertThat(cookie.getSecure()).isTrue();
+			assertThat(cookie.getPath()).isEqualTo(
+					BASE_ENDPOINT + "/" + session.getId() + "/refresh");
+
+			final int maxAge = (int) Duration
+					.between(OffsetDateTime.now(), session.getActiveUntil())
+					.toSeconds();
+			assertThat(cookie.getMaxAge()).isBetween(maxAge, maxAge + 1);
+		};
+	}
+
 }

@@ -8,6 +8,7 @@ import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.inOrder;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
@@ -62,7 +63,7 @@ class SessionServiceTest {
 
 			final SessionInfo createdSession = SESSION.info();
 			when(sessionStorageGateway.create(argThat(bdo -> {
-				assertThatThrownBy(() -> bdo.getId())
+				assertThatThrownBy(bdo::getId)
 						.isInstanceOf(IllegalStateException.class);
 				assertThat(bdo.getUserId()).isEqualTo(USER.getId());
 				assertThat(bdo.getOrganisationId()).isEmpty();
@@ -118,6 +119,7 @@ class SessionServiceTest {
 			final long sessionId = SESSION.getId();
 			final SessionInfo bdo = mock();
 			when(bdo.getUserId()).thenReturn(SESSION.getUser().getId());
+			when(bdo.isActive()).thenReturn(true);
 
 			when(organisationUserService.getAll(PRINCIPAL))
 					.thenReturn(List.of(ORGANISATION_USER.info()));
@@ -239,6 +241,8 @@ class SessionServiceTest {
 			when(sessionStorageGateway.findByIdAndRefreshToken(sessionId,
 					refreshToken)).thenReturn(Optional.of(bdo));
 
+			when(bdo.isActive()).thenReturn(true);
+
 			final SessionInfo updated = new SessionInfo(SESSION.getId(),
 					USER.getId(), ORGANISATION.getId(),
 					SESSION.getActiveUntil());
@@ -287,6 +291,106 @@ class SessionServiceTest {
 			final long sessionId = SESSION.getId();
 
 			assertThatThrownBy(() -> sessionService.refresh(sessionId, null))
+					.isInstanceOf(NullPointerException.class);
+
+			verifyNoInteractions(sessionStorageGateway);
+			verifyNoInteractions(accessTokenService);
+		}
+
+		@Test
+		void sessionInactive() {
+			final long sessionId = SESSION.getId();
+			final String refreshToken = SESSION.getRefreshToken();
+
+			final SessionInfo bdo = mock();
+			when(sessionStorageGateway.findByIdAndRefreshToken(sessionId,
+					refreshToken)).thenReturn(Optional.of(bdo));
+
+			when(bdo.isActive()).thenReturn(false);
+
+			assertThatThrownBy(
+					() -> sessionService.refresh(sessionId, refreshToken))
+							.isInstanceOf(MissingEntityException.class);
+		}
+	}
+
+	@Nested
+	class Delete {
+
+		private static final TestOrganisationUser ORGANISATION_USER = TestOrganisationUser.SPORER_EDUARDO_CHRISTIANSEN;
+		private static final TestOrganisation ORGANISATION = ORGANISATION_USER
+				.getOrganisation();
+
+		private static final Principal PRINCIPAL = SESSION.principal();
+
+		@Test
+		void success() {
+			final long sessionId = SESSION.getId();
+			final SessionInfo bdo = mock();
+			when(bdo.getUserId()).thenReturn(SESSION.getUser().getId());
+			when(sessionStorageGateway.findById(sessionId))
+					.thenReturn(Optional.of(bdo));
+
+			when(bdo.isActive()).thenReturn(true);
+
+			final SessionInfo updated = new SessionInfo(sessionId, USER.getId(),
+					ORGANISATION.getId(), SESSION.getActiveUntil());
+			when(sessionStorageGateway.update(bdo)).thenReturn(updated);
+
+			sessionService.delete(PRINCIPAL, sessionId);
+
+			final InOrder order = inOrder(bdo, sessionStorageGateway);
+			order.verify(bdo).invactivate();
+			order.verify(sessionStorageGateway).update(bdo);
+		}
+
+		@Test
+		void sessionAlreadyInactive() {
+			final long sessionId = SESSION.getId();
+			final SessionInfo bdo = mock();
+			when(bdo.getUserId()).thenReturn(SESSION.getUser().getId());
+			when(sessionStorageGateway.findById(sessionId))
+					.thenReturn(Optional.of(bdo));
+
+			when(bdo.isActive()).thenReturn(false);
+
+			assertThatThrownBy(
+					() -> sessionService.delete(PRINCIPAL, sessionId))
+							.isInstanceOf(MissingEntityException.class);
+
+			verify(bdo, never()).invactivate();
+			verify(sessionStorageGateway, never()).update(bdo);
+		}
+
+		@Test
+		void sessionNotFound() {
+			final long sessionId = SESSION.getId();
+			when(sessionStorageGateway.findById(sessionId))
+					.thenReturn(Optional.empty());
+
+			assertThatThrownBy(
+					() -> sessionService.delete(PRINCIPAL, sessionId))
+							.isInstanceOf(MissingEntityException.class);
+		}
+
+		@Test
+		void mismatchedUser() {
+			final long sessionId = SESSION.getId();
+			final SessionInfo bdo = mock();
+			when(bdo.getUserId()).thenReturn(SESSION.getUser().getId() + 1);
+			when(sessionStorageGateway.findById(SESSION.getId()))
+					.thenReturn(Optional.of(bdo));
+
+			assertThatThrownBy(
+					() -> sessionService.delete(PRINCIPAL, sessionId))
+							.isInstanceOf(MissingEntityException.class);
+		}
+
+		@Test
+		void principalNull() {
+			final long sessionId = SESSION.getId();
+
+			assertThatThrownBy(() -> sessionService.delete(null, sessionId))
 					.isInstanceOf(NullPointerException.class);
 
 			verifyNoInteractions(sessionStorageGateway);

@@ -36,12 +36,13 @@ public class SessionInfo {
 
 	public void update(final SessionUpdate update) {
 		Objects.requireNonNull(update);
+		Validate.validState(isActive());
 
 		this.organisationId = update.organisationId();
 	}
 
 	public void refresh() {
-		Validate.validState(this.activeUntil.isAfter(OffsetDateTime.now()));
+		Validate.validState(isActive());
 
 		this.activeUntil = OffsetDateTime.now().plus(ACTIVE_DURATION);
 	}
@@ -54,5 +55,15 @@ public class SessionInfo {
 
 	public Optional<Long> getOrganisationId() {
 		return Optional.ofNullable(organisationId);
+	}
+
+	public void invactivate() {
+		Validate.validState(isActive());
+
+		this.activeUntil = OffsetDateTime.now();
+	}
+
+	public boolean isActive() {
+		return this.activeUntil.isAfter(OffsetDateTime.now());
 	}
 }

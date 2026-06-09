@@ -66,6 +66,7 @@ public class SessionService {
 
 		final SessionInfo bdo = sessionStorage.findById(sessionId)
 				.filter(session -> session.getUserId() == principal.userId())
+				.filter(SessionInfo::isActive)
 				.orElseThrow(MissingEntityException::new);
 
 		bdo.update(update);
@@ -82,6 +83,7 @@ public class SessionService {
 
 		final SessionInfo bdo = sessionStorage
 				.findByIdAndRefreshToken(sessionId, refreshToken)
+				.filter(SessionInfo::isActive)
 				.orElseThrow(MissingEntityException::new);
 
 		bdo.refresh();
@@ -91,6 +93,18 @@ public class SessionService {
 		final String accessToken = accessTokenService.create(session);
 
 		return new SessionTokens(session, accessToken, newToken);
+	}
+
+	public void delete(final Principal principal, long sessionId) {
+		Objects.requireNonNull(principal);
+
+		final SessionInfo bdo = sessionStorage.findById(sessionId)
+				.filter(session -> session.getUserId() == principal.userId())
+				.filter(SessionInfo::isActive)
+				.orElseThrow(MissingEntityException::new);
+
+		bdo.invactivate();
+		sessionStorage.update(bdo);
 	}
 
 	private static String generateRefreshToken() {

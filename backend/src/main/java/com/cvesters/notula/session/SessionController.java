@@ -1,6 +1,7 @@
 package com.cvesters.notula.session;
 
 import java.time.Duration;
+import java.time.OffsetDateTime;
 
 import jakarta.validation.Valid;
 
@@ -9,6 +10,7 @@ import org.springframework.http.MediaType;
 import org.springframework.http.ResponseCookie;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.CookieValue;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
@@ -43,8 +45,7 @@ public class SessionController extends BaseController {
 		final SessionTokens session = sessionService.create(login);
 		final var dto = new SessionInfoDto(session);
 
-		final ResponseCookie refreshCookie = createRefreshCookie(
-				session.getId(), session.getRefreshToken().orElse(null));
+		final ResponseCookie refreshCookie = setRefreshCookie(session);
 
 		return ResponseEntity
 				.created(ServletUriComponentsBuilder.fromCurrentRequest()
@@ -74,23 +75,48 @@ public class SessionController extends BaseController {
 		final SessionTokens session = sessionService.refresh(id, refreshToken);
 		final var dto = new SessionInfoDto(session);
 
-		final ResponseCookie refreshCookie = createRefreshCookie(
-				session.getId(), session.getRefreshToken().orElse(null));
+		final ResponseCookie refreshCookie = setRefreshCookie(session);
 
 		return ResponseEntity.ok()
 				.header(HttpHeaders.SET_COOKIE, refreshCookie.toString())
 				.body(dto);
 	}
 
-	private static ResponseCookie createRefreshCookie(final long sessionId,
-			final String refreshToken) {
+	@DeleteMapping(path = "/{id}")
+	public ResponseEntity<Void> delete(@PathVariable final long id) {
+		final Principal principal = getPrincipal();
+		sessionService.delete(principal, id);
+
+		final ResponseCookie refreshCookie = clearRefreshCookie(id);
+
+		return ResponseEntity.noContent()
+				.header(HttpHeaders.SET_COOKIE, refreshCookie.toString())
+				.build();
+	}
+
+	private static ResponseCookie clearRefreshCookie(final long sessionId) {
+		return refreshCookie(sessionId, null, Duration.ZERO);
+	}
+
+	private static ResponseCookie setRefreshCookie(
+			final SessionTokens sessionTokens) {
+		final long sessionId = sessionTokens.getId();
+		final String refreshToken = sessionTokens.getRefreshToken()
+				.orElse(null);
+		final var maxAge = Duration.between(OffsetDateTime.now(),
+				sessionTokens.getActiveUntil());
+		return refreshCookie(sessionId, refreshToken, maxAge);
+
+	}
+
+	private static ResponseCookie refreshCookie(final long sessionId,
+			final String refreshToken, final Duration maxAge) {
 		return ResponseCookie.from("refreshToken", refreshToken)
 				.httpOnly(true)
 				.secure(true)
 				.sameSite("None")
 				.path("/api/sessions/" + sessionId + "/refresh")
-				.maxAge(Duration.ofDays(7)) // TODO: Duration.between(now,
-											// session.getActiveUntil())
+				.maxAge(maxAge)
 				.build();
 	}
 }
