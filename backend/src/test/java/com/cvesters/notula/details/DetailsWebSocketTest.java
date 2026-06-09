@@ -24,6 +24,9 @@ import com.cvesters.notula.test.FrameHandler;
 import com.cvesters.notula.test.WebSocketTest;
 import com.cvesters.notula.topic.TestTopic;
 
+import tools.jackson.databind.JsonNode;
+import tools.jackson.databind.ObjectMapper;
+
 public class DetailsWebSocketTest extends WebSocketTest {
 
 	private static final String DESTINATION_PREFIX = "/app/meetings/";
@@ -32,6 +35,8 @@ public class DetailsWebSocketTest extends WebSocketTest {
 	private static final Principal PRINCIPAL = SESSION.principal();
 	private static final TestMeeting MEETING = TestMeeting.SPORER_PROJECT;
 	private static final List<TestTopic> TOPICS = TestTopic.ofMeeting(MEETING);
+
+	private static final ObjectMapper MAPPER = new ObjectMapper();
 
 	@MockitoBean
 	private DetailsService detailsService;
@@ -61,24 +66,26 @@ public class DetailsWebSocketTest extends WebSocketTest {
 					.isNotNull()
 					.actual();
 
-			assertThat(response).isEqualToIgnoringWhitespace("""
-					{
-						"id": 1,
-						"name": "Project Meeting",
-						"topics": [{
-							"blocks": [],
-							"id": 1,
-							"name": "Deliverables"
-						}, {
-							"blocks": [],
-							"id": 2,
-							"name": "Blockers"
-						},{
-							"blocks": [],
-							"id": 3,
-							"name": "Timeline"
-						}]
-					}""");
+			final JsonNode responseJson = MAPPER.readTree(response);
+
+			assertThat(responseJson.get("id").asLong())
+					.isEqualTo(MEETING.getId());
+			assertThat(responseJson.get("name").asString())
+					.isEqualTo(MEETING.getName());
+			assertThat(responseJson.get("description").asString())
+					.isEqualTo(MEETING.getDescription());
+			assertThat(responseJson.get("topics").size())
+					.isEqualTo(TOPICS.size());
+
+			for (int i = 0; i < TOPICS.size(); i++) {
+				final JsonNode topicJson = responseJson.get("topics").get(i);
+				assertThat(topicJson.get("id").asLong())
+						.isEqualTo(TOPICS.get(i).getId());
+				assertThat(topicJson.get("name").asString())
+						.isEqualTo(TOPICS.get(i).getName());
+				assertThat(topicJson.get("blocks").size()).isZero();
+				// TODO: add blocks!
+			}
 		}
 
 		@Test
