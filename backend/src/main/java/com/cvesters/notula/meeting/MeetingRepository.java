@@ -16,4 +16,5 @@ public interface MeetingRepository extends Repository<MeetingDao, Long> {
 
 	MeetingDao save(MeetingDao meeting);
 
+	void delete(MeetingDao meeting);
 }

@@ -1,9 +1,13 @@
 package com.cvesters.notula.meeting;
 
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.doThrow;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
@@ -154,6 +158,42 @@ class MeetingControllerTest extends ControllerTest {
 						"name": %s
 					}
 					""".formatted(formattedName);
+		}
+	}
+
+	@Nested
+	class Delete {
+
+		private static final TestMeeting MEETING = TestMeeting.SPORER_RETRO;
+
+		@Test
+		void success() throws Exception {
+			final Principal principal = SESSION.principal();
+
+			final var builder = delete(ENDPOINT + "/" + MEETING.getId());
+
+			mockMvc.perform(builder).andExpect(status().isNoContent());
+
+			verify(meetingService).delete(principal, MEETING.getId());
+		}
+
+		@Test
+		@WithAnonymousUser
+		void unauthorized() throws Exception {
+			final var builder = delete(ENDPOINT + "/" + MEETING.getId());
+
+			mockMvc.perform(builder).andExpect(status().isUnauthorized());
+		}
+
+		@Test
+		void serverError() throws Exception {
+			doThrow(new RuntimeException()).when(meetingService)
+					.delete(any(), anyLong());
+
+			final var builder = delete(ENDPOINT + "/" + MEETING.getId());
+
+			mockMvc.perform(builder)
+					.andExpect(status().isInternalServerError());
 		}
 	}
 

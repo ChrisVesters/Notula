@@ -1,8 +1,10 @@
 package com.cvesters.notula.meeting;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatCode;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
+import java.lang.reflect.Field;
 import java.util.List;
 import java.util.Optional;
 
@@ -34,9 +36,14 @@ class MeetingRepositoryTest extends RepositoryTest {
 					.findByOrganisationIdAndId(
 							MEETING.getOrganisation().getId(), MEETING.getId());
 
-			final var expected = entityManager.find(MeetingDao.class,
-					MEETING.getId());
-			assertThat(dao).contains(expected);
+			assertThat(dao).hasValueSatisfying(meeting -> {
+				assertThat(meeting.getId()).isEqualTo(MEETING.getId());
+				assertThat(meeting.getOrganisationId())
+						.isEqualTo(MEETING.getOrganisation().getId());
+				assertThat(meeting.getName()).isEqualTo(MEETING.getName());
+				assertThat(meeting.getDescription())
+						.isEqualTo(MEETING.getDescription());
+			});
 		}
 
 		@Test
@@ -85,6 +92,8 @@ class MeetingRepositoryTest extends RepositoryTest {
 						.isEqualTo(expectedMeeting.getOrganisation().getId());
 				assertThat(meeting.getName())
 						.isEqualTo(expectedMeeting.getName());
+				assertThat(meeting.getDescription())
+						.isEqualTo(expectedMeeting.getDescription());
 			});
 		}
 
@@ -102,6 +111,8 @@ class MeetingRepositoryTest extends RepositoryTest {
 						.isEqualTo(expectedMeeting.getOrganisation().getId());
 				assertThat(meeting.getName())
 						.isEqualTo(expectedMeeting.getName());
+				assertThat(meeting.getDescription())
+						.isEqualTo(expectedMeeting.getDescription());
 			}).anySatisfy(meeting -> {
 				final TestMeeting expectedMeeting = TestMeeting.SPORER_RETRO;
 				assertThat(meeting.getId()).isEqualTo(expectedMeeting.getId());
@@ -109,6 +120,8 @@ class MeetingRepositoryTest extends RepositoryTest {
 						.isEqualTo(expectedMeeting.getOrganisation().getId());
 				assertThat(meeting.getName())
 						.isEqualTo(expectedMeeting.getName());
+				assertThat(meeting.getDescription())
+						.isEqualTo(expectedMeeting.getDescription());
 			}).anySatisfy(meeting -> {
 				final TestMeeting expectedMeeting = TestMeeting.SPORER_Q2_PLANNING;
 				assertThat(meeting.getId()).isEqualTo(expectedMeeting.getId());
@@ -116,6 +129,8 @@ class MeetingRepositoryTest extends RepositoryTest {
 						.isEqualTo(expectedMeeting.getOrganisation().getId());
 				assertThat(meeting.getName())
 						.isEqualTo(expectedMeeting.getName());
+				assertThat(meeting.getDescription())
+						.isEqualTo(expectedMeeting.getDescription());
 			});
 		}
 
@@ -141,6 +156,9 @@ class MeetingRepositoryTest extends RepositoryTest {
 
 			assertThat(saved.getId()).isNotNull();
 			assertThat(saved.getName()).isEqualTo(name);
+			assertThat(saved.getOrganisationId())
+					.isEqualTo(organisation.getId());
+			assertThat(saved.getDescription()).isEmpty();
 
 			final MeetingDao found = entityManager.find(MeetingDao.class,
 					saved.getId());
@@ -149,12 +167,53 @@ class MeetingRepositoryTest extends RepositoryTest {
 			assertThat(found.getOrganisationId())
 					.isEqualTo(saved.getOrganisationId());
 			assertThat(found.getName()).isEqualTo(saved.getName());
+			assertThat(found.getDescription())
+					.isEqualTo(saved.getDescription());
 		}
 
 		@Test
 		void meetingNull() {
 			assertThatThrownBy(() -> meetingRepository.save(null))
 					.isInstanceOf(InvalidDataAccessApiUsageException.class);
+		}
+	}
+
+	@Nested
+	class Delete {
+
+		@Test
+		void success() throws Exception {
+			final TestMeeting meeting = TestMeeting.GLOVER_KICKOFF_2026;
+			final MeetingDao dao = new MeetingDao(meeting.info());
+
+			final Field idField = dao.getClass().getDeclaredField("id");
+			idField.setAccessible(true);
+			idField.set(dao, meeting.getId());
+
+			meetingRepository.delete(dao);
+
+			final MeetingDao found = entityManager.find(MeetingDao.class,
+					meeting.getId());
+
+			assertThat(found).isNull();
+		}
+
+		@Test
+		void nonExisting() throws Exception {
+			final TestMeeting meeting = TestMeeting.GLOVER_KICKOFF_2026;
+			final MeetingDao dao = new MeetingDao(meeting.info());
+
+			final Field idField = dao.getClass().getDeclaredField("id");
+			idField.setAccessible(true);
+			idField.set(dao, Long.MAX_VALUE);
+
+			assertThatCode(() -> meetingRepository.delete(dao))
+					.doesNotThrowAnyException();
+
+			final MeetingDao found = entityManager.find(MeetingDao.class,
+					Long.MAX_VALUE);
+
+			assertThat(found).isNull();
 		}
 	}
 }

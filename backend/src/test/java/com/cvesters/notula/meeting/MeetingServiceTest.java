@@ -53,12 +53,13 @@ class MeetingServiceTest {
 
 		@Test
 		void notFound() {
+			final long meetingId = MEETING.getId();
 			when(meetingStorageGateway.findByOrganisationIdAndId(
-					SESSION.getOrganisation().getId(), MEETING.getId()))
+					SESSION.getOrganisation().getId(), meetingId))
 							.thenReturn(Optional.empty());
 
 			assertThatThrownBy(
-					() -> meetingService.getById(PRINCIPAL, MEETING.getId()))
+					() -> meetingService.getById(PRINCIPAL, meetingId))
 							.isInstanceOf(MissingEntityException.class);
 		}
 
@@ -132,7 +133,7 @@ class MeetingServiceTest {
 		void success() {
 			final MeetingInfo created = MEETING.info();
 			when(meetingStorageGateway.create(argThat(meeting -> {
-				assertThatThrownBy(() -> meeting.getId())
+				assertThatThrownBy(meeting::getId)
 						.isInstanceOf(IllegalStateException.class);
 				assertThat(meeting.getOrganisationId())
 						.isEqualTo(SESSION.getOrganisation().getId());
@@ -180,14 +181,15 @@ class MeetingServiceTest {
 			final MeetingAction.Update action = new MeetingAction.UpdateName(8,
 					0, "Status ");
 
-			when(meetingStorageGateway
-					.findByOrganisationIdAndId(principal.userId(), meetingId))
+			when(meetingStorageGateway.findByOrganisationIdAndId(
+					principal.organisationId(), meetingId))
 							.thenReturn(Optional.of(meetingInfo));
 
 			final MeetingInfo updated = mock();
 			when(meetingStorageGateway.update(argThat(info -> {
 				assertThat(info.getId()).isEqualTo(MEETING.getId());
-				assertThat(info.getOrganisationId()).isEqualTo(MEETING.getOrganisation().getId());
+				assertThat(info.getOrganisationId())
+						.isEqualTo(MEETING.getOrganisation().getId());
 				assertThat(info.getName()).isEqualTo("Project Status Meeting");
 				return true;
 			}))).thenReturn(updated);
@@ -211,12 +213,12 @@ class MeetingServiceTest {
 			final MeetingAction.Update action = new MeetingAction.UpdateName(2,
 					4, "27");
 
-			when(meetingStorageGateway
-					.findByOrganisationIdAndId(principal.userId(), meetingId))
+			when(meetingStorageGateway.findByOrganisationIdAndId(
+					principal.organisationId(), meetingId))
 							.thenReturn(Optional.empty());
 
-			assertThatThrownBy(() -> meetingService.update(SESSION.principal(),
-					meetingId, action))
+			assertThatThrownBy(
+					() -> meetingService.update(principal, meetingId, action))
 							.isInstanceOf(MissingEntityException.class);
 		}
 
@@ -238,6 +240,48 @@ class MeetingServiceTest {
 			assertThatThrownBy(
 					() -> meetingService.update(principal, meetingId, null))
 							.isInstanceOf(NullPointerException.class);
+		}
+	}
+
+	@Nested
+	class Delete {
+
+		private static final TestSession SESSION = TestSession.EDUARDO_CHRISTIANSEN_SPORER;
+		private static final TestMeeting MEETING = TestMeeting.SPORER_PROJECT;
+
+		@Test
+		void success() {
+			final Principal principal = SESSION.principal();
+			final long meetingId = MEETING.getId();
+			final MeetingInfo meetingInfo = MEETING.info();
+
+			when(meetingStorageGateway.findByOrganisationIdAndId(
+					principal.organisationId(), meetingId))
+							.thenReturn(Optional.of(meetingInfo));
+
+			meetingService.delete(SESSION.principal(), meetingId);
+
+			verify(meetingStorageGateway).delete(meetingInfo);
+		}
+
+		@Test
+		void meetingNotFound() {
+			final Principal principal = SESSION.principal();
+			final long meetingId = MEETING.getId();
+
+			when(meetingStorageGateway.findByOrganisationIdAndId(
+					principal.organisationId(), meetingId))
+							.thenReturn(Optional.empty());
+
+			assertThatThrownBy(
+					() -> meetingService.delete(principal, meetingId))
+							.isInstanceOf(MissingEntityException.class);
+		}
+
+		@Test
+		void principalNull() {
+			assertThatThrownBy(() -> meetingService.delete(null, 1))
+					.isInstanceOf(NullPointerException.class);
 		}
 	}
 }

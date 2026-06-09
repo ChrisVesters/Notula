@@ -5,6 +5,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.Mockito.inOrder;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import java.util.ArrayList;
@@ -205,6 +206,40 @@ class MeetingStorageGatewayTest {
 
 			final MeetingInfo updateBdo = MEETING.info();
 			assertThatThrownBy(() -> gateway.update(updateBdo))
+					.isInstanceOf(MissingEntityException.class);
+		}
+	}
+
+	@Nested
+	class Delete {
+
+		@Test
+		void success() {
+			final MeetingDao foundDao = mock();
+			when(meetingRepository.findByOrganisationIdAndId(
+					ORGANISATION.getId(), MEETING.getId()))
+							.thenReturn(Optional.of(foundDao));
+
+			final MeetingInfo updateBdo = MEETING.info();
+			gateway.delete(updateBdo);
+
+			verify(meetingRepository).delete(foundDao);
+		}
+
+		@Test
+		void meetingNull() {
+			assertThatThrownBy(() -> gateway.delete(null))
+					.isInstanceOf(NullPointerException.class);
+		}
+
+		@Test
+		void meetingNotFound() {
+			when(meetingRepository.findByOrganisationIdAndId(
+					ORGANISATION.getId(), MEETING.getId()))
+							.thenReturn(Optional.empty());
+
+			final MeetingInfo updateBdo = MEETING.info();
+			assertThatThrownBy(() -> gateway.delete(updateBdo))
 					.isInstanceOf(MissingEntityException.class);
 		}
 	}

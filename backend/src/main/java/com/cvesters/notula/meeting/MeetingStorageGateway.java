@@ -52,4 +52,14 @@ public class MeetingStorageGateway {
 		final var saved = meetingRepository.save(dao);
 		return saved.toBdo();
 	}
+
+	public void delete(final MeetingInfo meeting) {
+		Objects.requireNonNull(meeting);
+
+		final var dao = meetingRepository
+				.findByOrganisationIdAndId(meeting.getOrganisationId(),
+						meeting.getId())
+				.orElseThrow(MissingEntityException::new);
+		meetingRepository.delete(dao);
+	}
 }
