@@ -66,7 +66,7 @@ class MeetingActionTest {
 
 	@Nested
 	class UpdateDescription {
-		
+
 		@ParameterizedTest
 		@CsvSource({ "0,0,'Great ','Kickoff','Great Kickoff'",
 				"5,0,'Great ','2026 Kickoff','2026 Great Kickoff'",
@@ -94,6 +94,17 @@ class MeetingActionTest {
 			action.apply(meeting);
 
 			verify(meeting).setDescription(expected);
+		}
+	}
+
+	@Nested
+	class Delete {
+
+		@Test
+		void success() {
+			final var action = new MeetingAction.Delete();
+
+			assertThat(action).isNotNull();
 		}
 	}
 }

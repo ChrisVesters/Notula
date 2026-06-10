@@ -75,6 +75,45 @@ class MeetingPublisherTest {
 		}
 
 		@Test
+		void updateDescription() {
+			final var action = new MeetingAction.UpdateDescription(4, 12,
+					"Updated");
+			final var event = new MeetingEvent(MEETING_ID, action);
+
+			publisher.publish(event);
+
+			verify(messagingTemplate).convertAndSend(eq(DESTINATION),
+					argThat((MeetingEventDto dto) -> {
+						assertThat(dto.getMeetingId()).isEqualTo(MEETING_ID);
+						assertThat(dto.getMutation()).isInstanceOf(
+								MeetingMutationDto.UpdateDescription.class);
+
+						final var mutation = (MeetingMutationDto.UpdateDescription) dto
+								.getMutation();
+						assertThat(mutation.getPosition()).isEqualTo(4);
+						assertThat(mutation.getLength()).isEqualTo(12);
+						assertThat(mutation.getValue()).isEqualTo("Updated");
+						return true;
+					}));
+		}
+
+		@Test
+		void delete() {
+			final var action = new MeetingAction.Delete();
+			final var event = new MeetingEvent(MEETING_ID, action);
+
+			publisher.publish(event);
+
+			verify(messagingTemplate).convertAndSend(eq(DESTINATION),
+					argThat((MeetingEventDto dto) -> {
+						assertThat(dto.getMeetingId()).isEqualTo(MEETING_ID);
+						assertThat(dto.getMutation())
+								.isInstanceOf(MeetingMutationDto.Delete.class);
+						return true;
+					}));
+		}
+
+		@Test
 		void eventNull() {
 			assertThatThrownBy(() -> publisher.publish(null))
 					.isInstanceOf(NullPointerException.class);

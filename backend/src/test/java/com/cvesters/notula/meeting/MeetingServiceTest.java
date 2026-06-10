@@ -262,6 +262,12 @@ class MeetingServiceTest {
 			meetingService.delete(SESSION.principal(), meetingId);
 
 			verify(meetingStorageGateway).delete(meetingInfo);
+
+			verify(meetingPublisher).publish(argThat(event -> {
+				assertThat(event.meetingId()).isEqualTo(MEETING.getId());
+				assertThat(event.action()).isInstanceOf(MeetingAction.Delete.class);
+				return true;
+			}));
 		}
 
 		@Test
