@@ -12,7 +12,8 @@ import com.fasterxml.jackson.annotation.JsonTypeInfo;
 @JsonTypeInfo(use = JsonTypeInfo.Id.NAME, include = JsonTypeInfo.As.PROPERTY, property = "action")
 @JsonSubTypes({ @Type(value = MeetingMutationDto.Create.class, name = "CREATE"),
 		@Type(value = MeetingMutationDto.UpdateName.class, name = "UPDATE_NAME"),
-		@Type(value = MeetingMutationDto.UpdateDescription.class, name = "UPDATE_DESCRIPTION") })
+		@Type(value = MeetingMutationDto.UpdateDescription.class, name = "UPDATE_DESCRIPTION"),
+		@Type(value = MeetingMutationDto.Delete.class, name = "DELETE") })
 public sealed interface MeetingMutationDto {
 
 	static MeetingMutationDto of(final MeetingAction action) {
@@ -24,6 +25,7 @@ public sealed interface MeetingMutationDto {
 					updateName);
 			case MeetingAction.UpdateDescription updateDescription -> new UpdateDescription(
 					updateDescription);
+			case MeetingAction.Delete _ -> new Delete();
 		};
 	}
 
@@ -64,5 +66,9 @@ public sealed interface MeetingMutationDto {
 			this.length = action.getLength();
 			this.value = action.getValue();
 		}
+	}
+
+	@Getter
+	final class Delete implements MeetingMutationDto {
 	}
 }

@@ -64,6 +64,15 @@ class MeetingMutationDtoTest {
 		}
 
 		@Test
+		void delete() {
+			final var action = new MeetingAction.Delete();
+
+			final var dto = MeetingMutationDto.of(action);
+
+			assertThat(dto).isInstanceOf(MeetingMutationDto.Delete.class);
+		}
+
+		@Test
 		void actionNull() {
 			assertThatThrownBy(() -> MeetingMutationDto.of(null))
 					.isInstanceOf(NullPointerException.class);

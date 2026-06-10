@@ -46,4 +46,8 @@ public sealed interface MeetingAction {
 		}
 	}
 
+	@Getter
+	final class Delete implements MeetingAction {
+	}
+
 }

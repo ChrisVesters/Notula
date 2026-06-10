@@ -73,6 +73,8 @@ public class MeetingService {
 
 		meetingStorage.delete(meetingInfo);
 
-		// TODO: publish event?
+		final var action = new MeetingAction.Delete();
+		final var event = new MeetingEvent(id, action);
+		meetingPublisher.publish(event);
 	}
 }
