@@ -10,6 +10,10 @@ export default class MeetingClient extends Client {
 	public static create(request: MeetingCreateRequest): Promise<MeetingInfo> {
 		return this.postAuthenticated(getEndpoint(), request);
 	}
+
+	public static delete(id: number): Promise<void> {
+		return this.delAuthenticated(`${getEndpoint()}/${id}`);
+	}
 }
 
 function getEndpoint(): string {

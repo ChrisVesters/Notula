@@ -1,42 +1,56 @@
 import Session from "$lib/auth/Session";
 
 export default abstract class Client {
-	public static get<V>(endpoint: string): Promise<V> {
-		return this.call(endpoint, this.getRequest());
+	public static async get<V>(endpoint: string): Promise<V> {
+		const response = await fetch(endpoint, this.getRequest());
+		this.verifyStatus(response, 200);
+		return response.json();
 	}
 
-	public static getAuthenticated<V>(endpoint: string): Promise<V> {
-		return this.callAuthenticated(endpoint, this.getRequest());
+	public static async getAuthenticated<V>(endpoint: string): Promise<V> {
+		const response = await this.callAuth(endpoint, this.getRequest());
+		this.verifyStatus(response, 200);
+		return response.json();
 	}
 
-	public static post<U, V>(endpoint: string, request: U): Promise<V> {
-		return this.call(endpoint, this.postRequest(request));
+	public static async post<U, V>(endpoint: string, body: U): Promise<V> {
+		const response = await fetch(endpoint, this.postRequest(body));
+		this.verifyStatus(response, 201);
+		return response.json();
 	}
 
-	public static postAuthenticated<U, V>(
+	public static async postAuthenticated<U, V>(
 		endpoint: string,
-		request: U
+		body: U
 	): Promise<V> {
-		return this.callAuthenticated(endpoint, this.postRequest(request));
+		const response = await this.callAuth(endpoint, this.postRequest(body));
+		this.verifyStatus(response, 201);
+		return response.json();
 	}
 
-	public static put<U, V>(endpoint: string, request: U): Promise<V> {
-		return this.call(endpoint, this.putRequest(request));
+	public static async put<U, V>(endpoint: string, body: U): Promise<V> {
+		const response = await fetch(endpoint, this.putRequest(body));
+		this.verifyStatus(response, 200);
+		return response.json();
 	}
 
-	public static putAuthenticated<U, V>(
+	public static async putAuthenticated<U, V>(
 		endpoint: string,
-		request: U
+		body: U
 	): Promise<V> {
-		return this.callAuthenticated(endpoint, this.putRequest(request));
+		const response = await this.callAuth(endpoint, this.putRequest(body));
+		this.verifyStatus(response, 200);
+		return response.json();
 	}
 
-	public static del(endpoint: string): Promise<void> {
-		return this.call(endpoint, this.deleteRequest());
+	public static async del(endpoint: string): Promise<void> {
+		const response = await fetch(endpoint, this.deleteRequest());
+		this.verifyStatus(response, 204);
 	}
 
-	public static delAuthenticated(endpoint: string): Promise<void> {
-		return this.callAuthenticated(endpoint, this.deleteRequest());
+	public static async delAuthenticated(endpoint: string): Promise<void> {
+		const response = await this.callAuth(endpoint, this.deleteRequest());
+		this.verifyStatus(response, 204);
 	}
 
 	private static getRequest(): RequestInit {
@@ -71,29 +85,29 @@ export default abstract class Client {
 		};
 	}
 
+	// This method is rather stupid now!
 	private static async call<V>(
 		endpoint: string,
 		init: RequestInit
-	): Promise<V> {
-		const response: Response = await fetch(endpoint, init);
-		return this.processResult(response);
+	): Promise<Response> {
+		return fetch(endpoint, init);
 	}
 
-	private static async callAuthenticated<V>(
+	private static async callAuth<V>(
 		endpoint: string,
 		init: RequestInit
-	): Promise<V> {
-		let response: Response = await this.fetchAuthenticated(endpoint, init);
+	): Promise<Response> {
+		let response: Response = await this.fetchAuth(endpoint, init);
 
 		if (response.status === 401) {
 			await Session.refresh();
-			response = await this.fetchAuthenticated(endpoint, init);
+			response = await this.fetchAuth(endpoint, init);
 		}
 
-		return this.processResult(response);
+		return response;
 	}
 
-	private static fetchAuthenticated(
+	private static fetchAuth(
 		endpoint: string,
 		init: RequestInit
 	): Promise<Response> {
@@ -106,12 +120,10 @@ export default abstract class Client {
 		});
 	}
 
-	private static processResult<V>(response: Response): Promise<V> {
-		if (response.ok) {
-			return response.json();
-		} else {
+	private static verifyStatus(response: Response, statusCode: number): void {
+		if (response.status !== statusCode) {
 			// TODO: error handling
-			return Promise.reject();
+			throw new Error(response.statusText);
 		}
 	}
 }

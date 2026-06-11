@@ -37,7 +37,8 @@ export type MeetingEvent = {
 export type MeetingMutation =
 	| MeetingMutationCreate
 	| MeetingMutationUpdateName
-	| MeetingMutationUpdateDescription;
+	| MeetingMutationUpdateDescription
+	| MeetingMutationDelete;
 
 export type MeetingMutationCreate = {
 	action: "CREATE";
@@ -56,4 +57,8 @@ export type MeetingMutationUpdateDescription = {
 	position: number;
 	length: number;
 	value: string;
+};
+
+export type MeetingMutationDelete = {
+	action: "DELETE";
 };
