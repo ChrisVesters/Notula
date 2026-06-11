@@ -18,6 +18,7 @@
 
 	onMount(async () => {
 		meetings = await MeetingClient.getAll();
+		meetings.sort((a, b) => a.name.localeCompare(b.name));
 	});
 
 	const addMeeting = async (): Promise<void> => {
