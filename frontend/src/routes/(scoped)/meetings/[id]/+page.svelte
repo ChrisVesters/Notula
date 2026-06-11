@@ -1,12 +1,14 @@
 <script lang="ts">
 	import { onDestroy, onMount } from "svelte";
 
+	import { goto } from "$app/navigation";
 	import { page } from "$app/state";
 	import { t } from "$lib/assets/translations";
 
 	import IconPlus from "$lib/assets/icons/IconPlus.svelte";
 	import type { BlockMutation } from "$lib/block/BlockTypes";
 	import { BlockType } from "$lib/block/BlockTypes";
+	import BlockView from "$lib/block/BlockView.svelte";
 	import BlockWebSocketClient from "$lib/block/BlockWebSocketClient";
 	import Loading from "$lib/common/Loading.svelte";
 	import type {
@@ -17,7 +19,10 @@
 	import Input from "$lib/editor/Input.svelte";
 	import FeedbackButton from "$lib/form/FeedbackButton.svelte";
 	import MeetingInfoView from "$lib/meeting/MeetingInfoView.svelte";
-	import type { MeetingMessage } from "$lib/meeting/MeetingTypes";
+	import type {
+		MeetingMessage,
+		MeetingMutation
+	} from "$lib/meeting/MeetingTypes";
 	import MeetingWebSocketClient from "$lib/meeting/MeetingWebSocketClient";
 	import TopicAgendaView from "$lib/topic/TopicAgendaView.svelte";
 	import type {
@@ -25,7 +30,6 @@
 		TopicUpdateNameAction
 	} from "$lib/topic/TopicTypes";
 	import TopicWebSocketClient from "$lib/topic/TopicWebSocketClient";
-	import BlockView from "$lib/block/BlockView.svelte";
 
 	const id = $derived(Number(page.params.id));
 
@@ -56,7 +60,13 @@
 		// TODO: what if initial data is not yet loaded?
 		// TODO: keep in queue and apply once loaded.
 		// TODO: swich case?
-		if (event.target == "TOPIC") {
+		if (event.target == "MEETING") {
+			const mutation: MeetingMutation = event.mutation;
+			if (mutation.action === "DELETE") {
+				// TODO: show message saying the meeting was deleted/no longer exists.
+				goto("/meetings");
+			}
+		} else if (event.target == "TOPIC") {
 			const mutation: TopicMutation = event.mutation;
 			if (mutation.action === "CREATE") {
 				meeting?.topics.push({
