@@ -2,12 +2,14 @@
 	import { goto } from "$app/navigation";
 	import { page } from "$app/state";
 
-	import IconDashboard from "$lib/assets/icons/IconDashboard.svelte";
+	import { t } from "$lib/assets/translations";
+
 	import IconLogout from "$lib/assets/icons/IconLogOut.svelte";
 	import IconNotes from "$lib/assets/icons/IconMeetings.svelte";
 	import IconSidebarClose from "$lib/assets/icons/IconSidebarClose.svelte";
 	import IconSidebarOpen from "$lib/assets/icons/IconSidebarOpen.svelte";
-	import { t } from "$lib/assets/translations";
+	import IconSwitchOrganisation from "$lib/assets/icons/IconSwitchOrganisation.svelte";
+	
 	import Session from "$lib/auth/Session";
 	import SessionClient from "$lib/session/SessionClient";
 
@@ -58,13 +60,22 @@
 		</div>
 
 		<div class="sidebar-footer">
+			<a
+				href="/select-organisation"
+				class="toggle-btn nav-link"
+				aria-label="Switch organisation"
+			>
+				<IconSwitchOrganisation />
+				<span>{$t("common.switchOrganisation")}</span>
+			</a>
+
 			<button
 				class="toggle-btn nav-link"
 				onclick={handleLogOut}
 				aria-label="Log out"
 			>
 				<IconLogout />
-				<span> {$t("common.logout")} </span>
+				<span>{$t("common.logout")}</span>
 			</button>
 		</div>
 	</nav>

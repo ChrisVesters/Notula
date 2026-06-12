@@ -18,19 +18,19 @@
 		organisations = await OrganisationClient.getAll();
 	});
 
-	function selectOrganisation(organisationId: number) {
-		SessionClient.update(Session.getId(), { organisationId })
-			.then(session => {
-				Session.update(session);
-				goto("/meetings");
-			})
-			.catch(error => {
+	const selectOrganisation = async (organisationId: number) => {
+		try {
+		const session = await SessionClient.update(Session.getId(), { organisationId });
+		Session.update(session);
+		goto("/meetings");
+	} catch (error) {
+
 				// TODO: better error handling
 				alert("Switching organisation failed. Please try again.");
-			});
+			}
 	}
 
-	function createOrganisation(event: SubmitEvent) {
+	const createOrganisation = async (event: SubmitEvent) => {
 		event.preventDefault();
 
 		nameError = "";
@@ -40,17 +40,14 @@
 			return;
 		}
 
-		OrganisationClient.create({ name })
-			.then(organisation => {
-				// TODO: refresh token with created organisation.
-				// Then redirect to dashboard
-				goto("/meetings");
-			})
-			.catch(error => {
-				// TODO: better error handling:
-				alert("Creating organisation failed. Please try again.");
-			});
-	}
+		try {
+			const organisation = await OrganisationClient.create({ name });
+			selectOrganisation(organisation.id);
+		} catch (error) {
+			// TODO: better error handling:
+			alert("Creating organisation failed. Please try again.");
+		}
+	};
 </script>
 
 <section class="card" style="margin-top: 2rem;">
