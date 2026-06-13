@@ -34,4 +34,18 @@ public final class TopicActionMatcher {
 			assertThat(actual.getValue()).isEqualTo(expected.getValue());
 		}
 	}
+
+	public static class UpdateDescription
+			extends Matcher<TopicAction.UpdateDescription> {
+
+		public UpdateDescription(final TopicAction.UpdateDescription expected) {
+			super(expected, TopicAction.UpdateDescription.class);
+		}
+
+		public void assertEquals(final TopicAction.UpdateDescription actual) {
+			assertThat(actual.getPosition()).isEqualTo(expected.getPosition());
+			assertThat(actual.getLength()).isEqualTo(expected.getLength());
+			assertThat(actual.getValue()).isEqualTo(expected.getValue());
+		}
+	}
 }

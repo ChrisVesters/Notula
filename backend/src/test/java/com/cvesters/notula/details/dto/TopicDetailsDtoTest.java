@@ -28,15 +28,18 @@ class TopicDetailsDtoTest {
 			final List<TestBlock> blocks = TestBlock.ofTopic(topic);
 			final List<BlockDetails> blocksDetails = blocks.stream()
 					.map(TestBlock::info)
-					.map(info -> new BlockDetails(info, new BlockContent.Text()))
+					.map(info -> new BlockDetails(info,
+							new BlockContent.Text()))
 					.toList();
-					
+
 			final var details = new TopicDetails(topicInfo, blocksDetails);
 
 			final TopicDetailsDto dto = new TopicDetailsDto(details);
 
 			assertThat(dto.getId()).isEqualTo(details.getId());
 			assertThat(dto.getName()).isEqualTo(details.getName());
+			assertThat(dto.getDescription())
+					.isEqualTo(details.getDescription());
 			assertThat(dto.getBlocks()).hasSize(blocks.size());
 			blocks.forEach(block -> {
 				assertThat(dto.getBlocks()).anySatisfy(b -> {

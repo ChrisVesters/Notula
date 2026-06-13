@@ -31,18 +31,22 @@ class TopicInfoTest {
 					.isEqualTo(ORGANISATION.getId());
 			assertThat(result.getMeetingId()).isEqualTo(MEETING.getId());
 			assertThat(result.getName()).isEqualTo(TOPIC.getName());
+			assertThat(result.getDescription()).isEmpty();
 		}
 
 		@Test
 		void withId() {
 			final var result = new TopicInfo(TOPIC.getId(),
-					ORGANISATION.getId(), MEETING.getId(), TOPIC.getName());
+					ORGANISATION.getId(), MEETING.getId(), TOPIC.getName(),
+					TOPIC.getDescription());
 
 			assertThat(result.getId()).isEqualTo(TOPIC.getId());
 			assertThat(result.getOrganisationId())
 					.isEqualTo(ORGANISATION.getId());
 			assertThat(result.getMeetingId()).isEqualTo(MEETING.getId());
 			assertThat(result.getName()).isEqualTo(TOPIC.getName());
+			assertThat(result.getDescription())
+					.isEqualTo(TOPIC.getDescription());
 		}
 
 		@Test
@@ -51,9 +55,23 @@ class TopicInfoTest {
 			final long organisationId = ORGANISATION.getId();
 			final long meetingId = MEETING.getId();
 			final String name = null;
+			final String description = TOPIC.getDescription();
 
-			assertThatThrownBy(
-					() -> new TopicInfo(id, organisationId, meetingId, name))
+			assertThatThrownBy(() -> new TopicInfo(id, organisationId,
+					meetingId, name, description))
+							.isInstanceOf(NullPointerException.class);
+		}
+
+		@Test
+		void descriptionNull() {
+			final long id = TOPIC.getId();
+			final long organisationId = ORGANISATION.getId();
+			final long meetingId = MEETING.getId();
+			final String name = TOPIC.getName();
+			final String description = null;
+
+			assertThatThrownBy(() -> new TopicInfo(id, organisationId,
+					meetingId, name, description))
 							.isInstanceOf(NullPointerException.class);
 		}
 	}
@@ -75,6 +93,27 @@ class TopicInfoTest {
 		@Test
 		void nameNull() {
 			assertThatThrownBy(() -> topicInfo.setName(null))
+					.isInstanceOf(NullPointerException.class);
+		}
+	}
+
+	@Nested
+	class SetDescription {
+
+		private TopicInfo topicInfo = TOPIC.info();
+
+		@Test
+		void success() {
+			final String description = "New description";
+
+			topicInfo.setDescription(description);
+
+			assertThat(topicInfo.getDescription()).isEqualTo(description);
+		}
+
+		@Test
+		void descriptionNull() {
+			assertThatThrownBy(() -> topicInfo.setDescription(null))
 					.isInstanceOf(NullPointerException.class);
 		}
 	}

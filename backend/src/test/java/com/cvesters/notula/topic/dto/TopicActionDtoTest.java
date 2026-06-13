@@ -38,4 +38,21 @@ class TopicActionDtoTest {
 			assertThat(bdo).is(matcher.equal());
 		}
 	}
+
+	@Nested
+	class UpdateDescription {
+
+		@Test
+		void toBdo() {
+			final var dto = new TopicActionDto.Update.Description(5, 2,
+					"Updated");
+			final TopicAction.Update bdo = dto.toBdo();
+
+			final var expected = new TopicAction.UpdateDescription(5, 2,
+					"Updated");
+			final var matcher = new TopicActionMatcher.UpdateDescription(
+					expected);
+			assertThat(bdo).is(matcher.equal());
+		}
+	}
 }

@@ -31,6 +31,7 @@ class TopicDaoTest {
 			assertThat(dao.getOrganisationId()).isEqualTo(ORGANISATION.getId());
 			assertThat(dao.getMeetingId()).isEqualTo(MEETING.getId());
 			assertThat(dao.getName()).isEqualTo(TOPIC.getName());
+			assertThat(dao.getDescription()).isEqualTo(TOPIC.getDescription());
 		}
 
 		@Test
@@ -47,12 +48,16 @@ class TopicDaoTest {
 
 		@Test
 		void success() {
-			final var updated = new TopicInfo(ORGANISATION.getId(),
-					MEETING.getId(), "Updated name");
+			final String updatedName = "Updated name";
+			final String updatedDescription = "Updated description";
+
+			final var updated = new TopicInfo(TOPIC.getId(), ORGANISATION.getId(),
+					MEETING.getId(), updatedName, updatedDescription);
 
 			dao.update(updated);
 
-			assertThat(dao.getName()).isEqualTo(updated.getName());
+			assertThat(dao.getName()).isEqualTo(updatedName);
+			assertThat(dao.getDescription()).isEqualTo(updatedDescription);
 		}
 
 		@Test
@@ -79,6 +84,7 @@ class TopicDaoTest {
 			assertThat(bdo.getOrganisationId()).isEqualTo(ORGANISATION.getId());
 			assertThat(bdo.getMeetingId()).isEqualTo(MEETING.getId());
 			assertThat(bdo.getName()).isEqualTo(TOPIC.getName());
+			assertThat(bdo.getDescription()).isEqualTo(TOPIC.getDescription());
 		}
 
 		@Test

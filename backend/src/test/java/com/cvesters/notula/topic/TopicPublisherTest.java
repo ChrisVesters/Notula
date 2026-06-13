@@ -76,6 +76,29 @@ class TopicPublisherTest {
 		}
 
 		@Test
+		void updateDescription() {
+			final var action = new TopicAction.UpdateDescription(4, 12,
+					"Updated");
+			final var event = new TopicEvent(TOPIC_ID, action);
+
+			publisher.publish(MEETING_ID, event);
+
+			verify(messagingTemplate).convertAndSend(eq(DESTINATION),
+					argThat((TopicEventDto dto) -> {
+						assertThat(dto.getTopicId()).isEqualTo(TOPIC_ID);
+						assertThat(dto.getMutation()).isInstanceOf(
+								TopicMutationDto.UpdateDescription.class);
+
+						final var mutation = (TopicMutationDto.UpdateDescription) dto
+								.getMutation();
+						assertThat(mutation.getPosition()).isEqualTo(4);
+						assertThat(mutation.getLength()).isEqualTo(12);
+						assertThat(mutation.getValue()).isEqualTo("Updated");
+						return true;
+					}));
+		}
+
+		@Test
 		void eventNull() {
 			assertThatThrownBy(() -> publisher.publish(MEETING_ID, null))
 					.isInstanceOf(NullPointerException.class);

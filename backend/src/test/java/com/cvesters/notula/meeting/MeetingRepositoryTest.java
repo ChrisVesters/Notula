@@ -44,6 +44,10 @@ class MeetingRepositoryTest extends RepositoryTest {
 				assertThat(meeting.getDescription())
 						.isEqualTo(MEETING.getDescription());
 			});
+
+			final var expected = entityManager.find(MeetingDao.class,
+					MEETING.getId());
+			assertThat(dao).contains(expected);
 		}
 
 		@Test
@@ -104,6 +108,7 @@ class MeetingRepositoryTest extends RepositoryTest {
 			final List<MeetingDao> result = meetingRepository
 					.findAllByOrganisationId(organisationId);
 
+			// TODO: clean up
 			assertThat(result).hasSize(3).anySatisfy(meeting -> {
 				final TestMeeting expectedMeeting = TestMeeting.SPORER_PROJECT;
 				assertThat(meeting.getId()).isEqualTo(expectedMeeting.getId());
@@ -150,14 +155,15 @@ class MeetingRepositoryTest extends RepositoryTest {
 		void newMeeting() {
 			final TestOrganisation organisation = TestOrganisation.SPORER;
 			final String name = "test";
+
 			final var bdo = new MeetingInfo(organisation.getId(), name);
 			final var dao = new MeetingDao(bdo);
 			final MeetingDao saved = meetingRepository.save(dao);
 
 			assertThat(saved.getId()).isNotNull();
-			assertThat(saved.getName()).isEqualTo(name);
 			assertThat(saved.getOrganisationId())
 					.isEqualTo(organisation.getId());
+			assertThat(saved.getName()).isEqualTo(name);
 			assertThat(saved.getDescription()).isEmpty();
 
 			final MeetingDao found = entityManager.find(MeetingDao.class,

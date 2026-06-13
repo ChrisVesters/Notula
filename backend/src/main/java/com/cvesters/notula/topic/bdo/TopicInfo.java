@@ -13,20 +13,23 @@ public class TopicInfo {
 	private final long organisationId;
 	private final long meetingId;
 	private String name;
+	private String description;
 
 	public TopicInfo(final long organisationId, final long meetingId,
 			final String name) {
-		this(null, organisationId, meetingId, name);
+		this(null, organisationId, meetingId, name, "");
 	}
 
 	public TopicInfo(final Long id, final long organisationId,
-			final long meetingId, final String name) {
+			final long meetingId, final String name, final String description) {
 		Objects.requireNonNull(name);
+		Objects.requireNonNull(description);
 
 		this.id = id;
 		this.organisationId = organisationId;
 		this.meetingId = meetingId;
 		this.name = name;
+		this.description = description;
 	}
 
 	public long getId() {
@@ -39,5 +42,11 @@ public class TopicInfo {
 		Objects.requireNonNull(name);
 
 		this.name = name;
+	}
+
+	public void setDescription(final String description) {
+		Objects.requireNonNull(description);
+
+		this.description = description;
 	}
 }

@@ -34,23 +34,28 @@ public class TopicDao {
 	@Column(nullable = false)
 	private String name;
 
+	@Column(nullable = false)
+	private String description;
+
 	public TopicDao(final TopicInfo topic) {
 		Objects.requireNonNull(topic);
 
 		this.organisationId = topic.getOrganisationId();
 		this.meetingId = topic.getMeetingId();
 		this.name = topic.getName();
+		this.description = topic.getDescription();
 	}
 
 	public void update(final TopicInfo bdo) {
 		Objects.requireNonNull(bdo);
 
 		this.name = bdo.getName();
+		this.description = bdo.getDescription();
 	}
 
 	public TopicInfo toBdo() {
 		Validate.validState(id != null);
 
-		return new TopicInfo(id, organisationId, meetingId, name);
+		return new TopicInfo(id, organisationId, meetingId, name, description);
 	}
 }

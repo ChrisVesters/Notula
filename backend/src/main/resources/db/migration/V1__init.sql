@@ -61,6 +61,7 @@ CREATE TABLE topics(
 	organisation_id BIGINT NOT NULL,
 	meeting_id BIGINT NOT NULL,
 	name TEXT NOT NULL,
+	description TEXT NOT NULL,
 
 	PRIMARY KEY(id),
 	FOREIGN KEY(organisation_id) REFERENCES organisations(id) ON DELETE CASCADE,
