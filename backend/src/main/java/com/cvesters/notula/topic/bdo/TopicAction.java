@@ -35,4 +35,15 @@ public sealed interface TopicAction {
 					value);
 		}
 	}
+
+	@Getter
+	final class UpdateDescription extends TextUpdate<TopicInfo>
+			implements TopicAction.Update {
+
+		public UpdateDescription(final int position, final int length,
+				final String value) {
+			super(TopicInfo::getDescription, TopicInfo::setDescription,
+					position, length, value);
+		}
+	}
 }

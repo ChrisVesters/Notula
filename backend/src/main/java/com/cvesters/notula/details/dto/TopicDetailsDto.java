@@ -12,6 +12,7 @@ public class TopicDetailsDto {
 
 	private final long id;
 	private final String name;
+	private final String description;
 
 	private final List<BlockDetailsDto> blocks;
 
@@ -20,6 +21,7 @@ public class TopicDetailsDto {
 
 		this.id = details.getId();
 		this.name = details.getName();
+		this.description = details.getDescription();
 		this.blocks = details.getBlocks()
 				.stream()
 				.map(BlockDetailsDto::new)

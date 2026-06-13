@@ -106,6 +106,7 @@ class TopicRepositoryTest extends RepositoryTest {
 			final TestMeeting meeting = TestMeeting.SPORER_Q2_PLANNING;
 			final TestOrganisation organisation = meeting.getOrganisation();
 			final String name = "New Product Launches";
+
 			final var bdo = new TopicInfo(organisation.getId(), meeting.getId(),
 					name);
 			final var dao = new TopicDao(bdo);
@@ -117,6 +118,7 @@ class TopicRepositoryTest extends RepositoryTest {
 					.isEqualTo(organisation.getId());
 			assertThat(saved.getMeetingId()).isEqualTo(meeting.getId());
 			assertThat(saved.getName()).isEqualTo(name);
+			assertThat(saved.getDescription()).isEmpty();
 
 			final TopicDao found = entityManager.find(TopicDao.class,
 					saved.getId());
@@ -126,6 +128,7 @@ class TopicRepositoryTest extends RepositoryTest {
 					.isEqualTo(saved.getOrganisationId());
 			assertThat(found.getMeetingId()).isEqualTo(saved.getMeetingId());
 			assertThat(found.getName()).isEqualTo(saved.getName());
+			assertThat(found.getDescription()).isEmpty();
 		}
 
 		@Test
@@ -142,5 +145,6 @@ class TopicRepositoryTest extends RepositoryTest {
 				.isEqualTo(topic.getMeeting().getOrganisation().getId());
 		assertThat(dao.getMeetingId()).isEqualTo(topic.getMeeting().getId());
 		assertThat(dao.getName()).isEqualTo(topic.getName());
+		assertThat(dao.getDescription()).isEqualTo(topic.getDescription());
 	}
 }

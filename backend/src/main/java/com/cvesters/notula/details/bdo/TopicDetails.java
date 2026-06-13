@@ -12,6 +12,7 @@ public class TopicDetails {
 
 	private final long id;
 	private final String name;
+	private final String description;
 
 	private List<BlockDetails> blocks;
 
@@ -21,6 +22,7 @@ public class TopicDetails {
 
 		this.id = info.getId();
 		this.name = info.getName();
+		this.description = info.getDescription();
 
 		this.blocks = List.copyOf(blocks);
 	}

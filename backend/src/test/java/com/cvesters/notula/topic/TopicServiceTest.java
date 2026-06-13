@@ -95,6 +95,7 @@ class TopicServiceTest {
 
 		private static final long TOPIC_ID = Long.MAX_VALUE;
 		private static final String TOPIC_NAME = "Topic";
+		private static final String TOPIC_DESCRIPTION = "Description";
 
 		private static final TestSession SESSION = TestSession.EDUARDO_CHRISTIANSEN_SPORER;
 		private static final Principal PRINCIPAL = SESSION.principal();
@@ -108,7 +109,7 @@ class TopicServiceTest {
 			final TopicAction.Create topic = new TopicAction.Create(TOPIC_NAME);
 
 			final var created = new TopicInfo(TOPIC_ID, ORGANISATION.getId(),
-					MEETING.getId(), TOPIC_NAME);
+					MEETING.getId(), TOPIC_NAME, TOPIC_DESCRIPTION);
 
 			when(meetingService.getById(PRINCIPAL, meetingId))
 					.thenReturn(MEETING.info());
@@ -120,6 +121,7 @@ class TopicServiceTest {
 						.isEqualTo(ORGANISATION.getId());
 				assertThat(t.getMeetingId()).isEqualTo(meetingId);
 				assertThat(t.getName()).isEqualTo(TOPIC_NAME);
+				assertThat(t.getDescription()).isEmpty();
 				return true;
 			}))).thenReturn(created);
 

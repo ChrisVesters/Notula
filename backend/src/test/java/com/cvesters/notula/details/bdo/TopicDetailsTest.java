@@ -33,6 +33,7 @@ class TopicDetailsTest {
 
 			assertThat(details.getId()).isEqualTo(TOPICS.getId());
 			assertThat(details.getName()).isEqualTo(TOPICS.getName());
+			assertThat(details.getDescription()).isEqualTo(TOPICS.getDescription());
 			assertThat(details.getBlocks()).isEqualTo(blocksDetails);
 		}
 
