@@ -6,6 +6,7 @@ import java.util.Optional;
 
 import org.springframework.stereotype.Service;
 
+import com.cvesters.notula.common.exception.MissingEntityException;
 import com.cvesters.notula.organisation.bdo.OrganisationInfo;
 import com.cvesters.notula.organisation.dao.OrganisationDao;
 
@@ -35,6 +36,18 @@ public class OrganisationStorageGateway {
 		final var dao = new OrganisationDao(organisation);
 		final var saved = repository.save(dao);
 		return saved.toBdo();
+	}
+
+	public OrganisationInfo update(final OrganisationInfo update) {
+		Objects.requireNonNull(update);
+
+		final var dao = repository.findById(update.getId())
+				.orElseThrow(MissingEntityException::new);
+
+		dao.update(update);
+		final OrganisationDao updated = repository.save(dao);
+
+		return updated.toBdo();
 	}
 
 }

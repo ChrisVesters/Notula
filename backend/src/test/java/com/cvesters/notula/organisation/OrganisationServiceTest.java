@@ -3,6 +3,7 @@ package com.cvesters.notula.organisation;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.argThat;
+import static org.mockito.Mockito.inOrder;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -13,6 +14,7 @@ import java.util.Optional;
 
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
+import org.mockito.InOrder;
 
 import com.cvesters.notula.common.domain.Principal;
 import com.cvesters.notula.common.exception.MissingEntityException;
@@ -204,6 +206,61 @@ class OrganisationServiceTest {
 
 			assertThatThrownBy(
 					() -> organisationService.create(principal, organisation))
+							.isInstanceOf(NullPointerException.class);
+		}
+	}
+
+	@Nested
+	class Update {
+
+		@Test
+		void success() {
+			final Principal principal = SESSION.principal();
+			final OrganisationUserInfo organisationUserInfo = ORGANISATION_USER
+					.info();
+			final OrganisationInfo bdo = mock();
+
+			when(organisationUserStorage.findByUserIdAndOrganisationId(
+					USER.getId(), ORGANISATION.getId()))
+							.thenReturn(Optional.of(organisationUserInfo));
+
+			when(organisationStorage.findById(ORGANISATION.getId()))
+					.thenReturn(Optional.of(bdo));
+
+			final OrganisationInfo updated = mock();
+			when(organisationStorage.update(bdo)).thenReturn(updated);
+
+			final OrganisationInfo update = mock();
+			final OrganisationInfo result = organisationService
+					.update(principal, ORGANISATION.getId(), update);
+
+			assertThat(result).isEqualTo(updated);
+
+			final InOrder order = inOrder(bdo, organisationStorage);
+			order.verify(bdo).update(update);
+			order.verify(organisationStorage).update(bdo);
+		}
+
+		@Test
+		void organisationNull() {
+			final Principal principal = SESSION.principal();
+			final long organisationId = ORGANISATION.getId();
+			final OrganisationInfo organisation = null;
+
+			assertThatThrownBy(() -> organisationService.update(principal,
+					organisationId, organisation))
+							.isInstanceOf(NullPointerException.class);
+		}
+
+		@Test
+		void principalNull() {
+			final Principal principal = null;
+			final long organisationId = ORGANISATION.getId();
+			final OrganisationInfo organisation = new OrganisationInfo(
+					ORGANISATION.getName());
+
+			assertThatThrownBy(() -> organisationService.update(principal,
+					organisationId, organisation))
 							.isInstanceOf(NullPointerException.class);
 		}
 	}

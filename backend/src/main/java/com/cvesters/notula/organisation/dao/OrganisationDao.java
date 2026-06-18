@@ -34,6 +34,12 @@ public class OrganisationDao {
 		this.name = bdo.getName();
 	}
 
+	public void update(final OrganisationInfo bdo) {
+		Objects.requireNonNull(bdo);
+
+		this.name = bdo.getName();
+	}
+
 	public OrganisationInfo toBdo() {
 		Validate.validState(id != null);
 
