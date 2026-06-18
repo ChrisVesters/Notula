@@ -7,6 +7,7 @@ import jakarta.validation.Valid;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -38,6 +39,18 @@ public class OrganisationController extends BaseController {
 		final List<OrganisationInfoDto> dto = organisations.stream()
 				.map(OrganisationInfoDto::new)
 				.toList();
+
+		return ResponseEntity.ok(dto);
+	}
+
+	@GetMapping(path = "/{id}")
+	public ResponseEntity<OrganisationInfoDto> get(
+			@PathVariable final long id) {
+		final Principal principal = getPrincipal();
+
+		final OrganisationInfo organisation = organisationService.get(principal,
+				id);
+		final var dto = new OrganisationInfoDto(organisation);
 
 		return ResponseEntity.ok(dto);
 	}

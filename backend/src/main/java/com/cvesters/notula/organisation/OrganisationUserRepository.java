@@ -1,14 +1,19 @@
 package com.cvesters.notula.organisation;
 
 import java.util.List;
+import java.util.Optional;
 
 import org.springframework.data.repository.Repository;
 
 import com.cvesters.notula.organisation.dao.OrganisationUserDao;
 
-public interface OrganisationUserRepository extends Repository<OrganisationUserDao, Long> {
+public interface OrganisationUserRepository
+		extends Repository<OrganisationUserDao, Long> {
 
 	List<OrganisationUserDao> findAllByUserId(long userId);
+
+	Optional<OrganisationUserDao> findByUserIdAndOrganisationId(long userId,
+			long organisationId);
 
 	OrganisationUserDao save(final OrganisationUserDao organisationUserDao);
 }

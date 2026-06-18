@@ -5,6 +5,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.util.Collections;
 import java.util.List;
+import java.util.Optional;
 
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -101,6 +102,31 @@ class OrganisationRepositoryTest extends RepositoryTest {
 		void idsNull() {
 			assertThatThrownBy(() -> organisationRepository.findAllById(null))
 					.isInstanceOf(InvalidDataAccessApiUsageException.class);
+		}
+	}
+
+	@Nested
+	class FindById {
+
+		@Test
+		void found() {
+			final TestOrganisation organisation = TestOrganisation.SPORER;
+
+			final Optional<OrganisationDao> result = organisationRepository
+					.findById(organisation.getId());
+
+			assertThat(result).hasValueSatisfying(dao -> {
+				assertThat(dao.getId()).isEqualTo(organisation.getId());
+				assertThat(dao.getName()).isEqualTo(organisation.getName());
+			});
+		}
+
+		@Test
+		void notFound() {
+			final Optional<OrganisationDao> result = organisationRepository
+					.findById(Long.MAX_VALUE);
+
+			assertThat(result).isEmpty();
 		}
 	}
 

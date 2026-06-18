@@ -9,12 +9,15 @@ import static org.mockito.Mockito.when;
 
 import java.util.Collections;
 import java.util.List;
+import java.util.Optional;
 
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 
 import com.cvesters.notula.common.domain.Principal;
+import com.cvesters.notula.common.exception.MissingEntityException;
 import com.cvesters.notula.organisation.bdo.OrganisationInfo;
+import com.cvesters.notula.organisation.bdo.OrganisationUserInfo;
 import com.cvesters.notula.session.TestSession;
 import com.cvesters.notula.user.TestUser;
 
@@ -88,6 +91,72 @@ class OrganisationServiceTest {
 
 			assertThatThrownBy(() -> organisationService.getAll(principal))
 					.isInstanceOf(NullPointerException.class);
+		}
+	}
+
+	@Nested
+	class Get {
+
+		@Test
+		void success() {
+			final Principal principal = SESSION.principal();
+			final OrganisationUserInfo organisationUserInfo = ORGANISATION_USER
+					.info();
+			final OrganisationInfo organisationInfo = ORGANISATION.info();
+
+			when(organisationUserStorage.findByUserIdAndOrganisationId(
+					USER.getId(), ORGANISATION.getId()))
+							.thenReturn(Optional.of(organisationUserInfo));
+
+			when(organisationStorage.findById(ORGANISATION.getId()))
+					.thenReturn(Optional.of(organisationInfo));
+
+			final OrganisationInfo result = organisationService.get(principal,
+					ORGANISATION.getId());
+
+			assertThat(result).isEqualTo(organisationInfo);
+		}
+
+		@Test
+		void organisationUserNotFound() {
+			final Principal principal = SESSION.principal();
+			final long organisationId = ORGANISATION.getId();
+
+			when(organisationUserStorage.findByUserIdAndOrganisationId(
+					USER.getId(), organisationId)).thenReturn(Optional.empty());
+
+			assertThatThrownBy(
+					() -> organisationService.get(principal, organisationId))
+							.isInstanceOf(MissingEntityException.class);
+		}
+
+		@Test
+		void organisationNotFound() {
+			final Principal principal = SESSION.principal();
+			final long organisationId = ORGANISATION.getId();
+
+			final OrganisationUserInfo organisationUserInfo = ORGANISATION_USER
+					.info();
+
+			when(organisationUserStorage.findByUserIdAndOrganisationId(
+					USER.getId(), organisationId))
+							.thenReturn(Optional.of(organisationUserInfo));
+
+			when(organisationStorage.findById(organisationId))
+					.thenReturn(Optional.empty());
+
+			assertThatThrownBy(
+					() -> organisationService.get(principal, organisationId))
+							.isInstanceOf(MissingEntityException.class);
+		}
+
+		@Test
+		void principalNull() {
+			final long organisationId = ORGANISATION.getId();
+
+			assertThatThrownBy(
+					() -> organisationService.get(null, organisationId))
+							.isInstanceOf(NullPointerException.class);
 		}
 	}
 

@@ -2,6 +2,7 @@ package com.cvesters.notula.organisation;
 
 import java.util.List;
 import java.util.Objects;
+import java.util.Optional;
 
 import org.springframework.stereotype.Service;
 
@@ -22,6 +23,10 @@ public class OrganisationStorageGateway {
 
 		final var daos = repository.findAllById(ids);
 		return daos.stream().map(OrganisationDao::toBdo).toList();
+	}
+
+	public Optional<OrganisationInfo> findById(final long id) {
+		return repository.findById(id).map(OrganisationDao::toBdo);
 	}
 
 	public OrganisationInfo create(final OrganisationInfo organisation) {

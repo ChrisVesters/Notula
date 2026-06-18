@@ -9,6 +9,7 @@ import static org.mockito.Mockito.when;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.Optional;
 
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -133,6 +134,36 @@ class OrganisationStorageGatewayTest {
 		void idsNull() {
 			assertThatThrownBy(() -> gateway.findAllById(null))
 					.isInstanceOf(NullPointerException.class);
+		}
+	}
+
+	@Nested
+	class FindById {
+
+		@Test
+		void found() {
+			final OrganisationDao dao = mock();
+			final OrganisationInfo bdo = mock();
+			when(dao.toBdo()).thenReturn(bdo);
+
+			when(organisationRepository.findById(ORGANISATION.getId()))
+					.thenReturn(Optional.of(dao));
+
+			final Optional<OrganisationInfo> result = gateway
+					.findById(ORGANISATION.getId());
+
+			assertThat(result).contains(bdo);
+		}
+
+		@Test
+		void notFound() {
+			when(organisationRepository.findById(ORGANISATION.getId()))
+					.thenReturn(Optional.empty());
+
+			final Optional<OrganisationInfo> result = gateway
+					.findById(ORGANISATION.getId());
+
+			assertThat(result).isEmpty();
 		}
 	}
 
