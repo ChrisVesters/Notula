@@ -37,7 +37,7 @@ import com.cvesters.notula.test.WithSession;
 @WithSession(TestSession.EDUARDO_CHRISTIANSEN)
 class OrganisationControllerTest extends ControllerTest {
 
-	private static final String ENDPOINT = "/api/organisations";
+	private static final String BASE_ENDPOINT = "/api/organisations";
 
 	private static final TestSession SESSION = TestSession.EDUARDO_CHRISTIANSEN;
 	private static final TestOrganisation ORGANISATION = TestOrganisation.SPORER;
@@ -54,13 +54,13 @@ class OrganisationControllerTest extends ControllerTest {
 			final List<TestOrganisation> organisations = List.of(ORGANISATION);
 			final List<OrganisationInfo> info = organisations.stream()
 					.map(TestOrganisation::info)
-					.collect(Collectors.toList());
+					.toList();
 
 			when(organisationService.getAll(principal)).thenReturn(info);
 
 			final String expectedResponse = getResponse(organisations);
 
-			final var builder = get(ENDPOINT);
+			final var builder = get(BASE_ENDPOINT);
 
 			mockMvc.perform(builder)
 					.andExpect(status().isOk())
@@ -74,13 +74,13 @@ class OrganisationControllerTest extends ControllerTest {
 					.of(TestOrganisation.SPORER, TestOrganisation.GLOVER);
 			final List<OrganisationInfo> info = organisations.stream()
 					.map(TestOrganisation::info)
-					.collect(Collectors.toList());
+					.toList();
 
 			when(organisationService.getAll(principal)).thenReturn(info);
 
 			final String expectedResponse = getResponse(organisations);
 
-			final var builder = get(ENDPOINT);
+			final var builder = get(BASE_ENDPOINT);
 
 			mockMvc.perform(builder)
 					.andExpect(status().isOk())
@@ -94,11 +94,11 @@ class OrganisationControllerTest extends ControllerTest {
 					.emptyList();
 			final List<OrganisationInfo> info = organisations.stream()
 					.map(TestOrganisation::info)
-					.collect(Collectors.toList());
+					.toList();
 
 			when(organisationService.getAll(principal)).thenReturn(info);
 
-			final var builder = get(ENDPOINT);
+			final var builder = get(BASE_ENDPOINT);
 
 			mockMvc.perform(builder)
 					.andExpect(status().isOk())
@@ -108,24 +108,39 @@ class OrganisationControllerTest extends ControllerTest {
 		@Test
 		@WithAnonymousUser
 		void unauthorized() throws Exception {
-			final var builder = get(ENDPOINT);
+			final var builder = get(BASE_ENDPOINT);
 
 			mockMvc.perform(builder).andExpect(status().isUnauthorized());
 		}
+	}
 
-		private String getResponse(final List<TestOrganisation> organisations) {
-			return organisations.stream()
-					.map(organisation -> getResponse(organisation))
-					.collect(Collectors.joining(",", "[", "]"));
+	@Nested
+	class Get {
+
+		private static final String ENDPOINT = BASE_ENDPOINT + "/{id}";
+
+		@Test
+		void success() throws Exception {
+			final Principal principal = SESSION.principal();
+
+			when(organisationService.get(principal, ORGANISATION.getId()))
+					.thenReturn(ORGANISATION.info());
+
+			final String expectedResponse = getResponse(ORGANISATION);
+
+			final var builder = get(ENDPOINT, ORGANISATION.getId());
+
+			mockMvc.perform(builder)
+					.andExpect(status().isOk())
+					.andExpect(content().json(expectedResponse));
 		}
 
-		private String getResponse(final TestOrganisation organisation) {
-			return """
-					{
-						"id": %s,
-						"name": "%s"
-					}
-					""".formatted(organisation.getId(), organisation.getName());
+		@Test
+		@WithAnonymousUser
+		void unauthorized() throws Exception {
+			final var builder = get(ENDPOINT, ORGANISATION.getId());
+
+			mockMvc.perform(builder).andExpect(status().isUnauthorized());
 		}
 	}
 
@@ -138,7 +153,7 @@ class OrganisationControllerTest extends ControllerTest {
 			final OrganisationInfo info = ORGANISATION.info();
 
 			when(organisationService.create(eq(principal), argThat(org -> {
-				assertThatThrownBy(() -> org.getId())
+				assertThatThrownBy(org::getId)
 						.isInstanceOf(IllegalStateException.class);
 				assertThat(org.getName()).isEqualTo(ORGANISATION.getName());
 				return true;
@@ -147,20 +162,21 @@ class OrganisationControllerTest extends ControllerTest {
 			final String body = getBody(ORGANISATION);
 			final String expectedResponse = getResponse(ORGANISATION);
 
-			final var builder = post(ENDPOINT).content(body)
+			final var builder = post(BASE_ENDPOINT).content(body)
 					.contentType(MediaType.APPLICATION_JSON);
 
 			mockMvc.perform(builder)
 					.andExpect(status().isCreated())
 					.andExpect(header().string("location",
-							getUrl(ENDPOINT + "/" + ORGANISATION.getId())))
+							getUrl(BASE_ENDPOINT + "/" + ORGANISATION.getId())))
 					.andExpect(content().json(expectedResponse));
 		}
 
 		@Test
 		@WithAnonymousUser
 		void unauthorized() throws Exception {
-			final var builder = post(ENDPOINT).content(getBody(ORGANISATION))
+			final var builder = post(BASE_ENDPOINT)
+					.content(getBody(ORGANISATION))
 					.contentType(MediaType.APPLICATION_JSON);
 
 			mockMvc.perform(builder).andExpect(status().isUnauthorized());
@@ -173,7 +189,7 @@ class OrganisationControllerTest extends ControllerTest {
 
 			final String body = getBody(ORGANISATION);
 
-			final var builder = post(ENDPOINT).content(body)
+			final var builder = post(BASE_ENDPOINT).content(body)
 					.contentType(MediaType.APPLICATION_JSON);
 
 			mockMvc.perform(builder)
@@ -186,7 +202,7 @@ class OrganisationControllerTest extends ControllerTest {
 		void nameInvalid(final String name) throws Exception {
 			final String body = getBody(name);
 
-			final var builder = post(ENDPOINT).content(body)
+			final var builder = post(BASE_ENDPOINT).content(body)
 					.contentType(MediaType.APPLICATION_JSON);
 
 			mockMvc.perform(builder).andExpect(status().isBadRequest());
@@ -207,14 +223,20 @@ class OrganisationControllerTest extends ControllerTest {
 					}
 					""".formatted(formattedName);
 		}
+	}
 
-		private String getResponse(final TestOrganisation organisation) {
-			return """
-					{
-						"id": %s,
-						"name": "%s"
-					}
-					""".formatted(organisation.getId(), organisation.getName());
-		}
+	private String getResponse(final List<TestOrganisation> organisations) {
+		return organisations.stream()
+				.map(this::getResponse)
+				.collect(Collectors.joining(",", "[", "]"));
+	}
+
+	private String getResponse(final TestOrganisation organisation) {
+		return """
+				{
+					"id": %s,
+					"name": "%s"
+				}
+				""".formatted(organisation.getId(), organisation.getName());
 	}
 }

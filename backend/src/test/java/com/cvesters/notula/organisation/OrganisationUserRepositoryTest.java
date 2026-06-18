@@ -20,6 +20,7 @@ public class OrganisationUserRepositoryTest extends RepositoryTest {
 	private static final TestOrganisationUser ORGANISATION_USER = TestOrganisationUser.SPORER_EDUARDO_CHRISTIANSEN;
 	private static final TestOrganisation ORGANISATION = ORGANISATION_USER
 			.getOrganisation();
+	private static final TestUser USER = ORGANISATION_USER.getUser();
 
 	@Autowired
 	private OrganisationUserRepository organisationUserRepository;
@@ -74,6 +75,34 @@ public class OrganisationUserRepositoryTest extends RepositoryTest {
 					.findAllByUserId(userId);
 
 			assertThat(organisationUsers).isEmpty();
+		}
+	}
+
+	@Nested
+	class FindByUserIdAndOrganisationId {
+
+		@Test
+		void found() {
+			final var result = organisationUserRepository
+					.findByUserIdAndOrganisationId(USER.getId(),
+							ORGANISATION.getId());
+
+			assertThat(result).hasValueSatisfying(orgUser -> {
+				assertThat(orgUser.getId())
+						.isEqualTo(ORGANISATION_USER.getId());
+				assertThat(orgUser.getOrganisationId())
+						.isEqualTo(ORGANISATION.getId());
+				assertThat(orgUser.getUserId()).isEqualTo(USER.getId());
+			});
+		}
+
+		@Test
+		void notFound() {
+			final var result = organisationUserRepository
+					.findByUserIdAndOrganisationId(Long.MAX_VALUE,
+							Long.MAX_VALUE);
+
+			assertThat(result).isEmpty();
 		}
 	}
 

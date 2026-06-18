@@ -6,6 +6,7 @@ import java.util.Objects;
 import org.springframework.stereotype.Service;
 
 import com.cvesters.notula.common.domain.Principal;
+import com.cvesters.notula.common.exception.MissingEntityException;
 import com.cvesters.notula.organisation.bdo.OrganisationInfo;
 import com.cvesters.notula.organisation.bdo.OrganisationUserInfo;
 
@@ -32,6 +33,18 @@ public class OrganisationService {
 				.toList();
 
 		return organisationStorage.findAllById(organisationIds);
+	}
+
+	public OrganisationInfo get(final Principal principal, final long id) {
+		Objects.requireNonNull(principal);
+
+		final OrganisationUserInfo organisationUser = organisationUserStorage
+				.findByUserIdAndOrganisationId(principal.userId(), id)
+				.orElseThrow(MissingEntityException::new);
+
+		return organisationStorage
+				.findById(organisationUser.getOrganisationId())
+				.orElseThrow(MissingEntityException::new);
 	}
 
 	public OrganisationInfo create(final Principal principal,
