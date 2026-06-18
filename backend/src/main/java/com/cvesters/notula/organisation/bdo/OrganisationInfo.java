@@ -10,7 +10,7 @@ import lombok.Getter;
 public class OrganisationInfo {
 
 	private final Long id;
-	private final String name;
+	private String name;
 
 	public OrganisationInfo(final String name) {
 		this(null, name);
@@ -28,5 +28,11 @@ public class OrganisationInfo {
 		Validate.validState(id != null);
 
 		return id;
-	}	
+	}
+
+	public void update(final OrganisationInfo update) {
+		Objects.requireNonNull(update);
+
+		this.name = update.getName();
+	}
 }

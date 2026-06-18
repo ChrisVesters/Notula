@@ -9,6 +9,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
@@ -18,6 +19,7 @@ import com.cvesters.notula.common.domain.Principal;
 import com.cvesters.notula.organisation.bdo.OrganisationInfo;
 import com.cvesters.notula.organisation.dto.OrganisationCreateDto;
 import com.cvesters.notula.organisation.dto.OrganisationInfoDto;
+import com.cvesters.notula.organisation.dto.OrganisationUpdateDto;
 
 @RestController
 @RequestMapping("/api/organisations")
@@ -43,18 +45,6 @@ public class OrganisationController extends BaseController {
 		return ResponseEntity.ok(dto);
 	}
 
-	@GetMapping(path = "/{id}")
-	public ResponseEntity<OrganisationInfoDto> get(
-			@PathVariable final long id) {
-		final Principal principal = getPrincipal();
-
-		final OrganisationInfo organisation = organisationService.get(principal,
-				id);
-		final var dto = new OrganisationInfoDto(organisation);
-
-		return ResponseEntity.ok(dto);
-	}
-
 	@PostMapping(consumes = MediaType.APPLICATION_JSON_VALUE, produces = MediaType.APPLICATION_JSON_VALUE)
 	public ResponseEntity<OrganisationInfoDto> create(
 			@Valid @RequestBody OrganisationCreateDto request) {
@@ -67,6 +57,31 @@ public class OrganisationController extends BaseController {
 		return ResponseEntity
 				.created(getLocation("/{id}", organisation.getId()))
 				.body(dto);
+	}
+
+	@GetMapping(path = "/{id}")
+	public ResponseEntity<OrganisationInfoDto> get(
+			@PathVariable final long id) {
+		final Principal principal = getPrincipal();
+
+		final OrganisationInfo organisation = organisationService.get(principal,
+				id);
+		final var dto = new OrganisationInfoDto(organisation);
+
+		return ResponseEntity.ok(dto);
+	}
+
+	@PutMapping(path = "/{id}")
+	public ResponseEntity<OrganisationInfoDto> update(
+			@PathVariable final long id,
+			@Valid @RequestBody OrganisationUpdateDto request) {
+		final Principal principal = getPrincipal();
+
+		final OrganisationInfo organisation = organisationService
+				.update(principal, id, request.toBdo());
+		final var dto = new OrganisationInfoDto(organisation);
+
+		return ResponseEntity.ok(dto);
 	}
 
 }

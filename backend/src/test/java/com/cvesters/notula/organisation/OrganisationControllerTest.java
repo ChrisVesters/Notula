@@ -8,6 +8,7 @@ import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -238,5 +239,75 @@ class OrganisationControllerTest extends ControllerTest {
 					"name": "%s"
 				}
 				""".formatted(organisation.getId(), organisation.getName());
+	}
+
+	@Nested
+	class Update {
+
+		private static final String ENDPOINT = BASE_ENDPOINT + "/{id}";
+
+		@Test
+		void success() throws Exception {
+			final Principal principal = SESSION.principal();
+			final OrganisationInfo info = ORGANISATION.info();
+
+			when(organisationService.update(eq(principal),
+					eq(ORGANISATION.getId()), argThat(org -> {
+						assertThatThrownBy(org::getId)
+								.isInstanceOf(IllegalStateException.class);
+						assertThat(org.getName())
+								.isEqualTo(ORGANISATION.getName());
+						return true;
+					}))).thenReturn(info);
+
+			final String body = getBody(ORGANISATION);
+			final String expectedResponse = getResponse(ORGANISATION);
+
+			final var builder = put(ENDPOINT, ORGANISATION.getId())
+					.content(body)
+					.contentType(MediaType.APPLICATION_JSON);
+
+			mockMvc.perform(builder)
+					.andExpect(status().isOk())
+					.andExpect(content().json(expectedResponse));
+		}
+
+		@Test
+		@WithAnonymousUser
+		void unauthorized() throws Exception {
+			final var builder = post(ENDPOINT, ORGANISATION.getId())
+					.content(getBody(ORGANISATION))
+					.contentType(MediaType.APPLICATION_JSON);
+
+			mockMvc.perform(builder).andExpect(status().isUnauthorized());
+		}
+
+		@ParameterizedTest
+		@NullAndEmptySource
+		@ValueSource(strings = { "     " })
+		void nameInvalid(final String name) throws Exception {
+			final String body = getBody(name);
+
+			final var builder = post(BASE_ENDPOINT).content(body)
+					.contentType(MediaType.APPLICATION_JSON);
+
+			mockMvc.perform(builder).andExpect(status().isBadRequest());
+		}
+
+		private String getBody(final TestOrganisation organisation) {
+			return getBody(organisation.getName());
+		}
+
+		private String getBody(final String name) {
+			final String formattedName = Optional.ofNullable(name)
+					.map(n -> String.format("\"%s\"", n))
+					.orElse(null);
+
+			return """
+					{
+					    "name": %s
+					}
+					""".formatted(formattedName);
+		}
 	}
 }

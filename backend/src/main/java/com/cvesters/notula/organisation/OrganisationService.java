@@ -61,4 +61,15 @@ public class OrganisationService {
 
 		return createdOrganisation;
 	}
+
+	public OrganisationInfo update(final Principal principal, final long id,
+			final OrganisationInfo organisation) {
+		Objects.requireNonNull(principal);
+		Objects.requireNonNull(organisation);
+
+		final OrganisationInfo bdo = get(principal, id);
+		bdo.update(organisation);
+
+		return organisationStorage.update(bdo);
+	}
 }

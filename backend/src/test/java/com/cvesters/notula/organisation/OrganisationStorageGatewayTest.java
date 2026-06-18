@@ -3,6 +3,7 @@ package com.cvesters.notula.organisation;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.argThat;
+import static org.mockito.Mockito.inOrder;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -13,7 +14,9 @@ import java.util.Optional;
 
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
+import org.mockito.InOrder;
 
+import com.cvesters.notula.common.exception.MissingEntityException;
 import com.cvesters.notula.organisation.bdo.OrganisationInfo;
 import com.cvesters.notula.organisation.dao.OrganisationDao;
 
@@ -191,6 +194,48 @@ class OrganisationStorageGatewayTest {
 		@Test
 		void organisationNull() {
 			assertThatThrownBy(() -> gateway.create(null))
+					.isInstanceOf(NullPointerException.class);
+		}
+	}
+
+	@Nested
+	class Update {
+
+		@Test
+		void success() {
+			final OrganisationDao dao = mock();
+			when(organisationRepository.findById(ORGANISATION.getId()))
+					.thenReturn(Optional.of(dao));
+
+			final OrganisationDao updated = mock();
+			final OrganisationInfo bdo = mock();
+			when(updated.toBdo()).thenReturn(bdo);
+
+			when(organisationRepository.save(dao)).thenReturn(updated);
+
+			final OrganisationInfo update = ORGANISATION.info();
+			final OrganisationInfo organisationInfo = gateway.update(update);
+
+			assertThat(organisationInfo).isSameAs(bdo);
+
+			final InOrder order = inOrder(organisationRepository, dao);
+			order.verify(dao).update(update);
+			order.verify(organisationRepository).save(dao);
+		}
+
+		@Test
+		void notFound() {
+			when(organisationRepository.findById(ORGANISATION.getId()))
+					.thenReturn(Optional.empty());
+
+			final OrganisationInfo update = ORGANISATION.info();
+			assertThatThrownBy(() -> gateway.update(update))
+					.isInstanceOf(MissingEntityException.class);
+		}
+
+		@Test
+		void organisationNull() {
+			assertThatThrownBy(() -> gateway.update(null))
 					.isInstanceOf(NullPointerException.class);
 		}
 	}

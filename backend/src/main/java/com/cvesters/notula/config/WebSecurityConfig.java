@@ -50,6 +50,8 @@ public class WebSecurityConfig {
 					.authenticated();
 			auth.requestMatchers(HttpMethod.GET, "/api/organisations/*")
 					.authenticated();
+			auth.requestMatchers(HttpMethod.PUT, "/api/organisations/*")
+					.authenticated();
 			auth.requestMatchers(HttpMethod.POST, "/api/organisations")
 					.authenticated();
 			// Scopes
