@@ -1,25 +1,25 @@
 import Session from "$lib/auth/Session";
 
 export default abstract class Client {
-	public static async get<V>(endpoint: string): Promise<V> {
+	public static async fetchGet<V>(endpoint: string): Promise<V> {
 		const response = await fetch(endpoint, this.getRequest());
 		this.verifyStatus(response, 200);
 		return response.json();
 	}
 
-	public static async getAuthenticated<V>(endpoint: string): Promise<V> {
+	public static async fetchGetAuth<V>(endpoint: string): Promise<V> {
 		const response = await this.callAuth(endpoint, this.getRequest());
 		this.verifyStatus(response, 200);
 		return response.json();
 	}
 
-	public static async post<U, V>(endpoint: string, body: U): Promise<V> {
+	public static async fetchPost<U, V>(endpoint: string, body: U): Promise<V> {
 		const response = await fetch(endpoint, this.postRequest(body));
 		this.verifyStatus(response, 201);
 		return response.json();
 	}
 
-	public static async postAuthenticated<U, V>(
+	public static async fetchPostAuth<U, V>(
 		endpoint: string,
 		body: U
 	): Promise<V> {
@@ -28,13 +28,13 @@ export default abstract class Client {
 		return response.json();
 	}
 
-	public static async put<U, V>(endpoint: string, body: U): Promise<V> {
+	public static async fetchPut<U, V>(endpoint: string, body: U): Promise<V> {
 		const response = await fetch(endpoint, this.putRequest(body));
 		this.verifyStatus(response, 200);
 		return response.json();
 	}
 
-	public static async putAuthenticated<U, V>(
+	public static async fetchPutAuth<U, V>(
 		endpoint: string,
 		body: U
 	): Promise<V> {
@@ -43,12 +43,12 @@ export default abstract class Client {
 		return response.json();
 	}
 
-	public static async del(endpoint: string): Promise<void> {
+	public static async fetchDel(endpoint: string): Promise<void> {
 		const response = await fetch(endpoint, this.deleteRequest());
 		this.verifyStatus(response, 204);
 	}
 
-	public static async delAuthenticated(endpoint: string): Promise<void> {
+	public static async fetchDelAuth(endpoint: string): Promise<void> {
 		const response = await this.callAuth(endpoint, this.deleteRequest());
 		this.verifyStatus(response, 204);
 	}

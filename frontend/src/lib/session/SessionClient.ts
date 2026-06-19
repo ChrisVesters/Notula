@@ -8,18 +8,18 @@ import type {
 
 export default class SessionClient extends Client {
 	public static create(request: SessionCreateRequest): Promise<SessionInfo> {
-		return this.post(getEndpoint(), request);
+		return this.fetchPost(getEndpoint(), request);
 	}
 
 	public static update(
 		id: number,
 		request: SessionUpdateRequest
 	): Promise<SessionInfo> {
-		return this.putAuthenticated(`${getEndpoint()}/${id}`, request);
+		return this.fetchPutAuth(`${getEndpoint()}/${id}`, request);
 	}
 
 	public static delete(id: number): Promise<void> {
-		return this.delAuthenticated(`${getEndpoint()}/${id}`);
+		return this.fetchDelAuth(`${getEndpoint()}/${id}`);
 	}
 }
 

@@ -9,9 +9,10 @@
 	import IconSidebarClose from "$lib/assets/icons/IconSidebarClose.svelte";
 	import IconSidebarOpen from "$lib/assets/icons/IconSidebarOpen.svelte";
 	import IconSwitchOrganisation from "$lib/assets/icons/IconSwitchOrganisation.svelte";
-	
+
 	import Session from "$lib/auth/Session";
 	import SessionClient from "$lib/session/SessionClient";
+	import IconOrganisationSettings from "$lib/assets/icons/IconOrganisationSettings.svelte";
 
 	let isOpen = $state(true);
 
@@ -60,6 +61,15 @@
 		</div>
 
 		<div class="sidebar-footer">
+			<a
+				href="/organisation"
+				class={`toggle-btn nav-link ${isActive("/organisation") ? "active" : ""}`}
+				aria-label="Organisation"
+			>
+				<IconOrganisationSettings />
+				<span>{$t("common.organisation")}</span>
+			</a>
+
 			<a
 				href="/select-organisation"
 				class="toggle-btn nav-link"

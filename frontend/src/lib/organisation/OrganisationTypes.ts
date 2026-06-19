@@ -6,3 +6,7 @@ export type OrganisationInfo = {
 export type OrganisationCreateRequest = {
 	name: string;
 };
+
+export type OrganisationUpdateRequest = {
+	name: string;
+};
