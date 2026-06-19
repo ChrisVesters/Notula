@@ -4,7 +4,7 @@ import type { UserCreateRequest, UserInfo } from "./UserTypes";
 
 export default class UserClient extends Client {
 	public static create(request: UserCreateRequest): Promise<UserInfo> {
-		return this.post(getEndpoint(), request);
+		return this.fetchPost(getEndpoint(), request);
 	}
 }
 
