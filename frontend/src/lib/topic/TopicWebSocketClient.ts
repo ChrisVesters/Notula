@@ -1,7 +1,10 @@
 import Session from "$lib/auth/Session";
 import type WebSocketClient from "$lib/common/WebSocketClient";
 
-import type { TopicCreateRequest, TopicUpdateNameAction } from "./TopicTypes";
+import type {
+	TopicAction,
+	TopicCreateRequest
+} from "./TopicTypes";
 
 export default class TopicWebSocketClient {
 	public static create(meetingId: number, topic: TopicCreateRequest): void {
@@ -10,10 +13,10 @@ export default class TopicWebSocketClient {
 		client.send(this.getDestination(meetingId), JSON.stringify(topic));
 	}
 
-	public static updateName(
+	public static update(
 		meetingId: number,
 		topicId: number,
-		action: TopicUpdateNameAction
+		action: TopicAction
 	): void {
 		const client: WebSocketClient = Session.getWebSocketClient();
 

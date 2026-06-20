@@ -72,6 +72,7 @@
 				meeting?.topics.push({
 					id: event.topicId,
 					name: mutation.name,
+					description: "",
 					blocks: []
 				});
 			}
@@ -110,7 +111,7 @@
 			value: action.value
 		};
 
-		TopicWebSocketClient.updateName(id, topicId, request);
+		TopicWebSocketClient.update(id, topicId, request);
 	};
 
 	function addBlock(topic: TopicDetails): Promise<void> {
