@@ -5,9 +5,13 @@
 	import type { TopicDetails } from "$lib/details/DetailTypes";
 	import type { UpdateAction } from "$lib/editor/ActionTypes";
 	import Input from "$lib/editor/Input.svelte";
+	import TextArea from "$lib/editor/TextArea.svelte";
 	import FeedbackButton from "$lib/form/FeedbackButton.svelte";
 
-	import type { TopicUpdateNameAction } from "./TopicTypes";
+	import type {
+		TopicUpdateDescriptionAction,
+		TopicUpdateNameAction
+	} from "./TopicTypes";
 	import TopicWebSocketClient from "./TopicWebSocketClient";
 
 	export type TopicAgendaViewProps = {
@@ -34,7 +38,21 @@
 			value: action.value
 		};
 
-		TopicWebSocketClient.updateName(meetingId, topicId, request);
+		TopicWebSocketClient.update(meetingId, topicId, request);
+	};
+
+	const handleUpdateTopicDescription = (
+		topicId: number,
+		action: UpdateAction
+	) => {
+		const request: TopicUpdateDescriptionAction = {
+			action: "UPDATE_DESCRIPTION",
+			position: action.position,
+			length: action.length,
+			value: action.value
+		};
+
+		TopicWebSocketClient.update(meetingId, topicId, request);
 	};
 </script>
 
@@ -54,5 +72,11 @@
 		bind:value={topic.name}
 		placeholder={$t("common.untitled")}
 		onAction={action => handleUpdateTopicName(topic.id, action)}
+	/>
+
+	<TextArea
+		bind:value={topic.description}
+		placeholder={$t("common.startTyping")}
+		onAction={action => handleUpdateTopicDescription(topic.id, action)}
 	/>
 {/each}

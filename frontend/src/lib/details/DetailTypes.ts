@@ -11,6 +11,7 @@ export type MeetingDetails = {
 export type TopicDetails = {
 	id: number;
 	name: string;
+	description: string;
 
 	blocks: Array<BlockDetails>;
 };
