@@ -46,4 +46,8 @@ public sealed interface TopicAction {
 					position, length, value);
 		}
 	}
+
+	@Getter
+	final class Delete implements TopicAction {
+	}
 }

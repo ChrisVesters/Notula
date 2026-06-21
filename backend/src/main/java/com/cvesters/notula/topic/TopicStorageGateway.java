@@ -50,4 +50,14 @@ public class TopicStorageGateway {
 		return saved.toBdo();
 	}
 
+	public void delete(final TopicInfo topic) {
+		Objects.requireNonNull(topic);
+
+		final TopicDao dao = topicRepository
+				.findByMeetingIdAndId(topic.getMeetingId(), topic.getId())
+				.orElseThrow(MissingEntityException::new);
+
+		topicRepository.delete(dao);
+	}
+
 }

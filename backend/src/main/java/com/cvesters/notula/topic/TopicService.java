@@ -71,4 +71,15 @@ public class TopicService {
 		return updated;
 	}
 
+	public void delete(final Principal principal, final long meetingId,
+			final long topicId) {
+		Objects.requireNonNull(principal);
+
+		final TopicInfo topicInfo = getById(principal, meetingId, topicId);
+		topicStorage.delete(topicInfo);
+
+		final var event = new TopicEvent(topicId, new TopicAction.Delete());
+		topicPublisher.publish(meetingId, event);
+	}
+
 }

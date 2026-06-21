@@ -252,4 +252,67 @@ class TopicServiceTest {
 					topicId, null)).isInstanceOf(NullPointerException.class);
 		}
 	}
+
+	@Nested
+	class Delete {
+
+		private static final TestSession SESSION = TestSession.EDUARDO_CHRISTIANSEN_SPORER;
+		private static final TestTopic TOPIC = TestTopic.SPORER_PROJECT_TIMELINE;
+		private static final TestMeeting MEETING = TOPIC.getMeeting();
+
+		@Test
+		void success() {
+			final Principal principal = SESSION.principal();
+			final long meetingId = MEETING.getId();
+			final long topicId = TOPIC.getId();
+
+			final MeetingInfo meetingInfo = MEETING.info();
+			when(meetingService.getById(principal, meetingId))
+					.thenReturn(meetingInfo);
+
+			final TopicInfo topicInfo = TOPIC.info();
+			when(topicStorageGateway.find(meetingId, topicId))
+					.thenReturn(Optional.of(topicInfo));
+
+			topicService.delete(principal, meetingId, topicId);
+
+			verify(topicStorageGateway).delete(topicInfo);
+			verify(topicPublisher).publish(eq(meetingId), argThat(event -> {
+				assertThat(event.topicId()).isEqualTo(topicId);
+				assertThat(event.action()).isInstanceOf(TopicAction.Delete.class);
+				return true;
+			}));
+		}
+
+		@Test
+		void notFound() {
+			final Principal principal = SESSION.principal();
+			final long meetingId = MEETING.getId();
+			final long topicId = TOPIC.getId();
+
+			final MeetingInfo meetingInfo = MEETING.info();
+			when(meetingService.getById(principal, meetingId))
+					.thenReturn(meetingInfo);
+
+			when(topicStorageGateway.find(meetingId, topicId))
+					.thenReturn(Optional.empty());
+
+			assertThatThrownBy(
+					() -> topicService.delete(principal, meetingId, topicId))
+							.isInstanceOf(MissingEntityException.class);
+
+			verify(topicStorageGateway, never()).delete(any());
+			verifyNoInteractions(topicPublisher);
+		}
+
+		@Test
+		void principalNull() {
+			final long meetingId = MEETING.getId();
+			final long topicId = TOPIC.getId();
+
+			assertThatThrownBy(
+					() -> topicService.delete(null, meetingId, topicId))
+							.isInstanceOf(NullPointerException.class);
+		}
+	}
 }

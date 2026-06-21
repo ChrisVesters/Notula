@@ -60,6 +60,7 @@
 		// TODO: what if initial data is not yet loaded?
 		// TODO: keep in queue and apply once loaded.
 		// TODO: swich case?
+		console.debug("Received event:", event);
 		if (event.target == "MEETING") {
 			const mutation: MeetingMutation = event.mutation;
 			if (mutation.action === "DELETE") {
@@ -75,6 +76,11 @@
 					description: "",
 					blocks: []
 				});
+			} else if (mutation.action === "DELETE") {
+				const index = meeting?.topics.findIndex(t => t.id === event.topicId);
+				if (index !== undefined && index >= 0) {
+					meeting?.topics.splice(index, 1);
+				}
 			}
 		} else if (event.target === "BLOCK") {
 			const mutation: BlockMutation = event.mutation;
@@ -97,9 +103,6 @@
 					console.error("Unhandled block type:", mutation.type);
 				}
 			}
-		} else {
-			// TODO: process
-			console.log("Unhandled event:", event);
 		}
 	};
 

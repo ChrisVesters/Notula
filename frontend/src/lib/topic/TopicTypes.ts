@@ -27,7 +27,8 @@ export type TopicEvent = {
 export type TopicMutation =
 	| TopicMutationCreate
 	| TopicMutationUpdateName
-	| TopicMutationUpdateDescription;
+	| TopicMutationUpdateDescription
+	| TopicMutationDelete;
 
 export type TopicMutationCreate = {
 	action: "CREATE";
@@ -47,4 +48,8 @@ export type TopicMutationUpdateDescription = {
 	position: number;
 	length: number;
 	value: string;
+};
+
+export type TopicMutationDelete = {
+	action: "DELETE";
 };
