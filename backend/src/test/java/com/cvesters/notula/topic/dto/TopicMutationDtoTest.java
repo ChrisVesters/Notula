@@ -64,6 +64,15 @@ class TopicMutationDtoTest {
 		}
 
 		@Test
+		void delete() {
+			final var action = new TopicAction.Delete();
+
+			final var dto = TopicMutationDto.of(action);
+
+			assertThat(dto).isInstanceOf(TopicMutationDto.Delete.class);
+		}	
+
+		@Test
 		void actionNull() {
 			assertThatThrownBy(() -> TopicMutationDto.of(null))
 					.isInstanceOf(NullPointerException.class);

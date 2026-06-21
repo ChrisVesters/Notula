@@ -88,4 +88,15 @@ class TopicActionTest {
 			verify(topic).setDescription(expected);
 		}
 	}
+
+	@Nested
+	class Delete {
+
+		@Test
+		void success() {
+			final var action = new TopicAction.Delete();
+
+			assertThat(action).isNotNull();
+		}
+	}
 }

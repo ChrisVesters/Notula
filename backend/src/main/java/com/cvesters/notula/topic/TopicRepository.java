@@ -15,4 +15,6 @@ public interface TopicRepository extends Repository<TopicDao, Long> {
 
 	TopicDao save(TopicDao topic);
 
+	void delete(TopicDao topic);
+
 }

@@ -5,6 +5,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.timeout;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
@@ -190,6 +191,63 @@ public class TopicWebSocketTest extends WebSocketTest {
 				final long topicId) {
 			return DESTINATION_PREFIX + "/" + meetingId + DESTINATION_SUFFIX
 					+ "/" + topicId;
+		}
+	}
+
+	@Nested
+	class Delete {
+
+		private static final TestTopic TOPIC = TestTopic.SPORER_PROJECT_BLOCKERS;
+
+		@Test
+		void success() throws Exception {
+			final byte[] payload = getRequestPayload();
+
+			connect(SESSION);
+			send(getDestination(MEETING.getId(), TOPIC.getId()), payload);
+
+			verify(topicService, timeout(WAIT_TIMEOUT.toMillis()))
+					.delete(PRINCIPAL, MEETING.getId(), TOPIC.getId());
+		}
+
+		@Test
+		void notFound() throws Exception {
+			final byte[] payload = getRequestPayload();
+
+			doThrow(new MissingEntityException()).when(topicService)
+					.delete(any(), anyLong(), anyLong());
+
+			connect(SESSION);
+			final FrameHandler errorFrameHandler = subscribeToErrors();
+			send(getDestination(MEETING.getId(), TOPIC.getId()), payload);
+
+			assertThat(errorFrameHandler.getResponse())
+					.succeedsWithin(WAIT_TIMEOUT.toSeconds(), TimeUnit.SECONDS)
+					.isNotNull()
+					.satisfies(
+							message -> assertThat(message).startsWith("Error"));
+		}
+
+		@Test
+		void unauthenticated() throws Exception {
+			final byte[] payload = getRequestPayload();
+
+			connect();
+			send(getDestination(MEETING.getId(), TOPIC.getId()), payload);
+
+			assertThat(stompSessionHandler.getError())
+					.succeedsWithin(WAIT_TIMEOUT.toSeconds(), TimeUnit.SECONDS)
+					.isInstanceOf(ConnectionLostException.class);
+		}
+
+		private byte[] getRequestPayload() {
+			return new byte[0];
+		}
+
+		private String getDestination(final long meetingId,
+				final long topicId) {
+			return DESTINATION_PREFIX + "/" + meetingId + DESTINATION_SUFFIX
+					+ "/" + topicId + "/delete";
 		}
 	}
 }

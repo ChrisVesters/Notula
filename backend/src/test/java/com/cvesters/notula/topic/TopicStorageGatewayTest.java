@@ -212,4 +212,40 @@ class TopicStorageGatewayTest {
 					.isInstanceOf(NullPointerException.class);
 		}
 	}
+
+	@Nested
+	class Delete {
+
+		private static final TestTopic TOPIC = TestTopic.GLOVER_KICKOFF_2026_LOOKBACK;
+		private static final TestMeeting MEETING = TOPIC.getMeeting();
+
+		@Test
+		void success() {
+			final TopicDao topicDao = mock();
+			when(topicRepository.findByMeetingIdAndId(MEETING.getId(),
+					TOPIC.getId())).thenReturn(Optional.of(topicDao));
+
+			final TopicInfo update = TOPIC.info();
+			gateway.delete(update);
+
+			final InOrder inOrder = inOrder(topicRepository);
+			inOrder.verify(topicRepository).delete(topicDao);
+		}
+
+		@Test
+		void notFound() {
+			when(topicRepository.findByMeetingIdAndId(MEETING.getId(),
+					TOPIC.getId())).thenReturn(Optional.empty());
+
+			final TopicInfo update = TOPIC.info();
+			assertThatThrownBy(() -> gateway.delete(update))
+					.isInstanceOf(MissingEntityException.class);
+		}
+
+		@Test
+		void topicNull() {
+			assertThatThrownBy(() -> gateway.delete(null))
+					.isInstanceOf(NullPointerException.class);
+		}
+	}
 }

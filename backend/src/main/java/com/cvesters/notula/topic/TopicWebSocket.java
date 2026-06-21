@@ -42,4 +42,12 @@ public class TopicWebSocket extends BaseController {
 		topicService.update(principal, meetingId, topicId, action);
 	}
 
+	@MessageMapping(BASE_ENDPOINT + "/{topicId}/delete")
+	public void delete(@DestinationVariable final long meetingId,
+			@DestinationVariable final long topicId) {
+		final Principal principal = getPrincipal();
+
+		topicService.delete(principal, meetingId, topicId);
+	}
+
 }

@@ -1,8 +1,10 @@
 package com.cvesters.notula.topic;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatCode;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
+import java.lang.reflect.Field;
 import java.util.List;
 
 import org.junit.jupiter.api.Nested;
@@ -12,6 +14,7 @@ import org.springframework.dao.InvalidDataAccessApiUsageException;
 import org.springframework.test.context.jdbc.Sql;
 
 import com.cvesters.notula.meeting.TestMeeting;
+import com.cvesters.notula.meeting.dao.MeetingDao;
 import com.cvesters.notula.organisation.TestOrganisation;
 import com.cvesters.notula.test.RepositoryTest;
 import com.cvesters.notula.topic.bdo.TopicInfo;
@@ -135,6 +138,47 @@ class TopicRepositoryTest extends RepositoryTest {
 		void topicNull() {
 			assertThatThrownBy(() -> topicRepository.save(null))
 					.isInstanceOf(InvalidDataAccessApiUsageException.class);
+		}
+	}
+
+	@Nested
+	class Delete {
+
+		@Test
+		void success() {
+			final TestTopic topic = TestTopic.SPORER_PROJECT_BLOCKERS;
+			final TopicDao dao = entityManager.find(TopicDao.class,
+					topic.getId());
+
+			topicRepository.delete(dao);
+
+			final TopicDao deleted = entityManager.find(TopicDao.class,
+					topic.getId());
+			assertThat(deleted).isNull();
+		}
+
+		@Test
+		void topicNull() {
+			assertThatThrownBy(() -> topicRepository.delete(null))
+					.isInstanceOf(InvalidDataAccessApiUsageException.class);
+		}
+
+		@Test
+		void nonExisting() throws Exception {
+			final TestTopic topic = TestTopic.SPORER_PROJECT_BLOCKERS;
+			final TopicDao dao = new TopicDao(topic.info());
+
+			final Field idField = dao.getClass().getDeclaredField("id");
+			idField.setAccessible(true);
+			idField.set(dao, Long.MAX_VALUE);
+
+			assertThatCode(() -> topicRepository.delete(dao))
+					.doesNotThrowAnyException();
+
+			final MeetingDao found = entityManager.find(MeetingDao.class,
+					Long.MAX_VALUE);
+
+			assertThat(found).isNull();
 		}
 	}
 

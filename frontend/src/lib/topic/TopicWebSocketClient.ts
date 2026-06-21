@@ -26,6 +26,12 @@ export default class TopicWebSocketClient {
 		);
 	}
 
+	public static delete(meetingId: number, topicId: number): void {
+		const client: WebSocketClient = Session.getWebSocketClient();
+
+		client.send(this.getDestination(meetingId, topicId) + "/delete", "");
+	}
+
 	private static getDestination(meetingId: number, topicId?: number) {
 		const suffix = topicId ? `/${topicId}` : "";
 		return `/app/meetings/${meetingId}/topics${suffix}`;
