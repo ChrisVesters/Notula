@@ -226,21 +226,6 @@ class OrganisationControllerTest extends ControllerTest {
 		}
 	}
 
-	private String getResponse(final List<TestOrganisation> organisations) {
-		return organisations.stream()
-				.map(this::getResponse)
-				.collect(Collectors.joining(",", "[", "]"));
-	}
-
-	private String getResponse(final TestOrganisation organisation) {
-		return """
-				{
-					"id": %s,
-					"name": "%s"
-				}
-				""".formatted(organisation.getId(), organisation.getName());
-	}
-
 	@Nested
 	class Update {
 
@@ -309,5 +294,20 @@ class OrganisationControllerTest extends ControllerTest {
 					}
 					""".formatted(formattedName);
 		}
+	}
+
+	private String getResponse(final List<TestOrganisation> organisations) {
+		return organisations.stream()
+				.map(this::getResponse)
+				.collect(Collectors.joining(",", "[", "]"));
+	}
+
+	private String getResponse(final TestOrganisation organisation) {
+		return """
+				{
+					"id": %s,
+					"name": "%s"
+				}
+				""".formatted(organisation.getId(), organisation.getName());
 	}
 }

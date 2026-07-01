@@ -2,7 +2,11 @@ package com.cvesters.notula.organisation;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.assertj.core.api.Assertions.atIndex;
 
+import java.util.List;
+
+import org.assertj.core.api.Condition;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -79,6 +83,51 @@ public class OrganisationUserRepositoryTest extends RepositoryTest {
 	}
 
 	@Nested
+	class FindAllByOrganisationId {
+
+		@Test
+		void single() {
+			final var orgId = TestOrganisation.HEUL.getId();
+			final var user = TestOrganisationUser.HEUL_ALISON_DACH;
+
+			final var result = organisationUserRepository
+					.findAllByOrganisationId(orgId);
+
+			assertThat(result).hasSize(1).is(equalTo(user), atIndex(0));
+		}
+
+		@Test
+		void multiple() {
+			final var org = TestOrganisation.SPORER;
+			final var orgId = org.getId();
+			final List<TestOrganisationUser> users = TestOrganisationUser
+					.ofOrganisation(org);
+
+			final var result = organisationUserRepository
+					.findAllByOrganisationId(orgId);
+
+			assertThat(result).hasSize(users.size());
+
+			for (int index = 0; index < users.size(); index++) {
+				final TestOrganisationUser expectedAtIndex = users.get(index);
+				final OrganisationUserDao actualAtIndex = result.get(index);
+
+				assertThat(actualAtIndex).is(equalTo(expectedAtIndex));
+			}
+		}
+
+		@Test
+		void none() {
+			final var orgId = Long.MAX_VALUE;
+
+			final var organisationUsers = organisationUserRepository
+					.findAllByOrganisationId(orgId);
+
+			assertThat(organisationUsers).isEmpty();
+		}
+	}
+
+	@Nested
 	class FindByUserIdAndOrganisationId {
 
 		@Test
@@ -137,6 +186,18 @@ public class OrganisationUserRepositoryTest extends RepositoryTest {
 			assertThatThrownBy(() -> organisationUserRepository.save(null))
 					.isInstanceOf(InvalidDataAccessApiUsageException.class);
 		}
+	}
+
+	private Condition<OrganisationUserDao> equalTo(
+			final TestOrganisationUser expected) {
+		return new Condition<>(actual -> {
+			assertThat(actual.getId()).isEqualTo(expected.getId());
+			assertThat(actual.getOrganisationId())
+					.isEqualTo(expected.getOrganisation().getId());
+			assertThat(actual.getUserId())
+					.isEqualTo(expected.getUser().getId());
+			return true;
+		}, "equal");
 	}
 
 }

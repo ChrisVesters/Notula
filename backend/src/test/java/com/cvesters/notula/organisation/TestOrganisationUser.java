@@ -1,5 +1,8 @@
 package com.cvesters.notula.organisation;
 
+import java.util.Arrays;
+import java.util.List;
+
 import lombok.Getter;
 
 import com.cvesters.notula.organisation.bdo.OrganisationUserInfo;
@@ -9,6 +12,7 @@ import com.cvesters.notula.user.TestUser;
 public enum TestOrganisationUser {
 	SPORER_EDUARDO_CHRISTIANSEN(1L, TestOrganisation.SPORER,
 			TestUser.EDUARDO_CHRISTIANSEN),
+	SPORER_KRISTINA_THIEL(2L, TestOrganisation.SPORER, TestUser.KRISTINA_THIEL),
 	GLOVER_ALISON_DACH(3L, TestOrganisation.GLOVER, TestUser.ALISON_DACH),
 	HEUL_ALISON_DACH(4L, TestOrganisation.HEUL, TestUser.ALISON_DACH);
 
@@ -21,6 +25,13 @@ public enum TestOrganisationUser {
 		this.id = id;
 		this.organisation = organisation;
 		this.user = user;
+	}
+
+	public static List<TestOrganisationUser> ofOrganisation(
+			final TestOrganisation organisation) {
+		return Arrays.stream(TestOrganisationUser.values())
+				.filter(user -> user.organisation.equals(organisation))
+				.toList();
 	}
 
 	public OrganisationUserInfo info() {

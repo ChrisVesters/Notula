@@ -54,7 +54,7 @@ public class WebSecurityConfig {
 					.authenticated();
 			auth.requestMatchers(HttpMethod.POST, "/api/organisations")
 					.authenticated();
-			// Scopes
+			// Scoped
 			auth.anyRequest().hasAuthority(JwtAuthConverter.ORGANISATION_CLAIM);
 		});
 		http.oauth2ResourceServer(oauth -> oauth.jwt(jwt -> jwt
