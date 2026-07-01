@@ -18,9 +18,17 @@ public class OrganisationUserService {
 		this.organisationUserStorage = organisationUserStorage;
 	}
 
-	public List<OrganisationUserInfo> getAll(final Principal principal) {
+	public List<OrganisationUserInfo> getAllForUser(final Principal principal) {
 		Objects.requireNonNull(principal);
 
 		return organisationUserStorage.findAllByUserId(principal.userId());
+	}
+
+	public List<OrganisationUserInfo> getAllForOrganisation(
+			final Principal principal) {
+		Objects.requireNonNull(principal);
+
+		return organisationUserStorage
+				.findAllByOrganisationId(principal.organisationId());
 	}
 }

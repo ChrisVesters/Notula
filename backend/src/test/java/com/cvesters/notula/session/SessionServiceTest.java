@@ -121,7 +121,7 @@ class SessionServiceTest {
 			when(bdo.getUserId()).thenReturn(SESSION.getUser().getId());
 			when(bdo.isActive()).thenReturn(true);
 
-			when(organisationUserService.getAll(PRINCIPAL))
+			when(organisationUserService.getAllForUser(PRINCIPAL))
 					.thenReturn(List.of(ORGANISATION_USER.info()));
 
 			when(sessionStorageGateway.findById(sessionId))
@@ -151,7 +151,7 @@ class SessionServiceTest {
 		@Test
 		void sessionNotFound() {
 			final long sessionId = SESSION.getId();
-			when(organisationUserService.getAll(PRINCIPAL))
+			when(organisationUserService.getAllForUser(PRINCIPAL))
 					.thenReturn(List.of(ORGANISATION_USER.info()));
 
 			when(sessionStorageGateway.findById(sessionId))
@@ -168,7 +168,7 @@ class SessionServiceTest {
 			final SessionInfo bdo = mock();
 			when(bdo.getUserId()).thenReturn(SESSION.getUser().getId() + 1);
 
-			when(organisationUserService.getAll(PRINCIPAL))
+			when(organisationUserService.getAllForUser(PRINCIPAL))
 					.thenReturn(List.of(ORGANISATION_USER.info()));
 
 			when(sessionStorageGateway.findById(SESSION.getId()))
@@ -182,7 +182,7 @@ class SessionServiceTest {
 		@Test
 		void organisationNotFound() {
 			final long sessionId = SESSION.getId();
-			when(organisationUserService.getAll(PRINCIPAL))
+			when(organisationUserService.getAllForUser(PRINCIPAL))
 					.thenReturn(Collections.emptyList());
 
 			when(sessionStorageGateway.findById(SESSION.getId()))
@@ -190,7 +190,7 @@ class SessionServiceTest {
 
 			final var found = new OrganisationUserInfo(Long.MAX_VALUE,
 					USER.getId());
-			when(organisationUserService.getAll(PRINCIPAL))
+			when(organisationUserService.getAllForUser(PRINCIPAL))
 					.thenReturn(List.of(found));
 
 			assertThatThrownBy(
@@ -275,7 +275,7 @@ class SessionServiceTest {
 			final long sessionId = SESSION.getId();
 			final String refreshToken = SESSION.getRefreshToken();
 
-			when(organisationUserService.getAll(PRINCIPAL))
+			when(organisationUserService.getAllForUser(PRINCIPAL))
 					.thenReturn(List.of(ORGANISATION_USER.info()));
 
 			when(sessionStorageGateway.findByIdAndRefreshToken(sessionId,

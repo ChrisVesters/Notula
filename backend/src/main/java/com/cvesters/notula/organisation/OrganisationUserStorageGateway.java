@@ -23,6 +23,12 @@ public class OrganisationUserStorageGateway {
 		return daos.stream().map(OrganisationUserDao::toBdo).toList();
 	}
 
+	public List<OrganisationUserInfo> findAllByOrganisationId(
+			final long organisationId) {
+		final var daos = repository.findAllByOrganisationId(organisationId);
+		return daos.stream().map(OrganisationUserDao::toBdo).toList();
+	}
+
 	public Optional<OrganisationUserInfo> findByUserIdAndOrganisationId(
 			final long userId, final long organisationId) {
 		return repository.findByUserIdAndOrganisationId(userId, organisationId)

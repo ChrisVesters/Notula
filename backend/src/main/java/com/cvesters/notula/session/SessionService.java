@@ -58,7 +58,7 @@ public class SessionService {
 		Objects.requireNonNull(principal);
 		Objects.requireNonNull(update);
 
-		organisationUserService.getAll(principal)
+		organisationUserService.getAllForUser(principal)
 				.stream()
 				.filter(ou -> ou.getOrganisationId() == update.organisationId())
 				.findFirst()

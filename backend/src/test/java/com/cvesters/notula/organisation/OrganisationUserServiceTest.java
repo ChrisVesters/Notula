@@ -29,7 +29,7 @@ class OrganisationUserServiceTest {
 			organisationUserStorage);
 
 	@Nested
-	class GetAll {
+	class GetAllForUser {
 
 		@Test
 		void success() {
@@ -38,7 +38,7 @@ class OrganisationUserServiceTest {
 					.thenReturn(organisationUsers);
 
 			final List<OrganisationUserInfo> result = organisationUserService
-					.getAll(PRINCIPAL);
+					.getAllForUser(PRINCIPAL);
 
 			assertThat(result).isEqualTo(organisationUsers);
 		}
@@ -49,15 +49,41 @@ class OrganisationUserServiceTest {
 					.thenReturn(Collections.emptyList());
 
 			final List<OrganisationUserInfo> result = organisationUserService
-					.getAll(PRINCIPAL);
+					.getAllForUser(PRINCIPAL);
 
 			assertThat(result).isEmpty();
 		}
 
 		@Test
 		void principalNull() {
-			assertThatThrownBy(() -> organisationUserService.getAll(null))
-					.isInstanceOf(NullPointerException.class);
+			assertThatThrownBy(
+					() -> organisationUserService.getAllForUser(null))
+							.isInstanceOf(NullPointerException.class);
+		}
+	}
+
+	@Nested
+	class GetAllForOrganisation {
+
+		@Test
+		void success() {
+			final var organisation = ORGANISATION_USER.getOrganisation();
+			final var organisationUsers = List.of(ORGANISATION_USER.info());
+			when(organisationUserStorage
+					.findAllByOrganisationId(organisation.getId()))
+							.thenReturn(organisationUsers);
+
+			final List<OrganisationUserInfo> result = organisationUserService
+					.getAllForOrganisation(PRINCIPAL);
+
+			assertThat(result).isEqualTo(organisationUsers);
+		}
+
+		@Test
+		void principalNull() {
+			assertThatThrownBy(
+					() -> organisationUserService.getAllForUser(null))
+							.isInstanceOf(NullPointerException.class);
 		}
 	}
 }

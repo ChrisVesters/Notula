@@ -101,6 +101,75 @@ class OrganisationUserStorageGatewayTest {
 	}
 
 	@Nested
+	class FindAllByOrganisationId {
+
+		@Test
+		void single() {
+			final long orgId = ORGANISATION.getId();
+			final List<TestOrganisationUser> found = List.of(ORGANISATION_USER);
+
+			final var daos = new ArrayList<OrganisationUserDao>();
+			final var bdos = new ArrayList<OrganisationUserInfo>();
+			for (final var _ : found) {
+				final OrganisationUserDao dao = mock();
+				final OrganisationUserInfo bdo = mock();
+				when(dao.toBdo()).thenReturn(bdo);
+
+				daos.add(dao);
+				bdos.add(bdo);
+			}
+
+			when(organisationUserRepository.findAllByOrganisationId(orgId))
+					.thenReturn(daos);
+
+			final List<OrganisationUserInfo> result = gateway
+					.findAllByOrganisationId(orgId);
+
+			assertThat(result).isEqualTo(bdos);
+		}
+
+		@Test
+		void multiple() {
+			final long orgId = TestOrganisation.SPORER.getId();
+			final List<TestOrganisationUser> found = List.of(
+					TestOrganisationUser.SPORER_EDUARDO_CHRISTIANSEN,
+					TestOrganisationUser.SPORER_KRISTINA_THIEL);
+
+			final var daos = new ArrayList<OrganisationUserDao>();
+			final var bdos = new ArrayList<OrganisationUserInfo>();
+			for (final var _ : found) {
+				final OrganisationUserDao dao = mock();
+				final OrganisationUserInfo bdo = mock();
+				when(dao.toBdo()).thenReturn(bdo);
+
+				daos.add(dao);
+				bdos.add(bdo);
+			}
+
+			when(organisationUserRepository.findAllByOrganisationId(orgId))
+					.thenReturn(daos);
+
+			final List<OrganisationUserInfo> result = gateway
+					.findAllByOrganisationId(orgId);
+
+			assertThat(result).isEqualTo(bdos);
+		}
+
+		@Test
+		void notFound() {
+			final long id = Long.MAX_VALUE;
+
+			when(organisationUserRepository.findAllByOrganisationId(id))
+					.thenReturn(Collections.emptyList());
+
+			final List<OrganisationUserInfo> result = gateway
+					.findAllByOrganisationId(id);
+
+			assertThat(result).isEmpty();
+		}
+	}
+
+	@Nested
 	class FindByUserIdAndOrganisationId {
 
 		@Test

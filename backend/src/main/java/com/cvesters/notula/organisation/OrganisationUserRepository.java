@@ -12,6 +12,8 @@ public interface OrganisationUserRepository
 
 	List<OrganisationUserDao> findAllByUserId(long userId);
 
+	List<OrganisationUserDao> findAllByOrganisationId(long organisationId);
+
 	Optional<OrganisationUserDao> findByUserIdAndOrganisationId(long userId,
 			long organisationId);
 
