@@ -6,6 +6,7 @@ import java.util.List;
 import lombok.Getter;
 
 import com.cvesters.notula.organisation.bdo.OrganisationUserInfo;
+import com.cvesters.notula.organisation.bdo.OrganisationUserView;
 import com.cvesters.notula.user.TestUser;
 
 @Getter
@@ -36,5 +37,31 @@ public enum TestOrganisationUser {
 
 	public OrganisationUserInfo info() {
 		return new OrganisationUserInfo(id, organisation.getId(), user.getId());
+	}
+
+	public OrganisationUserView view() {
+		return new OrganisationUserView() {
+
+			@Override
+			public long getId() {
+				return id;
+			}
+
+			@Override
+			public long getOrganisationId() {
+				return organisation.getId();
+			}
+
+			@Override
+			public long getUserId() {
+				return user.getId();
+			}
+
+			@Override
+			public String getEmail() {
+				return user.getEmail().value();
+			}
+
+		} ;
 	}
 }

@@ -15,6 +15,7 @@ import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 
 import com.cvesters.notula.organisation.bdo.OrganisationUserInfo;
+import com.cvesters.notula.organisation.bdo.OrganisationUserView;
 import com.cvesters.notula.organisation.dao.OrganisationUserDao;
 import com.cvesters.notula.user.TestUser;
 
@@ -108,21 +109,16 @@ class OrganisationUserStorageGatewayTest {
 			final long orgId = ORGANISATION.getId();
 			final List<TestOrganisationUser> found = List.of(ORGANISATION_USER);
 
-			final var daos = new ArrayList<OrganisationUserDao>();
-			final var bdos = new ArrayList<OrganisationUserInfo>();
+			final var bdos = new ArrayList<OrganisationUserView>();
 			for (final var _ : found) {
-				final OrganisationUserDao dao = mock();
-				final OrganisationUserInfo bdo = mock();
-				when(dao.toBdo()).thenReturn(bdo);
-
-				daos.add(dao);
+				final OrganisationUserView bdo = mock();
 				bdos.add(bdo);
 			}
 
 			when(organisationUserRepository.findAllByOrganisationId(orgId))
-					.thenReturn(daos);
+					.thenReturn(bdos);
 
-			final List<OrganisationUserInfo> result = gateway
+			final List<OrganisationUserView> result = gateway
 					.findAllByOrganisationId(orgId);
 
 			assertThat(result).isEqualTo(bdos);
@@ -135,21 +131,16 @@ class OrganisationUserStorageGatewayTest {
 					TestOrganisationUser.SPORER_EDUARDO_CHRISTIANSEN,
 					TestOrganisationUser.SPORER_KRISTINA_THIEL);
 
-			final var daos = new ArrayList<OrganisationUserDao>();
-			final var bdos = new ArrayList<OrganisationUserInfo>();
+			final var bdos = new ArrayList<OrganisationUserView>();
 			for (final var _ : found) {
-				final OrganisationUserDao dao = mock();
-				final OrganisationUserInfo bdo = mock();
-				when(dao.toBdo()).thenReturn(bdo);
-
-				daos.add(dao);
+				final OrganisationUserView bdo = mock();
 				bdos.add(bdo);
 			}
 
 			when(organisationUserRepository.findAllByOrganisationId(orgId))
-					.thenReturn(daos);
+					.thenReturn(bdos);
 
-			final List<OrganisationUserInfo> result = gateway
+			final List<OrganisationUserView> result = gateway
 					.findAllByOrganisationId(orgId);
 
 			assertThat(result).isEqualTo(bdos);
@@ -162,7 +153,7 @@ class OrganisationUserStorageGatewayTest {
 			when(organisationUserRepository.findAllByOrganisationId(id))
 					.thenReturn(Collections.emptyList());
 
-			final List<OrganisationUserInfo> result = gateway
+			final List<OrganisationUserView> result = gateway
 					.findAllByOrganisationId(id);
 
 			assertThat(result).isEmpty();

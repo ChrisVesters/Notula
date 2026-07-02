@@ -7,6 +7,7 @@ import org.springframework.stereotype.Service;
 
 import com.cvesters.notula.common.domain.Principal;
 import com.cvesters.notula.organisation.bdo.OrganisationUserInfo;
+import com.cvesters.notula.organisation.bdo.OrganisationUserView;
 
 @Service
 public class OrganisationUserService {
@@ -24,7 +25,7 @@ public class OrganisationUserService {
 		return organisationUserStorage.findAllByUserId(principal.userId());
 	}
 
-	public List<OrganisationUserInfo> getAllForOrganisation(
+	public List<OrganisationUserView> getAllForOrganisation(
 			final Principal principal) {
 		Objects.requireNonNull(principal);
 

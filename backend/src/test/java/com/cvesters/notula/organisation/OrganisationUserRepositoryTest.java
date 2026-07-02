@@ -14,6 +14,7 @@ import org.springframework.dao.InvalidDataAccessApiUsageException;
 import org.springframework.test.context.jdbc.Sql;
 
 import com.cvesters.notula.organisation.bdo.OrganisationUserInfo;
+import com.cvesters.notula.organisation.bdo.OrganisationUserView;
 import com.cvesters.notula.organisation.dao.OrganisationUserDao;
 import com.cvesters.notula.test.RepositoryTest;
 import com.cvesters.notula.user.TestUser;
@@ -110,7 +111,7 @@ public class OrganisationUserRepositoryTest extends RepositoryTest {
 
 			for (int index = 0; index < users.size(); index++) {
 				final TestOrganisationUser expectedAtIndex = users.get(index);
-				final OrganisationUserDao actualAtIndex = result.get(index);
+				final OrganisationUserView actualAtIndex = result.get(index);
 
 				assertThat(actualAtIndex).is(equalTo(expectedAtIndex));
 			}
@@ -188,7 +189,7 @@ public class OrganisationUserRepositoryTest extends RepositoryTest {
 		}
 	}
 
-	private Condition<OrganisationUserDao> equalTo(
+	private Condition<OrganisationUserView> equalTo(
 			final TestOrganisationUser expected) {
 		return new Condition<>(actual -> {
 			assertThat(actual.getId()).isEqualTo(expected.getId());
@@ -196,6 +197,8 @@ public class OrganisationUserRepositoryTest extends RepositoryTest {
 					.isEqualTo(expected.getOrganisation().getId());
 			assertThat(actual.getUserId())
 					.isEqualTo(expected.getUser().getId());
+			assertThat(actual.getEmail())
+					.isEqualTo(expected.getUser().getEmail().value());
 			return true;
 		}, "equal");
 	}

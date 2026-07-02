@@ -22,9 +22,9 @@ class OrganisationUserInfoDtoTest {
 
 		@Test
 		void success() {
-			final var bdo = ORGANISATION_USER.info();
+			final var bdo = ORGANISATION_USER.view();
 
-			final var dto = new OrganisationUserInfoDto(bdo);
+			final var dto = new OrganisationUserViewDto(bdo);
 
 			assertThat(dto.id()).isEqualTo(ORGANISATION_USER.getId());
 			assertThat(dto.organisationId()).isEqualTo(ORGANISATION.getId());

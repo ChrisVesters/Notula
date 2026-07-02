@@ -16,7 +16,7 @@ import org.springframework.security.test.context.support.WithAnonymousUser;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 
 import com.cvesters.notula.common.domain.Principal;
-import com.cvesters.notula.organisation.bdo.OrganisationUserInfo;
+import com.cvesters.notula.organisation.bdo.OrganisationUserView;
 import com.cvesters.notula.session.TestSession;
 import com.cvesters.notula.test.ControllerTest;
 import com.cvesters.notula.test.WithSession;
@@ -40,12 +40,12 @@ class OrganisationUserControllerTest extends ControllerTest {
 			final Principal principal = SESSION.principal();
 			final List<TestOrganisationUser> users = List
 					.of(TestOrganisationUser.SPORER_EDUARDO_CHRISTIANSEN);
-			final List<OrganisationUserInfo> info = users.stream()
-					.map(TestOrganisationUser::info)
+			final List<OrganisationUserView> view = users.stream()
+					.map(TestOrganisationUser::view)
 					.toList();
 
 			when(organisationUserService.getAllForOrganisation(principal))
-					.thenReturn(info);
+					.thenReturn(view);
 
 			final String expectedResponse = getResponse(users);
 
@@ -61,12 +61,12 @@ class OrganisationUserControllerTest extends ControllerTest {
 			final Principal principal = SESSION.principal();
 			final List<TestOrganisationUser> users = TestOrganisationUser
 					.ofOrganisation(TestOrganisation.SPORER);
-			final List<OrganisationUserInfo> info = users.stream()
-					.map(TestOrganisationUser::info)
+			final List<OrganisationUserView> view = users.stream()
+					.map(TestOrganisationUser::view)
 					.toList();
 
 			when(organisationUserService.getAllForOrganisation(principal))
-					.thenReturn(info);
+					.thenReturn(view);
 
 			final String expectedResponse = getResponse(users);
 
@@ -81,12 +81,12 @@ class OrganisationUserControllerTest extends ControllerTest {
 		void none() throws Exception {
 			final Principal principal = SESSION.principal();
 			final List<TestOrganisationUser> users = Collections.emptyList();
-			final List<OrganisationUserInfo> info = users.stream()
-					.map(TestOrganisationUser::info)
+			final List<OrganisationUserView> view = users.stream()
+					.map(TestOrganisationUser::view)
 					.toList();
 
 			when(organisationUserService.getAllForOrganisation(principal))
-					.thenReturn(info);
+					.thenReturn(view);
 
 			final var builder = get(BASE_ENDPOINT);
 
@@ -115,9 +115,11 @@ class OrganisationUserControllerTest extends ControllerTest {
 				{
 					"id": %s,
 					"organisationId": %s,
-					"userId": %s
+					"userId": %s,
+					"email": "%s"
 				}
 				""".formatted(orgUser.getId(),
-				orgUser.getOrganisation().getId(), orgUser.getUser().getId());
+				orgUser.getOrganisation().getId(), orgUser.getUser().getId(),
+				orgUser.getUser().getEmail().value());
 	}
 }

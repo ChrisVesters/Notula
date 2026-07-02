@@ -6,6 +6,7 @@ import java.util.Optional;
 import org.springframework.stereotype.Service;
 
 import com.cvesters.notula.organisation.bdo.OrganisationUserInfo;
+import com.cvesters.notula.organisation.bdo.OrganisationUserView;
 import com.cvesters.notula.organisation.dao.OrganisationUserDao;
 
 @Service
@@ -23,10 +24,9 @@ public class OrganisationUserStorageGateway {
 		return daos.stream().map(OrganisationUserDao::toBdo).toList();
 	}
 
-	public List<OrganisationUserInfo> findAllByOrganisationId(
+	public List<OrganisationUserView> findAllByOrganisationId(
 			final long organisationId) {
-		final var daos = repository.findAllByOrganisationId(organisationId);
-		return daos.stream().map(OrganisationUserDao::toBdo).toList();
+		return repository.findAllByOrganisationId(organisationId);
 	}
 
 	public Optional<OrganisationUserInfo> findByUserIdAndOrganisationId(
