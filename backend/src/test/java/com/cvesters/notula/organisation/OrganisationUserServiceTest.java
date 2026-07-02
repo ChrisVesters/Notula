@@ -13,6 +13,7 @@ import org.junit.jupiter.api.Test;
 
 import com.cvesters.notula.common.domain.Principal;
 import com.cvesters.notula.organisation.bdo.OrganisationUserInfo;
+import com.cvesters.notula.organisation.bdo.OrganisationUserView;
 import com.cvesters.notula.session.TestSession;
 import com.cvesters.notula.user.TestUser;
 
@@ -68,12 +69,12 @@ class OrganisationUserServiceTest {
 		@Test
 		void success() {
 			final var organisation = ORGANISATION_USER.getOrganisation();
-			final var organisationUsers = List.of(ORGANISATION_USER.info());
+			final var organisationUsers = List.of(ORGANISATION_USER.view());
 			when(organisationUserStorage
 					.findAllByOrganisationId(organisation.getId()))
 							.thenReturn(organisationUsers);
 
-			final List<OrganisationUserInfo> result = organisationUserService
+			final List<OrganisationUserView> result = organisationUserService
 					.getAllForOrganisation(PRINCIPAL);
 
 			assertThat(result).isEqualTo(organisationUsers);

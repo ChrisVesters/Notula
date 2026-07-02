@@ -8,6 +8,7 @@ public class OrganisationUserInfo {
 	private final Long id;
 	private final long organisationId;
 	private final long userId;
+	// TODO: No.... Should we not have a view instead?
 
 	public OrganisationUserInfo(final long organisationId, final long userId) {
 		this(null, organisationId, userId);
