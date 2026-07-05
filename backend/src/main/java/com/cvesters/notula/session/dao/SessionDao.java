@@ -43,6 +43,7 @@ public class SessionDao {
 		Objects.requireNonNull(refreshToken);
 
 		this.userId = bdo.getUserId();
+		this.organisationId = bdo.getOrganisationId().orElse(null);
 		this.refreshToken = refreshToken;
 		this.activeUntil = bdo.getActiveUntil();
 	}
@@ -57,8 +58,8 @@ public class SessionDao {
 		Validate.isTrue(id == info.getId());
 
 		this.organisationId = info.getOrganisationId().orElse(null);
-		this.activeUntil = info.getActiveUntil();
 		this.refreshToken = refreshToken;
+		this.activeUntil = info.getActiveUntil();
 	}
 
 	public SessionInfo toBdo() {
