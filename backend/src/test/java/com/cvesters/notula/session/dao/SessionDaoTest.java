@@ -25,7 +25,21 @@ class SessionDaoTest {
 	class Constructor {
 
 		@Test
-		void success() {
+		void withoutOrg() {
+			final long userId = SESSION.getUser().getId();
+			final var bdo = new SessionInfo(userId, null);
+
+			final var dao = new SessionDao(bdo, HASHED_REFRESH_TOKEN);
+
+			assertThat(dao.getId()).isNull();
+			assertThat(dao.getUserId()).isEqualTo(bdo.getUserId());
+			assertThat(dao.getOrganisationId()).isNull();
+			assertThat(dao.getRefreshToken()).isEqualTo(HASHED_REFRESH_TOKEN);
+			assertThat(dao.getActiveUntil()).isEqualTo(bdo.getActiveUntil());
+		}
+
+		@Test
+		void withOrg() {
 			final long userId = SESSION.getUser().getId();
 			final long orgId = SESSION.getOrganisation().getId();
 			final var bdo = new SessionInfo(userId, orgId);
@@ -34,7 +48,7 @@ class SessionDaoTest {
 
 			assertThat(dao.getId()).isNull();
 			assertThat(dao.getUserId()).isEqualTo(bdo.getUserId());
-			assertThat(dao.getOrganisationId()).isNull();
+			assertThat(dao.getOrganisationId()).isEqualTo(orgId);
 			assertThat(dao.getRefreshToken()).isEqualTo(HASHED_REFRESH_TOKEN);
 			assertThat(dao.getActiveUntil()).isEqualTo(bdo.getActiveUntil());
 		}

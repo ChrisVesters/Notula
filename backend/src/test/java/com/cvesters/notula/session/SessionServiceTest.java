@@ -61,6 +61,91 @@ class SessionServiceTest {
 			when(userService.findByLogin(login))
 					.thenReturn(Optional.of(userInfo));
 
+			when(organisationUserService.getAll(argThat(principal -> {
+				assertThat(principal.userId()).isEqualTo(USER.getId());
+				return true;
+			}))).thenReturn(Collections.emptyList());
+
+			final SessionInfo createdSession = SESSION.info();
+			when(sessionStorageGateway.create(argThat(bdo -> {
+				assertThatThrownBy(bdo::getId)
+						.isInstanceOf(IllegalStateException.class);
+				assertThat(bdo.getUserId()).isEqualTo(USER.getId());
+				assertThat(bdo.getOrganisationId()).isEmpty();
+				assertThat(bdo.getActiveUntil()).isNotNull();
+				return true;
+			}), anyString())).thenReturn(createdSession);
+
+			when(accessTokenService.create(createdSession))
+					.thenReturn(ACCESS_TOKEN);
+
+			final SessionTokens tokens = sessionService.create(login);
+
+			final var refreshToken = ArgumentCaptor.forClass(String.class);
+			verify(sessionStorageGateway).create(any(), refreshToken.capture());
+
+			assertThat(tokens.getId()).isEqualTo(SESSION.getId());
+			assertThat(tokens.getAccessToken()).isEqualTo(ACCESS_TOKEN);
+			assertThat(tokens.getRefreshToken())
+					.contains(refreshToken.getValue());
+			assertThat(tokens.getActiveUntil())
+					.isEqualTo(SESSION.getActiveUntil());
+		}
+
+		@Test
+		void withDefaultOrg() {
+			final UserLogin login = USER.login();
+			final UserInfo userInfo = USER.info();
+			when(userService.findByLogin(login))
+					.thenReturn(Optional.of(userInfo));
+
+			final TestOrganisationUser organisationUser = TestOrganisationUser.SPORER_EDUARDO_CHRISTIANSEN;
+			when(organisationUserService.getAll(argThat(principal -> {
+				assertThat(principal.userId()).isEqualTo(USER.getId());
+				return true;
+			}))).thenReturn(List.of(organisationUser.info()));
+
+			final SessionInfo createdSession = SESSION.info();
+			when(sessionStorageGateway.create(argThat(bdo -> {
+				assertThatThrownBy(bdo::getId)
+						.isInstanceOf(IllegalStateException.class);
+				assertThat(bdo.getUserId()).isEqualTo(USER.getId());
+				assertThat(bdo.getOrganisationId())
+						.contains(organisationUser.getOrganisation().getId());
+				assertThat(bdo.getActiveUntil()).isNotNull();
+				return true;
+			}), anyString())).thenReturn(createdSession);
+
+			when(accessTokenService.create(createdSession))
+					.thenReturn(ACCESS_TOKEN);
+
+			final SessionTokens tokens = sessionService.create(login);
+
+			final var refreshToken = ArgumentCaptor.forClass(String.class);
+			verify(sessionStorageGateway).create(any(), refreshToken.capture());
+
+			assertThat(tokens.getId()).isEqualTo(SESSION.getId());
+			assertThat(tokens.getAccessToken()).isEqualTo(ACCESS_TOKEN);
+			assertThat(tokens.getRefreshToken())
+					.contains(refreshToken.getValue());
+			assertThat(tokens.getActiveUntil())
+					.isEqualTo(SESSION.getActiveUntil());
+		}
+
+		@Test
+		void multipleOrgs() {
+			final UserLogin login = USER.login();
+			final UserInfo userInfo = USER.info();
+			when(userService.findByLogin(login))
+					.thenReturn(Optional.of(userInfo));
+
+			when(organisationUserService.getAll(argThat(principal -> {
+				assertThat(principal.userId()).isEqualTo(USER.getId());
+				return true;
+			}))).thenReturn(
+					List.of(TestOrganisationUser.HEUL_ALISON_DACH.info(),
+							TestOrganisationUser.GLOVER_ALISON_DACH.info()));
+
 			final SessionInfo createdSession = SESSION.info();
 			when(sessionStorageGateway.create(argThat(bdo -> {
 				assertThatThrownBy(bdo::getId)

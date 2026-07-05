@@ -2,13 +2,16 @@ package com.cvesters.notula.session;
 
 import java.security.SecureRandom;
 import java.util.Base64;
+import java.util.List;
 import java.util.Objects;
+import java.util.Optional;
 
 import org.springframework.stereotype.Service;
 
 import com.cvesters.notula.common.domain.Principal;
 import com.cvesters.notula.common.exception.MissingEntityException;
 import com.cvesters.notula.organisation.OrganisationUserService;
+import com.cvesters.notula.organisation.bdo.OrganisationUserInfo;
 import com.cvesters.notula.session.bdo.SessionInfo;
 import com.cvesters.notula.session.bdo.SessionTokens;
 import com.cvesters.notula.session.bdo.SessionUpdate;
@@ -43,7 +46,12 @@ public class SessionService {
 		final UserInfo user = userService.findByLogin(request)
 				.orElseThrow(MissingEntityException::new);
 
-		final var action = new SessionInfo(user.getId(), null);
+		final Optional<OrganisationUserInfo> defaultOrganisation = getDefaultOrganisation(
+				user);
+
+		final var action = new SessionInfo(user.getId(),
+				defaultOrganisation.map(OrganisationUserInfo::getOrganisationId)
+						.orElse(null));
 		final String refreshToken = generateRefreshToken();
 
 		final SessionInfo createdSession = sessionStorage.create(action,
@@ -112,5 +120,17 @@ public class SessionService {
 		RANDOM.nextBytes(bytes);
 
 		return Base64.getUrlEncoder().withoutPadding().encodeToString(bytes);
+	}
+
+	private Optional<OrganisationUserInfo> getDefaultOrganisation(
+			final UserInfo user) {
+		final var principal = new Principal(user.getId(), null);
+		final List<OrganisationUserInfo> organisations = organisationUserService
+				.getAll(principal);
+		if (organisations.size() == 1) {
+			return Optional.of(organisations.getFirst());
+		} else {
+			return Optional.empty();
+		}
 	}
 }
