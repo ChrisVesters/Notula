@@ -62,6 +62,38 @@ class UserStorageGatewayTest {
 	}
 
 	@Nested
+	class FindByEmail {
+
+		@Test
+		void found() {
+			final UserInfo info = USER.info();
+			final UserDao dao = mock();
+			when(dao.toBdo()).thenReturn(info);
+
+			final Email email = USER.getEmail();
+			when(userRepository.findByEmail(email.value()))
+					.thenReturn(Optional.of(dao));
+
+			assertThat(gateway.findByEmail(email)).contains(info);
+		}
+
+		@Test
+		void notFound() {
+			final Email email = USER.getEmail();
+			when(userRepository.findByEmail(email.value()))
+					.thenReturn(Optional.empty());
+
+			assertThat(gateway.findByEmail(email)).isEmpty();
+		}
+
+		@Test
+		void emailNull() {
+			assertThatThrownBy(() -> gateway.findByEmail(null))
+					.isInstanceOf(NullPointerException.class);
+		}
+	}
+
+	@Nested
 	class ExistsByEmail {
 
 		@ParameterizedTest
