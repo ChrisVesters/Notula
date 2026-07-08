@@ -61,7 +61,7 @@ class SessionServiceTest {
 			when(userService.findByLogin(login))
 					.thenReturn(Optional.of(userInfo));
 
-			when(organisationUserService.getAll(argThat(principal -> {
+			when(organisationUserService.getAllForUser(argThat(principal -> {
 				assertThat(principal.userId()).isEqualTo(USER.getId());
 				return true;
 			}))).thenReturn(Collections.emptyList());
@@ -100,7 +100,7 @@ class SessionServiceTest {
 					.thenReturn(Optional.of(userInfo));
 
 			final TestOrganisationUser organisationUser = TestOrganisationUser.SPORER_EDUARDO_CHRISTIANSEN;
-			when(organisationUserService.getAll(argThat(principal -> {
+			when(organisationUserService.getAllForUser(argThat(principal -> {
 				assertThat(principal.userId()).isEqualTo(USER.getId());
 				return true;
 			}))).thenReturn(List.of(organisationUser.info()));
@@ -139,7 +139,7 @@ class SessionServiceTest {
 			when(userService.findByLogin(login))
 					.thenReturn(Optional.of(userInfo));
 
-			when(organisationUserService.getAll(argThat(principal -> {
+			when(organisationUserService.getAllForUser(argThat(principal -> {
 				assertThat(principal.userId()).isEqualTo(USER.getId());
 				return true;
 			}))).thenReturn(
