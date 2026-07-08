@@ -126,7 +126,7 @@ public class SessionService {
 			final UserInfo user) {
 		final var principal = new Principal(user.getId(), null);
 		final List<OrganisationUserInfo> organisations = organisationUserService
-				.getAll(principal);
+				.getAllForUser(principal);
 		if (organisations.size() == 1) {
 			return Optional.of(organisations.getFirst());
 		} else {
