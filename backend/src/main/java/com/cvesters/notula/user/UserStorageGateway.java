@@ -24,6 +24,12 @@ public class UserStorageGateway {
 		this.passwordEncoder = passwordEncoder;
 	}
 
+	public Optional<UserInfo> findByEmail(final Email email) {
+		Objects.requireNonNull(email);
+
+		return userRepository.findByEmail(email.value()).map(UserDao::toBdo);
+	}
+
 	public boolean existsByEmail(final Email email) {
 		Objects.requireNonNull(email);
 

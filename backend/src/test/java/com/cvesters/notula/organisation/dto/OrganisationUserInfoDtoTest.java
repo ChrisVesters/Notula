@@ -6,33 +6,28 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 
-import com.cvesters.notula.organisation.TestOrganisation;
 import com.cvesters.notula.organisation.TestOrganisationUser;
-import com.cvesters.notula.user.TestUser;
 
 class OrganisationUserInfoDtoTest {
 
-	private static final TestOrganisationUser ORGANISATION_USER = TestOrganisationUser.SPORER_EDUARDO_CHRISTIANSEN;
-	private static final TestOrganisation ORGANISATION = ORGANISATION_USER
-			.getOrganisation();
-	private static final TestUser USER = ORGANISATION_USER.getUser();
+	private static final TestOrganisationUser ORG_USER = TestOrganisationUser.SPORER_EDUARDO_CHRISTIANSEN;
 
 	@Nested
 	class Constructor {
-
 		@Test
 		void success() {
-			final var bdo = ORGANISATION_USER.view();
+			final var bdo = ORG_USER.info();
 
-			final var dto = new OrganisationUserViewDto(bdo);
+			final var dto = new OrganisationUserInfoDto(bdo);
 
-			assertThat(dto.id()).isEqualTo(ORGANISATION_USER.getId());
-			assertThat(dto.organisationId()).isEqualTo(ORGANISATION.getId());
-			assertThat(dto.userId()).isEqualTo(USER.getId());
+			assertThat(dto.id()).isEqualTo(ORG_USER.getId());
+			assertThat(dto.organisationId())
+					.isEqualTo(ORG_USER.getOrganisation().getId());
+			assertThat(dto.userId()).isEqualTo(ORG_USER.getUser().getId());
 		}
 
 		@Test
-		void organisationNull() {
+		void organisationUserNull() {
 			assertThatThrownBy(() -> new OrganisationInfoDto(null))
 					.isInstanceOf(NullPointerException.class);
 		}

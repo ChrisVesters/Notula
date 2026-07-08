@@ -5,6 +5,7 @@ import java.util.Optional;
 
 import org.springframework.stereotype.Service;
 
+import com.cvesters.notula.common.domain.Email;
 import com.cvesters.notula.common.exception.DuplicateEntityException;
 import com.cvesters.notula.user.bdo.UserInfo;
 import com.cvesters.notula.user.bdo.UserLogin;
@@ -32,6 +33,12 @@ public class UserService {
 		Objects.requireNonNull(userLogin);
 
 		return userStorage.findByLogin(userLogin);
+	}
+
+	public Optional<UserInfo> findByEmail(final Email email) {
+		Objects.requireNonNull(email);
+
+		return userStorage.findByEmail(email);
 	}
 
 }

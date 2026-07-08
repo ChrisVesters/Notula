@@ -11,6 +11,7 @@ import java.util.Optional;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 
+import com.cvesters.notula.common.domain.Email;
 import com.cvesters.notula.common.exception.DuplicateEntityException;
 import com.cvesters.notula.user.bdo.UserInfo;
 import com.cvesters.notula.user.bdo.UserLogin;
@@ -76,6 +77,27 @@ class UserServiceTest {
 		@Test
 		void loginNull() {
 			assertThatThrownBy(() -> userService.findByLogin(null))
+					.isInstanceOf(NullPointerException.class);
+		}
+	}
+
+	@Nested
+	class FindByEmail {
+
+		@Test
+		void success() {
+			final Email email = USER.getEmail();
+			final Optional<UserInfo> result = Optional.of(USER.info());
+			when(userStorageGateway.findByEmail(email)).thenReturn(result);
+
+			final Optional<UserInfo> foundUser = userService.findByEmail(email);
+
+			assertThat(foundUser).isEqualTo(result);
+		}
+
+		@Test
+		void emailNull() {
+			assertThatThrownBy(() -> userService.findByEmail(null))
 					.isInstanceOf(NullPointerException.class);
 		}
 	}

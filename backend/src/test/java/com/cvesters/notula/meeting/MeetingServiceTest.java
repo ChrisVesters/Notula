@@ -149,7 +149,7 @@ class MeetingServiceTest {
 		}
 
 		@Test
-		void organisationNull() {
+		void actionNull() {
 			final Principal principal = SESSION.principal();
 			final MeetingAction.Create meeting = null;
 
