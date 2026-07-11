@@ -33,7 +33,10 @@
 			};
 
 			const user = await OrganisationUserClient.create(request);
-			users?.push(user);
+			users?.push({
+				...user,
+				email
+			});
 			dialog.close();
 		} catch (error) {
 			// TODO: better error handling

@@ -8,7 +8,6 @@ import org.springframework.stereotype.Service;
 import com.cvesters.notula.common.domain.Email;
 import com.cvesters.notula.common.exception.DuplicateEntityException;
 import com.cvesters.notula.user.bdo.UserInfo;
-import com.cvesters.notula.user.bdo.UserLogin;
 
 @Service
 public class UserService {
@@ -19,20 +18,14 @@ public class UserService {
 		this.userStorage = userStorageService;
 	}
 
-	public UserInfo createUser(final UserLogin userLogin) {
-		Objects.requireNonNull(userLogin);
+	public UserInfo createUser(final UserInfo userInfo) {
+		Objects.requireNonNull(userInfo);
 
-		if (userStorage.existsByEmail(userLogin.getEmail())) {
+		if (userStorage.existsByEmail(userInfo.getEmail())) {
 			throw new DuplicateEntityException();
 		}
 
-		return userStorage.create(userLogin);
-	}
-
-	public Optional<UserInfo> findByLogin(final UserLogin userLogin) {
-		Objects.requireNonNull(userLogin);
-
-		return userStorage.findByLogin(userLogin);
+		return userStorage.create(userInfo);
 	}
 
 	public Optional<UserInfo> findByEmail(final Email email) {

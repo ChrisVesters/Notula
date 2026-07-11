@@ -3,12 +3,10 @@ package com.cvesters.notula.user;
 import java.util.Objects;
 import java.util.Optional;
 
-import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
 import com.cvesters.notula.common.domain.Email;
 import com.cvesters.notula.user.bdo.UserInfo;
-import com.cvesters.notula.user.bdo.UserLogin;
 import com.cvesters.notula.user.dao.UserDao;
 
 @Service
@@ -16,12 +14,8 @@ public class UserStorageGateway {
 
 	private final UserRepository userRepository;
 
-	private final PasswordEncoder passwordEncoder;
-
-	public UserStorageGateway(final UserRepository userRepository,
-			final PasswordEncoder passwordEncoder) {
+	public UserStorageGateway(final UserRepository userRepository) {
 		this.userRepository = userRepository;
-		this.passwordEncoder = passwordEncoder;
 	}
 
 	public Optional<UserInfo> findByEmail(final Email email) {
@@ -36,23 +30,10 @@ public class UserStorageGateway {
 		return userRepository.existsByEmail(email.value());
 	}
 
-	public Optional<UserInfo> findByLogin(final UserLogin login) {
-		Objects.requireNonNull(login);
+	public UserInfo create(final UserInfo info) {
+		Objects.requireNonNull(info);
 
-		final String email = login.getEmail().value();
-		final String password = login.getPassword().value();
-
-		return userRepository.findByEmail(email)
-				.filter(u -> passwordEncoder.matches(password, u.getPassword()))
-				.map(UserDao::toBdo);
-	}
-
-	public UserInfo create(final UserLogin login) {
-		Objects.requireNonNull(login);
-
-		final String passwordHash = passwordEncoder
-				.encode(login.getPassword().value());
-		final var dao = new UserDao(login.getEmail().value(), passwordHash);
+		final var dao = new UserDao(info.getEmail().value());
 		final UserDao created = userRepository.save(dao);
 		return created.toBdo();
 	}

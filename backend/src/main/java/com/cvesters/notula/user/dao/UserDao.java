@@ -29,14 +29,10 @@ public class UserDao {
 	@Column(nullable = false, unique = true)
 	private String email;
 
-	@Column
-	private String password;
-
-	public UserDao(final String email, final String password) {
+	public UserDao(final String email) {
 		Objects.requireNonNull(email);
 
 		this.email = email;
-		this.password = password;
 	}
 
 	public UserInfo toBdo() {

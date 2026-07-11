@@ -33,6 +33,7 @@ import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.ResultMatcher;
 
 import com.cvesters.notula.common.exception.DuplicateEntityException;
+import com.cvesters.notula.credential.TestCredential;
 import com.cvesters.notula.organisation.TestOrganisation;
 import com.cvesters.notula.session.bdo.SessionTokens;
 import com.cvesters.notula.test.ControllerTest;
@@ -49,6 +50,7 @@ class SessionControllerTest extends ControllerTest {
 
 	private static final TestSession SESSION = TestSession.ALISON_DACH;
 	private static final TestUser USER = SESSION.getUser();
+	private static final TestCredential CREDENTIAL = TestCredential.ALISON_DACH;
 	private static final String ACCESS_TOKEN = "access";
 
 	@MockitoBean
@@ -63,11 +65,12 @@ class SessionControllerTest extends ControllerTest {
 					SESSION.getRefreshToken());
 			when(sessionService.create(argThat(login -> {
 				assertThat(login.getEmail()).isEqualTo(USER.getEmail());
-				assertThat(login.getPassword()).isEqualTo(USER.getPassword());
+				assertThat(login.getPassword())
+						.isEqualTo(CREDENTIAL.getPassword());
 				return true;
 			}))).thenReturn(tokens);
 
-			final String body = getBody(USER);
+			final String body = getBody(USER, CREDENTIAL);
 			final String expectedResponse = getResponse(SESSION, ACCESS_TOKEN);
 
 			final var builder = post(BASE_ENDPOINT).content(body)
@@ -86,7 +89,7 @@ class SessionControllerTest extends ControllerTest {
 			when(sessionService.create(any()))
 					.thenThrow(new RuntimeException());
 
-			final String body = getBody(USER);
+			final String body = getBody(USER, CREDENTIAL);
 
 			final var builder = post(BASE_ENDPOINT).content(body)
 					.contentType(MediaType.APPLICATION_JSON);
@@ -100,7 +103,7 @@ class SessionControllerTest extends ControllerTest {
 			when(sessionService.create(any()))
 					.thenThrow(new DuplicateEntityException());
 
-			final String body = getBody(USER);
+			final String body = getBody(USER, CREDENTIAL);
 
 			final var builder = post(BASE_ENDPOINT).content(body)
 					.contentType(MediaType.APPLICATION_JSON);
@@ -112,7 +115,7 @@ class SessionControllerTest extends ControllerTest {
 		@NullAndEmptySource
 		@ValueSource(strings = { "user.test", "@test", "user@", "     " })
 		void emailInvalid(final String email) throws Exception {
-			final String body = getBody(email, USER.getPassword().value());
+			final String body = getBody(email, CREDENTIAL.getPassword().value());
 
 			final var builder = post(BASE_ENDPOINT).content(body)
 					.contentType(MediaType.APPLICATION_JSON);
@@ -132,8 +135,10 @@ class SessionControllerTest extends ControllerTest {
 			mockMvc.perform(builder).andExpect(status().isBadRequest());
 		}
 
-		private String getBody(final TestUser user) {
-			return getBody(user.getEmail().value(), user.getPassword().value());
+		private String getBody(final TestUser user,
+				final TestCredential credential) {
+			return getBody(user.getEmail().value(),
+					credential.getPassword().value());
 		}
 
 		private String getBody(final String email, final String password) {

@@ -14,7 +14,6 @@ import org.junit.jupiter.api.Test;
 import com.cvesters.notula.common.domain.Email;
 import com.cvesters.notula.common.exception.DuplicateEntityException;
 import com.cvesters.notula.user.bdo.UserInfo;
-import com.cvesters.notula.user.bdo.UserLogin;
 
 class UserServiceTest {
 
@@ -28,21 +27,20 @@ class UserServiceTest {
 
 		@Test
 		void success() {
-			final UserLogin userLogin = USER.login();
 			final UserInfo userInfo = USER.info();
 
-			when(userStorageGateway.existsByEmail(userLogin.getEmail()))
+			when(userStorageGateway.existsByEmail(userInfo.getEmail()))
 					.thenReturn(false);
-			when(userStorageGateway.create(userLogin)).thenReturn(userInfo);
+			when(userStorageGateway.create(userInfo)).thenReturn(userInfo);
 
-			final UserInfo info = userService.createUser(userLogin);
+			final UserInfo info = userService.createUser(userInfo);
 
 			assertThat(info).isEqualTo(userInfo);
 		}
 
 		@Test
-		void loginNull() {
-			assertThatThrownBy(() -> userService.createUser(null))
+		void userInfoNull() {
+			assertThatThrownBy(() -> userService.createUser((UserInfo) null))
 					.isInstanceOf(NullPointerException.class);
 
 			verifyNoInteractions(userStorageGateway);
@@ -50,34 +48,13 @@ class UserServiceTest {
 
 		@Test
 		void emailAlreadyUsed() {
-			final UserLogin userLogin = USER.login();
+			final UserInfo userInfo = USER.info();
 
-			when(userStorageGateway.existsByEmail(userLogin.getEmail()))
+			when(userStorageGateway.existsByEmail(userInfo.getEmail()))
 					.thenReturn(true);
 
-			assertThatThrownBy(() -> userService.createUser(userLogin))
+			assertThatThrownBy(() -> userService.createUser(userInfo))
 					.isInstanceOf(DuplicateEntityException.class);
-		}
-	}
-
-	@Nested
-	class FindByLogin {
-
-		@Test
-		void success() {
-			final UserLogin login = USER.login();
-			final Optional<UserInfo> result = Optional.of(USER.info());
-			when(userStorageGateway.findByLogin(login)).thenReturn(result);
-
-			final Optional<UserInfo> foundUser = userService.findByLogin(login);
-
-			assertThat(foundUser).isEqualTo(result);
-		}
-
-		@Test
-		void loginNull() {
-			assertThatThrownBy(() -> userService.findByLogin(null))
-					.isInstanceOf(NullPointerException.class);
 		}
 	}
 

@@ -92,27 +92,23 @@ class UserRepositoryTest extends RepositoryTest {
 		@Test
 		void success() {
 			final String email = "user@test";
-			final String password = "pass";
 
-			final var dao = new UserDao(email, password);
+			final var dao = new UserDao(email);
 			final UserDao saved = userRepository.save(dao);
 
 			assertThat(saved.getId()).isNotNull();
 			assertThat(saved.getEmail()).isEqualTo(email);
-			assertThat(saved.getPassword()).isEqualTo(password);
 
 			final UserDao found = entityManager.find(UserDao.class,
 					saved.getId());
 			assertThat(found).isNotNull();
 			assertThat(found.getId()).isEqualTo(saved.getId());
 			assertThat(found.getEmail()).isEqualTo(email);
-			assertThat(found.getPassword()).isEqualTo(password);
 		}
 
 		@Test
 		void emailDuplicate() {
-			final var dao = new UserDao(USER.getEmail().value(),
-					USER.getPassword().value());
+			final var dao = new UserDao(USER.getEmail().value());
 
 			assertThatThrownBy(() -> userRepository.save(dao))
 					.isInstanceOf(DataIntegrityViolationException.class);

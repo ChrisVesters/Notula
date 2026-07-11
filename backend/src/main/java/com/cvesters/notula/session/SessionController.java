@@ -21,12 +21,12 @@ import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
 
 import com.cvesters.notula.common.controller.BaseController;
 import com.cvesters.notula.common.domain.Principal;
+import com.cvesters.notula.session.bdo.SessionAction;
 import com.cvesters.notula.session.bdo.SessionTokens;
 import com.cvesters.notula.session.bdo.SessionUpdate;
 import com.cvesters.notula.session.dto.SessionCreateDto;
 import com.cvesters.notula.session.dto.SessionInfoDto;
 import com.cvesters.notula.session.dto.SessionUpdateDto;
-import com.cvesters.notula.user.bdo.UserLogin;
 
 @RestController
 @RequestMapping("/api/sessions")
@@ -41,7 +41,7 @@ public class SessionController extends BaseController {
 	@PostMapping(consumes = MediaType.APPLICATION_JSON_VALUE, produces = MediaType.APPLICATION_JSON_VALUE)
 	public ResponseEntity<SessionInfoDto> create(
 			@Valid @RequestBody final SessionCreateDto request) {
-		final UserLogin login = request.toBdo();
+		final SessionAction.Create login = request.toBdo();
 		final SessionTokens session = sessionService.create(login);
 		final var dto = new SessionInfoDto(session);
 
