@@ -17,7 +17,18 @@ class UserInfoTest {
 	class Constructor {
 
 		@Test
-		void success() {
+		void withoutId() {
+			final Long userId = null;
+			final Email email = USER.getEmail();
+
+			final var userInfo = new UserInfo(userId, email);
+
+			assertThat(userInfo.getId()).isNull();
+			assertThat(userInfo.getEmail()).isEqualTo(email);
+		}
+
+		@Test
+		void withId() {
 			final long userId = USER.getId();
 			final Email email = USER.getEmail();
 

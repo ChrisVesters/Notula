@@ -3,6 +3,7 @@ package com.cvesters.notula.user;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.argThat;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
@@ -21,7 +22,12 @@ import org.springframework.http.MediaType;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 
 import com.cvesters.notula.common.exception.DuplicateEntityException;
+import com.cvesters.notula.credential.CredentialActionMatcher;
+import com.cvesters.notula.credential.CredentialService;
+import com.cvesters.notula.credential.TestCredential;
+import com.cvesters.notula.credential.bdo.CredentialAction;
 import com.cvesters.notula.test.ControllerTest;
+import com.cvesters.notula.user.bdo.UserInfo;
 
 @WebMvcTest(UserController.class)
 class UserControllerTest extends ControllerTest {
@@ -30,22 +36,27 @@ class UserControllerTest extends ControllerTest {
 	private static final String ENDPOINT = "/api/users";
 
 	private static final TestUser USER = TestUser.EDUARDO_CHRISTIANSEN;
+	private static final TestCredential CREDENTIAL = TestCredential.EDUARDO_CHRISTIANSEN;
 
 	@MockitoBean
 	private UserService userService;
+
+	@MockitoBean
+	private CredentialService credentialService;
 
 	@Nested
 	class Create {
 
 		@Test
 		void success() throws Exception {
+			when(userService.findByEmail(USER.getEmail()))
+					.thenReturn(Optional.empty());
 			when(userService.createUser(argThat(bdo -> {
 				assertThat(bdo.getEmail()).isEqualTo(USER.getEmail());
-				assertThat(bdo.getPassword()).isEqualTo(USER.getPassword());
 				return true;
 			}))).thenReturn(USER.info());
 
-			final String body = getBody(USER);
+			final String body = getBody(USER, CREDENTIAL);
 			final String expectedResponse = getResponse(USER);
 
 			final var builder = post(ENDPOINT).content(body)
@@ -56,14 +67,66 @@ class UserControllerTest extends ControllerTest {
 					.andExpect(header().string("location",
 							SERVER + ENDPOINT + "/" + USER.getId()))
 					.andExpect(content().json(expectedResponse));
+
+			final CredentialAction.Create credentialAction = CREDENTIAL
+					.create();
+			final var matcher = new CredentialActionMatcher.Create(
+					credentialAction);
+			verify(credentialService).create(argThat(matcher::matches));
+		}
+
+		@Test
+		void userAlreadyExists() throws Exception {
+			when(userService.findByEmail(USER.getEmail()))
+					.thenReturn(Optional.of(USER.info()));
+
+			final String body = getBody(USER, CREDENTIAL);
+			final String expectedResponse = getResponse(USER);
+
+			final var builder = post(ENDPOINT).content(body)
+					.contentType(MediaType.APPLICATION_JSON);
+
+			mockMvc.perform(builder)
+					.andExpect(status().isCreated())
+					.andExpect(header().string("location",
+							SERVER + ENDPOINT + "/" + USER.getId()))
+					.andExpect(content().json(expectedResponse));
+
+			final CredentialAction.Create credentialAction = CREDENTIAL
+					.create();
+			final var matcher = new CredentialActionMatcher.Create(
+					credentialAction);
+			verify(credentialService).create(argThat(matcher::matches));
+		}
+
+		@Test
+		void userWithCredentials() throws Exception {
+			when(userService.findByEmail(USER.getEmail()))
+					.thenReturn(Optional.of(USER.info()));
+
+			final CredentialAction.Create credentialAction = CREDENTIAL
+					.create();
+			final var matcher = new CredentialActionMatcher.Create(
+					credentialAction);
+			when(credentialService.create(argThat(matcher::matches)))
+					.thenThrow(DuplicateEntityException.class);
+
+			final String body = getBody(USER, CREDENTIAL);
+
+			final var builder = post(ENDPOINT).content(body)
+					.contentType(MediaType.APPLICATION_JSON);
+
+			mockMvc.perform(builder).andExpect(status().isBadRequest());
 		}
 
 		@Test
 		void serverError() throws Exception {
-			when(userService.createUser(any()))
+			when(userService.findByEmail(USER.getEmail()))
+					.thenReturn(Optional.empty());
+			when(userService.createUser(any(UserInfo.class)))
 					.thenThrow(new RuntimeException());
 
-			final String body = getBody(USER);
+			final String body = getBody(USER, CREDENTIAL);
 
 			final var builder = post(ENDPOINT).content(body)
 					.contentType(MediaType.APPLICATION_JSON);
@@ -74,10 +137,12 @@ class UserControllerTest extends ControllerTest {
 
 		@Test
 		void duplicateEntity() throws Exception {
-			when(userService.createUser(any()))
+			when(userService.findByEmail(USER.getEmail()))
+					.thenReturn(Optional.empty());
+			when(userService.createUser(any(UserInfo.class)))
 					.thenThrow(new DuplicateEntityException());
 
-			final String body = getBody(USER);
+			final String body = getBody(USER, CREDENTIAL);
 
 			final var builder = post(ENDPOINT).content(body)
 					.contentType(MediaType.APPLICATION_JSON);
@@ -89,7 +154,8 @@ class UserControllerTest extends ControllerTest {
 		@NullAndEmptySource
 		@ValueSource(strings = { "user.test", "@test", "user@", "     " })
 		void emailInvalid(final String email) throws Exception {
-			final String body = getBody(email, USER.getPassword().value());
+			final String body = getBody(email,
+					CREDENTIAL.getPassword().value());
 
 			final var builder = post(ENDPOINT).content(body)
 					.contentType(MediaType.APPLICATION_JSON);
@@ -103,7 +169,7 @@ class UserControllerTest extends ControllerTest {
 					{
 						"password": "%s"
 					}
-					""".formatted(USER.getPassword().value());
+					""".formatted(CREDENTIAL.getPassword().value());
 
 			final var builder = post(ENDPOINT).content(body)
 					.contentType(MediaType.APPLICATION_JSON);
@@ -137,8 +203,10 @@ class UserControllerTest extends ControllerTest {
 			mockMvc.perform(builder).andExpect(status().isBadRequest());
 		}
 
-		private String getBody(final TestUser user) {
-			return getBody(user.getEmail().value(), user.getPassword().value());
+		private String getBody(final TestUser user,
+				final TestCredential credential) {
+			return getBody(user.getEmail().value(),
+					credential.getPassword().value());
 		}
 
 		private String getBody(final String email, final String password) {

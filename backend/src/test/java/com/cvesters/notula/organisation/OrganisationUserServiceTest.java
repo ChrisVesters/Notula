@@ -19,7 +19,6 @@ import org.junit.jupiter.api.Test;
 import com.cvesters.notula.common.domain.Email;
 import com.cvesters.notula.common.domain.Principal;
 import com.cvesters.notula.common.exception.DuplicateEntityException;
-import com.cvesters.notula.common.exception.MissingEntityException;
 import com.cvesters.notula.organisation.bdo.OrganisationUserAction;
 import com.cvesters.notula.organisation.bdo.OrganisationUserInfo;
 import com.cvesters.notula.organisation.bdo.OrganisationUserView;
@@ -135,11 +134,32 @@ class OrganisationUserServiceTest {
 			final Email email = USER.getEmail();
 			when(userService.findByEmail(email)).thenReturn(Optional.empty());
 
+			final UserInfo createdUser = USER.info();
+			when(userService.createUser(argThat((UserInfo userInfo) -> {
+				assertThat(userInfo.getEmail()).isEqualTo(email);
+				assertThat(userInfo.getId()).isNull();
+				return true;
+			}))).thenReturn(createdUser);
+
+			final long userId = USER.getId();
+			final long orgId = SESSION.getOrganisation().getId();
+			when(organisationUserStorage.findByUserIdAndOrganisationId(userId,
+					orgId)).thenReturn(Optional.empty());
+
+			final OrganisationUserInfo createdOrgUser = ORGANISATION_USER.info();
+			when(organisationUserStorage.create(argThat(orgUser -> {
+				assertThat(orgUser.getId()).isNull();
+				assertThat(orgUser.getOrganisationId()).isEqualTo(orgId);
+				assertThat(orgUser.getUserId()).isEqualTo(userId);
+				return true;
+			}))).thenReturn(createdOrgUser);
+
 			final Principal principal = SESSION.principal();
 			final var create = new OrganisationUserAction.Create(email);
-			assertThatThrownBy(
-					() -> organisationUserService.create(principal, create))
-							.isInstanceOf(MissingEntityException.class);
+			final OrganisationUserInfo result = organisationUserService
+					.create(principal, create);
+
+			assertThat(result).isEqualTo(createdOrgUser);
 		}
 
 		@Test

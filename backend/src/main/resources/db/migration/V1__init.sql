@@ -1,12 +1,23 @@
 CREATE TABLE users(
 	id BIGINT NOT NULL GENERATED ALWAYS AS IDENTITY,
 	email TEXT NOT NULL UNIQUE,
-	password TEXT,
 
 	PRIMARY KEY(id)
 );
 
 CREATE INDEX ON users(email);
+
+
+CREATE TABLE credentials(
+	id BIGINT NOT NULL GENERATED ALWAYS AS IDENTITY,
+	user_id BIGINT NOT NULL,
+	password TEXT NOT NULL,
+
+	PRIMARY KEY(id),
+	FOREIGN KEY(user_id) REFERENCES users(id) ON DELETE CASCADE
+);
+
+CREATE INDEX ON credentials(user_id);
 
 
 CREATE TABLE organisations(

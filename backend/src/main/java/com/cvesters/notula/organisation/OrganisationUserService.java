@@ -8,7 +8,6 @@ import org.springframework.stereotype.Service;
 
 import com.cvesters.notula.common.domain.Principal;
 import com.cvesters.notula.common.exception.DuplicateEntityException;
-import com.cvesters.notula.common.exception.MissingEntityException;
 import com.cvesters.notula.organisation.bdo.OrganisationUserAction;
 import com.cvesters.notula.organisation.bdo.OrganisationUserInfo;
 import com.cvesters.notula.organisation.bdo.OrganisationUserView;
@@ -48,7 +47,8 @@ public class OrganisationUserService {
 		Objects.requireNonNull(action);
 
 		final UserInfo userInfo = userService.findByEmail(action.getEmail())
-				.orElseThrow(MissingEntityException::new);
+				.orElseGet(() -> userService
+						.createUser(new UserInfo(action.getEmail())));
 
 		final Optional<OrganisationUserInfo> existing = organisationUserStorage
 				.findByUserIdAndOrganisationId(userInfo.getId(),

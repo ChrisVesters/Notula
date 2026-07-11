@@ -10,14 +10,16 @@ import org.springframework.stereotype.Service;
 
 import com.cvesters.notula.common.domain.Principal;
 import com.cvesters.notula.common.exception.MissingEntityException;
+import com.cvesters.notula.credential.CredentialService;
+import com.cvesters.notula.credential.bdo.CredentialAction;
 import com.cvesters.notula.organisation.OrganisationUserService;
 import com.cvesters.notula.organisation.bdo.OrganisationUserInfo;
+import com.cvesters.notula.session.bdo.SessionAction;
 import com.cvesters.notula.session.bdo.SessionInfo;
 import com.cvesters.notula.session.bdo.SessionTokens;
 import com.cvesters.notula.session.bdo.SessionUpdate;
 import com.cvesters.notula.user.UserService;
 import com.cvesters.notula.user.bdo.UserInfo;
-import com.cvesters.notula.user.bdo.UserLogin;
 
 @Service
 public class SessionService {
@@ -25,25 +27,31 @@ public class SessionService {
 	private static final SecureRandom RANDOM = new SecureRandom();
 
 	private final UserService userService;
+	private final CredentialService credentialService;
 	private final OrganisationUserService organisationUserService;
 	private final AccessTokenService accessTokenService;
 
 	private final SessionStorageGateway sessionStorage;
 
 	public SessionService(final UserService userService,
+			final CredentialService credentialService,
 			final OrganisationUserService organisationUserService,
 			final AccessTokenService accessTokenService,
 			final SessionStorageGateway sessionStorageGateway) {
 		this.userService = userService;
+		this.credentialService = credentialService;
 		this.organisationUserService = organisationUserService;
 		this.accessTokenService = accessTokenService;
 		this.sessionStorage = sessionStorageGateway;
 	}
 
-	public SessionTokens create(final UserLogin request) {
+	public SessionTokens create(final SessionAction.Create request) {
 		Objects.requireNonNull(request);
 
-		final UserInfo user = userService.findByLogin(request)
+		final UserInfo user = userService.findByEmail(request.getEmail())
+				.filter(u -> credentialService
+						.existsLogin(new CredentialAction.Login(u.getId(),
+								request.getPassword())))
 				.orElseThrow(MissingEntityException::new);
 
 		final Optional<OrganisationUserInfo> defaultOrganisation = getDefaultOrganisation(

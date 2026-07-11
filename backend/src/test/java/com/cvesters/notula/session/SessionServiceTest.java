@@ -24,42 +24,54 @@ import org.mockito.InOrder;
 
 import com.cvesters.notula.common.domain.Principal;
 import com.cvesters.notula.common.exception.MissingEntityException;
+import com.cvesters.notula.credential.CredentialActionMatcher;
+import com.cvesters.notula.credential.CredentialService;
+import com.cvesters.notula.credential.TestCredential;
+import com.cvesters.notula.credential.bdo.CredentialAction;
 import com.cvesters.notula.organisation.OrganisationUserService;
 import com.cvesters.notula.organisation.TestOrganisation;
 import com.cvesters.notula.organisation.TestOrganisationUser;
 import com.cvesters.notula.organisation.bdo.OrganisationUserInfo;
+import com.cvesters.notula.session.bdo.SessionAction;
 import com.cvesters.notula.session.bdo.SessionInfo;
 import com.cvesters.notula.session.bdo.SessionTokens;
 import com.cvesters.notula.session.bdo.SessionUpdate;
 import com.cvesters.notula.user.TestUser;
 import com.cvesters.notula.user.UserService;
 import com.cvesters.notula.user.bdo.UserInfo;
-import com.cvesters.notula.user.bdo.UserLogin;
 
 class SessionServiceTest {
 
 	private static final TestSession SESSION = TestSession.EDUARDO_CHRISTIANSEN_SPORER;
 	private static final TestUser USER = SESSION.getUser();
+	private static final TestCredential CREDENTIAL = TestCredential.EDUARDO_CHRISTIANSEN;
 	private static final String ACCESS_TOKEN = "access";
 
 	private final UserService userService = mock();
+	private final CredentialService credentialService = mock();
 	private final OrganisationUserService organisationUserService = mock();
 	private final AccessTokenService accessTokenService = mock();
 	private final SessionStorageGateway sessionStorageGateway = mock();
 
 	private final SessionService sessionService = new SessionService(
-			userService, organisationUserService, accessTokenService,
-			sessionStorageGateway);
+			userService, credentialService, organisationUserService,
+			accessTokenService, sessionStorageGateway);
 
 	@Nested
 	class Create {
 
 		@Test
 		void success() {
-			final UserLogin login = USER.login();
+			final var request = new SessionAction.Create(USER.getEmail(),
+					CREDENTIAL.getPassword());
 			final UserInfo userInfo = USER.info();
-			when(userService.findByLogin(login))
+			when(userService.findByEmail(USER.getEmail()))
 					.thenReturn(Optional.of(userInfo));
+
+			final CredentialAction.Login login = CREDENTIAL.login();
+			final var matcher = new CredentialActionMatcher.Login(login);
+			when(credentialService.existsLogin(argThat(matcher::matches)))
+					.thenReturn(true);
 
 			when(organisationUserService.getAllForUser(argThat(principal -> {
 				assertThat(principal.userId()).isEqualTo(USER.getId());
@@ -79,7 +91,7 @@ class SessionServiceTest {
 			when(accessTokenService.create(createdSession))
 					.thenReturn(ACCESS_TOKEN);
 
-			final SessionTokens tokens = sessionService.create(login);
+			final SessionTokens tokens = sessionService.create(request);
 
 			final var refreshToken = ArgumentCaptor.forClass(String.class);
 			verify(sessionStorageGateway).create(any(), refreshToken.capture());
@@ -94,10 +106,16 @@ class SessionServiceTest {
 
 		@Test
 		void withDefaultOrg() {
-			final UserLogin login = USER.login();
+			final var request = new SessionAction.Create(USER.getEmail(),
+					CREDENTIAL.getPassword());
 			final UserInfo userInfo = USER.info();
-			when(userService.findByLogin(login))
+			when(userService.findByEmail(USER.getEmail()))
 					.thenReturn(Optional.of(userInfo));
+
+			final CredentialAction.Login login = CREDENTIAL.login();
+			final var matcher = new CredentialActionMatcher.Login(login);
+			when(credentialService.existsLogin(argThat(matcher::matches)))
+					.thenReturn(true);
 
 			final TestOrganisationUser organisationUser = TestOrganisationUser.SPORER_EDUARDO_CHRISTIANSEN;
 			when(organisationUserService.getAllForUser(argThat(principal -> {
@@ -119,7 +137,7 @@ class SessionServiceTest {
 			when(accessTokenService.create(createdSession))
 					.thenReturn(ACCESS_TOKEN);
 
-			final SessionTokens tokens = sessionService.create(login);
+			final SessionTokens tokens = sessionService.create(request);
 
 			final var refreshToken = ArgumentCaptor.forClass(String.class);
 			verify(sessionStorageGateway).create(any(), refreshToken.capture());
@@ -134,10 +152,16 @@ class SessionServiceTest {
 
 		@Test
 		void multipleOrgs() {
-			final UserLogin login = USER.login();
+			final var request = new SessionAction.Create(USER.getEmail(),
+					CREDENTIAL.getPassword());
 			final UserInfo userInfo = USER.info();
-			when(userService.findByLogin(login))
+			when(userService.findByEmail(USER.getEmail()))
 					.thenReturn(Optional.of(userInfo));
+
+			final CredentialAction.Login login = CREDENTIAL.login();
+			final var matcher = new CredentialActionMatcher.Login(login);
+			when(credentialService.existsLogin(argThat(matcher::matches)))
+					.thenReturn(true);
 
 			when(organisationUserService.getAllForUser(argThat(principal -> {
 				assertThat(principal.userId()).isEqualTo(USER.getId());
@@ -159,7 +183,7 @@ class SessionServiceTest {
 			when(accessTokenService.create(createdSession))
 					.thenReturn(ACCESS_TOKEN);
 
-			final SessionTokens tokens = sessionService.create(login);
+			final SessionTokens tokens = sessionService.create(request);
 
 			final var refreshToken = ArgumentCaptor.forClass(String.class);
 			verify(sessionStorageGateway).create(any(), refreshToken.capture());
@@ -173,17 +197,34 @@ class SessionServiceTest {
 		}
 
 		@Test
-		void loginNull() {
+		void requestNull() {
 			assertThatThrownBy(() -> sessionService.create(null))
 					.isInstanceOf(NullPointerException.class);
 		}
 
 		@Test
 		void userNotFound() {
-			final UserLogin login = USER.login();
-			when(userService.findByLogin(login)).thenReturn(Optional.empty());
+			final var request = new SessionAction.Create(USER.getEmail(),
+					CREDENTIAL.getPassword());
+			when(userService.findByEmail(USER.getEmail()))
+					.thenReturn(Optional.empty());
 
-			assertThatThrownBy(() -> sessionService.create(login))
+			assertThatThrownBy(() -> sessionService.create(request))
+					.isInstanceOf(MissingEntityException.class);
+		}
+
+		@Test
+		void invalidCredentials() {
+			final var request = new SessionAction.Create(USER.getEmail(),
+					CREDENTIAL.getPassword());
+			final UserInfo userInfo = USER.info();
+			when(userService.findByEmail(USER.getEmail()))
+					.thenReturn(Optional.of(userInfo));
+
+			when(credentialService.existsLogin(new CredentialAction.Login(
+					USER.getId(), CREDENTIAL.getPassword()))).thenReturn(false);
+
+			assertThatThrownBy(() -> sessionService.create(request))
 					.isInstanceOf(MissingEntityException.class);
 		}
 	}

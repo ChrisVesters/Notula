@@ -19,19 +19,15 @@ class UserDaoTest {
 
 		@Test
 		void success() {
-			final var dao = new UserDao(USER.getEmail().value(),
-					USER.getPassword().value());
+			final var dao = new UserDao(USER.getEmail().value());
 
 			assertThat(dao.getId()).isNull();
 			assertThat(dao.getEmail()).isEqualTo(USER.getEmail().value());
-			assertThat(dao.getPassword()).isEqualTo(USER.getPassword().value());
 		}
 
 		@Test
 		void emailNull() {
-			final String email = null;
-			final String password = USER.getPassword().value();
-			assertThatThrownBy(() -> new UserDao(email, password))
+			assertThatThrownBy(() -> new UserDao(null))
 					.isInstanceOf(NullPointerException.class);
 		}
 	}
@@ -39,8 +35,7 @@ class UserDaoTest {
 	@Nested
 	class ToBdo {
 
-		private final UserDao dao = new UserDao(USER.getEmail().value(),
-				USER.getPassword().value());
+		private final UserDao dao = new UserDao(USER.getEmail().value());
 
 		@Test
 		void success() throws Exception {

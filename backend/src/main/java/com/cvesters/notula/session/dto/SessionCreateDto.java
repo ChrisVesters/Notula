@@ -6,15 +6,15 @@ import jakarta.validation.constraints.Size;
 
 import com.cvesters.notula.common.domain.Email;
 import com.cvesters.notula.common.domain.Password;
-import com.cvesters.notula.user.bdo.UserLogin;
+import com.cvesters.notula.session.bdo.SessionAction;
 
 public record SessionCreateDto(
 		@NotBlank @jakarta.validation.constraints.Email String email,
 		@NotNull @Size(min = 8) String password) {
 
-	public UserLogin toBdo() {
+	public SessionAction.Create toBdo() {
 		final var validatedEmail = new Email(email);
 		final var validatedPassword = new Password(password);
-		return new UserLogin(validatedEmail, validatedPassword);
+		return new SessionAction.Create(validatedEmail, validatedPassword);
 	}
 }
