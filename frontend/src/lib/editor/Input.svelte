@@ -1,6 +1,8 @@
 <script lang="ts">
 	import { trim } from "$lib/common/NameUtils";
 	import type { UpdateAction } from "./ActionTypes";
+	import { compositionHandler } from "./CompositionHandler";
+	import { focusHandler } from "./FocusHandler";
 
 	export type InputProps = {
 		className?: string;
@@ -16,6 +18,14 @@
 		onAction
 	}: InputProps = $props();
 	let focused: boolean = $state(false);
+
+	const handleFocus = focusHandler({
+		onFocusChange: (value: boolean) => (focused = value)
+	});
+
+	const handleComposition = compositionHandler({
+		onCommit: (action: UpdateAction) => onAction(action)
+	});
 
 	function handleBeforeInput(e: InputEvent) {
 		const el = e.target as HTMLInputElement;
@@ -83,9 +93,9 @@
 
 <input
 	class={className}
+	{@attach handleComposition}
+	{@attach handleFocus}
 	bind:value
 	placeholder={!focused ? trim(value, placeholder) : ""}
-	onfocus={() => (focused = true)}
-	onblur={() => (focused = false)}
 	onbeforeinput={handleBeforeInput}
 />
