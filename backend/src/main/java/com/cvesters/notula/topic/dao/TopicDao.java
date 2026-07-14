@@ -31,6 +31,9 @@ public class TopicDao {
 	@Column(name = "meeting_id", nullable = false, updatable = false)
 	private long meetingId;
 
+	@Column(name = "sequence_id", nullable = false)
+	private int sequenceId;
+
 	@Column(nullable = false)
 	private String name;
 
@@ -42,6 +45,7 @@ public class TopicDao {
 
 		this.organisationId = topic.getOrganisationId();
 		this.meetingId = topic.getMeetingId();
+		this.sequenceId = topic.getSequenceId();
 		this.name = topic.getName();
 		this.description = topic.getDescription();
 	}
@@ -49,6 +53,7 @@ public class TopicDao {
 	public void update(final TopicInfo bdo) {
 		Objects.requireNonNull(bdo);
 
+		this.sequenceId = bdo.getSequenceId();
 		this.name = bdo.getName();
 		this.description = bdo.getDescription();
 	}
@@ -56,6 +61,7 @@ public class TopicDao {
 	public TopicInfo toBdo() {
 		Validate.validState(id != null);
 
-		return new TopicInfo(id, organisationId, meetingId, name, description);
+		return new TopicInfo(id, organisationId, meetingId, sequenceId, name,
+				description);
 	}
 }

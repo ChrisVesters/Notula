@@ -13,7 +13,7 @@ class TopicEventTest {
 
 		@Test
 		void success() {
-			final var action = new TopicAction.Create("New");
+			final var action = new TopicAction.Create(0, "New");
 			final var event = new TopicEvent(1L, action);
 
 			assertThat(event.topicId()).isEqualTo(1L);

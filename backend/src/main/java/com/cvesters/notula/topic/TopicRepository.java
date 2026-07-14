@@ -15,6 +15,8 @@ public interface TopicRepository extends Repository<TopicDao, Long> {
 
 	TopicDao save(TopicDao topic);
 
+	List<TopicDao> saveAll(Iterable<TopicDao> topics);
+
 	void delete(TopicDao topic);
 
 }

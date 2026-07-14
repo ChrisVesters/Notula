@@ -1,5 +1,6 @@
 package com.cvesters.notula.topic;
 
+import java.util.List;
 import java.util.Objects;
 
 import org.springframework.stereotype.Service;
@@ -46,8 +47,22 @@ public class TopicService {
 
 		final MeetingInfo meeting = meetingService.getById(principal,
 				meetingId);
+
+		final List<TopicInfo> existingTopics = topicStorage
+				.findAllByMeetingId(meetingId);
+		// TODO: move logic into action?
+		if (action.getSequenceId() > existingTopics.size()) {
+			throw new IllegalArgumentException();
+		}
+
+		final List<TopicInfo> toUpdateTopics = existingTopics.stream()
+				.filter(t -> t.getSequenceId() >= action.getSequenceId())
+				.toList();
+		toUpdateTopics.forEach(TopicInfo::moveDown);
+		topicStorage.updateAll(toUpdateTopics);
+
 		final var topic = new TopicInfo(meeting.getOrganisationId(),
-				meeting.getId(), action.getName());
+				meeting.getId(), action.getSequenceId(), action.getName());
 
 		final TopicInfo created = topicStorage.create(topic);
 

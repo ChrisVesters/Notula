@@ -13,10 +13,11 @@ public final class TopicActionDto {
 	private TopicActionDto() {
 	}
 
-	public static record Create(@NotNull String name) {
+	public static record Create(@PositiveOrZero int sequenceId,
+			@NotNull String name) {
 
 		public TopicAction.Create toBdo() {
-			return new TopicAction.Create(name);
+			return new TopicAction.Create(sequenceId, name);
 		}
 	}
 

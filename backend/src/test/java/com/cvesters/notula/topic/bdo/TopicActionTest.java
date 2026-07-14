@@ -4,6 +4,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 
 import org.junit.jupiter.api.Nested;
@@ -18,14 +19,27 @@ class TopicActionTest {
 
 		@Test
 		void success() {
-			final var action = new TopicAction.Create("Name");
+			final int sequenceId = 0;
+			final String name = "Name";
+			final var action = new TopicAction.Create(sequenceId, name);
 
-			assertThat(action.getName()).isEqualTo("Name");
+			assertThat(action.getSequenceId()).isEqualTo(sequenceId);
+			assertThat(action.getName()).isEqualTo(name);
+		}
+
+		@Test
+		void invalidSequenceId() {
+			final int sequenceId = -1;
+			final String name = "Name";
+			assertThatThrownBy(() -> new TopicAction.Create(sequenceId, name))
+					.isInstanceOf(IllegalArgumentException.class);
 		}
 
 		@Test
 		void nameNull() {
-			assertThatThrownBy(() -> new TopicAction.Create(null))
+			final int sequenceId = 0;
+			final String name = null;
+			assertThatThrownBy(() -> new TopicAction.Create(sequenceId, name))
 					.isInstanceOf(NullPointerException.class);
 		}
 	}
@@ -85,7 +99,9 @@ class TopicActionTest {
 
 			action.apply(topic);
 
+			verify(topic).getDescription();
 			verify(topic).setDescription(expected);
+			verifyNoMoreInteractions(topic);
 		}
 	}
 

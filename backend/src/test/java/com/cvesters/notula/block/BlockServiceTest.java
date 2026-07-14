@@ -106,7 +106,7 @@ class BlockServiceTest {
 				.getOrganisation();
 
 		@Test
-		void firstTopic() {
+		void firstBlock() {
 			final long meetingId = MEETING.getId();
 			final long topicId = TOPIC.getId();
 
@@ -156,7 +156,7 @@ class BlockServiceTest {
 		}
 
 		@Test
-		void existingTopicAtEnd() {
+		void blockAtEnd() {
 			final long meetingId = MEETING.getId();
 			final long topicId = TOPIC.getId();
 
@@ -211,7 +211,7 @@ class BlockServiceTest {
 		}
 
 		@Test
-		void existingTopicAtStart() {
+		void blockAtStart() {
 			final long meetingId = MEETING.getId();
 			final long topicId = TOPIC.getId();
 

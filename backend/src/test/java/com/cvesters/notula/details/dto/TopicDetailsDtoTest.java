@@ -37,6 +37,7 @@ class TopicDetailsDtoTest {
 			final TopicDetailsDto dto = new TopicDetailsDto(details);
 
 			assertThat(dto.getId()).isEqualTo(details.getId());
+			assertThat(dto.getSequenceId()).isEqualTo(details.getSequenceId());
 			assertThat(dto.getName()).isEqualTo(details.getName());
 			assertThat(dto.getDescription())
 					.isEqualTo(details.getDescription());

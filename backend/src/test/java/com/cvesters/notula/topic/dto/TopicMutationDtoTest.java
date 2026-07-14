@@ -16,13 +16,14 @@ class TopicMutationDtoTest {
 		@Test
 		void create() {
 			final String name = "Intro";
-			final var action = new TopicAction.Create(name);
+			final var action = new TopicAction.Create(0, name);
 
 			final var dto = TopicMutationDto.of(action);
 
 			assertThat(dto).isInstanceOf(TopicMutationDto.Create.class);
 
 			final var createDto = (TopicMutationDto.Create) dto;
+			assertThat(createDto.getSequenceId()).isZero();
 			assertThat(createDto.getName()).isEqualTo(name);
 		}
 

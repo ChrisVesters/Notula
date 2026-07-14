@@ -32,9 +32,11 @@ public sealed interface TopicMutationDto {
 	@Getter
 	final class Create implements TopicMutationDto {
 
+		private final int sequenceId;
 		private final String name;
 
 		private Create(final TopicAction.Create create) {
+			this.sequenceId = create.getSequenceId();
 			this.name = create.getName();
 		}
 	}

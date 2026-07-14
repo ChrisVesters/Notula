@@ -12,22 +12,26 @@ public class TopicInfo {
 	private final Long id;
 	private final long organisationId;
 	private final long meetingId;
+	private int sequenceId;
 	private String name;
 	private String description;
 
 	public TopicInfo(final long organisationId, final long meetingId,
-			final String name) {
-		this(null, organisationId, meetingId, name, "");
+			final int sequenceId, final String name) {
+		this(null, organisationId, meetingId, sequenceId, name, "");
 	}
 
 	public TopicInfo(final Long id, final long organisationId,
-			final long meetingId, final String name, final String description) {
+			final long meetingId, final int sequenceId, final String name,
+			final String description) {
+		Validate.isTrue(sequenceId >= 0);
 		Objects.requireNonNull(name);
 		Objects.requireNonNull(description);
 
 		this.id = id;
 		this.organisationId = organisationId;
 		this.meetingId = meetingId;
+		this.sequenceId = sequenceId;
 		this.name = name;
 		this.description = description;
 	}
@@ -36,6 +40,18 @@ public class TopicInfo {
 		Validate.validState(id != null);
 
 		return id;
+	}
+
+	public void moveUp() {
+		Validate.validState(sequenceId > 0);
+
+		sequenceId--;
+	}
+
+	public void moveDown() {
+		Validate.validState(sequenceId < Integer.MAX_VALUE);
+
+		sequenceId++;
 	}
 
 	public void setName(final String name) {

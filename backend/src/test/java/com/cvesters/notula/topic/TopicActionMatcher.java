@@ -18,6 +18,8 @@ public final class TopicActionMatcher {
 
 		@Override
 		public void assertEquals(final TopicAction.Create actual) {
+			assertThat(actual.getSequenceId())
+					.isEqualTo(expected.getSequenceId());
 			assertThat(actual.getName()).isEqualTo(expected.getName());
 		}
 	}
