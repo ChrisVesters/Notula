@@ -71,6 +71,7 @@ CREATE TABLE topics(
 	id BIGINT NOT NULL GENERATED ALWAYS AS IDENTITY,
 	organisation_id BIGINT NOT NULL,
 	meeting_id BIGINT NOT NULL,
+	sequence_id INTEGER NOT NULL,
 	name TEXT NOT NULL,
 	description TEXT NOT NULL,
 
@@ -87,8 +88,8 @@ CREATE TABLE blocks(
 	id BIGINT NOT NULL GENERATED ALWAYS AS IDENTITY,
 	organisation_id BIGINT NOT NULL,
 	topic_id BIGINT NOT NULL,
-	type INTEGER NOT NULL,
 	sequence_id INTEGER NOT NULL,
+	type INTEGER NOT NULL,
 
 	PRIMARY KEY(id),
 	FOREIGN KEY(organisation_id) REFERENCES organisations(id) ON DELETE CASCADE,

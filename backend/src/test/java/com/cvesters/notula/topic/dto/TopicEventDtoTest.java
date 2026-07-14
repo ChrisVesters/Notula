@@ -18,7 +18,7 @@ class TopicEventDtoTest {
 
 		@Test
 		void success() {
-			final var action = new TopicAction.Create("New");
+			final var action = new TopicAction.Create(3, "New");
 			final var event = new TopicEvent(TOPIC_ID, action);
 
 			final var dto = new TopicEventDto(event);
@@ -29,6 +29,7 @@ class TopicEventDtoTest {
 					.isInstanceOf(TopicMutationDto.Create.class);
 
 			final var mutation = (TopicMutationDto.Create) dto.getMutation();
+			assertThat(mutation.getSequenceId()).isEqualTo(3);
 			assertThat(mutation.getName()).isEqualTo("New");
 		}
 

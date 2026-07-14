@@ -23,13 +23,14 @@ class TopicInfoTest {
 		@Test
 		void withoutId() {
 			final var result = new TopicInfo(ORGANISATION.getId(),
-					MEETING.getId(), TOPIC.getName());
+					MEETING.getId(), TOPIC.getSequenceId(), TOPIC.getName());
 
 			assertThatThrownBy(result::getId)
 					.isInstanceOf(IllegalStateException.class);
 			assertThat(result.getOrganisationId())
 					.isEqualTo(ORGANISATION.getId());
 			assertThat(result.getMeetingId()).isEqualTo(MEETING.getId());
+			assertThat(result.getSequenceId()).isEqualTo(TOPIC.getSequenceId());
 			assertThat(result.getName()).isEqualTo(TOPIC.getName());
 			assertThat(result.getDescription()).isEmpty();
 		}
@@ -37,16 +38,32 @@ class TopicInfoTest {
 		@Test
 		void withId() {
 			final var result = new TopicInfo(TOPIC.getId(),
-					ORGANISATION.getId(), MEETING.getId(), TOPIC.getName(),
+					ORGANISATION.getId(), MEETING.getId(),
+					TOPIC.getSequenceId(), TOPIC.getName(),
 					TOPIC.getDescription());
 
 			assertThat(result.getId()).isEqualTo(TOPIC.getId());
 			assertThat(result.getOrganisationId())
 					.isEqualTo(ORGANISATION.getId());
 			assertThat(result.getMeetingId()).isEqualTo(MEETING.getId());
+			assertThat(result.getSequenceId()).isEqualTo(TOPIC.getSequenceId());
 			assertThat(result.getName()).isEqualTo(TOPIC.getName());
 			assertThat(result.getDescription())
 					.isEqualTo(TOPIC.getDescription());
+		}
+
+		@Test
+		void sequenceIdInvalid() {
+			final long id = TOPIC.getId();
+			final long organisationId = ORGANISATION.getId();
+			final long meetingId = MEETING.getId();
+			final int sequenceId = -1;
+			final String name = TOPIC.getName();
+			final String description = TOPIC.getDescription();
+
+			assertThatThrownBy(() -> new TopicInfo(id, organisationId,
+					meetingId, sequenceId, name, description))
+							.isInstanceOf(IllegalArgumentException.class);
 		}
 
 		@Test
@@ -54,11 +71,12 @@ class TopicInfoTest {
 			final long id = TOPIC.getId();
 			final long organisationId = ORGANISATION.getId();
 			final long meetingId = MEETING.getId();
+			final int sequenceId = TOPIC.getSequenceId();
 			final String name = null;
 			final String description = TOPIC.getDescription();
 
 			assertThatThrownBy(() -> new TopicInfo(id, organisationId,
-					meetingId, name, description))
+					meetingId, sequenceId, name, description))
 							.isInstanceOf(NullPointerException.class);
 		}
 
@@ -67,12 +85,62 @@ class TopicInfoTest {
 			final long id = TOPIC.getId();
 			final long organisationId = ORGANISATION.getId();
 			final long meetingId = MEETING.getId();
+			final int sequenceId = TOPIC.getSequenceId();
 			final String name = TOPIC.getName();
 			final String description = null;
 
 			assertThatThrownBy(() -> new TopicInfo(id, organisationId,
-					meetingId, name, description))
+					meetingId, sequenceId, name, description))
 							.isInstanceOf(NullPointerException.class);
+		}
+	}
+
+	@Nested
+	class MoveUp {
+
+		@Test
+		void success() {
+			final TestTopic topic = TestTopic.SPORER_PROJECT_BLOCKERS;
+			final var topicInfo = topic.info();
+
+			topicInfo.moveUp();
+
+			assertThat(topicInfo.getSequenceId())
+					.isEqualTo(TOPIC.getSequenceId() - 1);
+		}
+
+		@Test
+		void first() {
+			final TestTopic topic = TestTopic.SPORER_PROJECT_DELIVERABLES;
+			final var topicInfo = topic.info();
+
+			assertThatThrownBy(topicInfo::moveUp)
+					.isInstanceOf(IllegalStateException.class);
+		}
+	}
+
+	@Nested
+	class MoveDown {
+
+		@Test
+		void success() {
+			final TestTopic topic = TestTopic.SPORER_PROJECT_BLOCKERS;
+			final var topicInfo = topic.info();
+
+			topicInfo.moveDown();
+
+			assertThat(topicInfo.getSequenceId())
+					.isEqualTo(topic.getSequenceId() + 1);
+		}
+
+		@Test
+		void overflow() {
+			final var topicInfo = new TopicInfo(TOPIC.getId(),
+					ORGANISATION.getId(), MEETING.getId(), Integer.MAX_VALUE,
+					TOPIC.getName(), TOPIC.getDescription());
+
+			assertThatThrownBy(topicInfo::moveDown)
+					.isInstanceOf(IllegalStateException.class);
 		}
 	}
 

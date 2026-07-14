@@ -5,16 +5,20 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.inOrder;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
+import java.util.Collections;
+import java.util.List;
 import java.util.Optional;
 
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
+import org.mockito.InOrder;
 
 import com.cvesters.notula.common.domain.Principal;
 import com.cvesters.notula.common.exception.MissingEntityException;
@@ -94,6 +98,7 @@ class TopicServiceTest {
 	class Create {
 
 		private static final long TOPIC_ID = Long.MAX_VALUE;
+		private static final int TOPIC_SEQUENCE_ID = 0;
 		private static final String TOPIC_NAME = "Topic";
 		private static final String TOPIC_DESCRIPTION = "Description";
 
@@ -104,15 +109,18 @@ class TopicServiceTest {
 				.getOrganisation();
 
 		@Test
-		void success() {
+		void firstTopic() {
 			final long meetingId = MEETING.getId();
-			final TopicAction.Create topic = new TopicAction.Create(TOPIC_NAME);
-
-			final var created = new TopicInfo(TOPIC_ID, ORGANISATION.getId(),
-					MEETING.getId(), TOPIC_NAME, TOPIC_DESCRIPTION);
 
 			when(meetingService.getById(PRINCIPAL, meetingId))
 					.thenReturn(MEETING.info());
+
+			when(topicStorageGateway.findAllByMeetingId(meetingId))
+					.thenReturn(Collections.emptyList());
+
+			final var created = new TopicInfo(TOPIC_ID, ORGANISATION.getId(),
+					MEETING.getId(), TOPIC_SEQUENCE_ID, TOPIC_NAME,
+					TOPIC_DESCRIPTION);
 
 			when(topicStorageGateway.create(argThat(t -> {
 				assertThatThrownBy(t::getId)
@@ -120,17 +128,22 @@ class TopicServiceTest {
 				assertThat(t.getOrganisationId())
 						.isEqualTo(ORGANISATION.getId());
 				assertThat(t.getMeetingId()).isEqualTo(meetingId);
+				assertThat(t.getSequenceId()).isEqualTo(TOPIC_SEQUENCE_ID);
 				assertThat(t.getName()).isEqualTo(TOPIC_NAME);
 				assertThat(t.getDescription()).isEmpty();
 				return true;
 			}))).thenReturn(created);
 
+			final var action = new TopicAction.Create(TOPIC_SEQUENCE_ID,
+					TOPIC_NAME);
+
 			final TopicInfo result = topicService.create(PRINCIPAL, meetingId,
-					topic);
+					action);
 
 			assertThat(result).isEqualTo(created);
 
-			final var expectedAction = new TopicAction.Create(TOPIC_NAME);
+			final var expectedAction = new TopicAction.Create(TOPIC_SEQUENCE_ID,
+					TOPIC_NAME);
 			final var matcher = new TopicActionMatcher.Create(expectedAction);
 			verify(topicPublisher).publish(eq(meetingId), argThat(event -> {
 				assertThat(event.topicId()).isEqualTo(TOPIC_ID);
@@ -140,9 +153,136 @@ class TopicServiceTest {
 		}
 
 		@Test
+		void topicAtEnd() {
+			final long meetingId = MEETING.getId();
+
+			when(meetingService.getById(PRINCIPAL, meetingId))
+					.thenReturn(MEETING.info());
+
+			final List<TopicInfo> existingTopics = TestTopic.ofMeeting(MEETING)
+					.stream()
+					.map(TestTopic::info)
+					.toList();
+			when(topicStorageGateway.findAllByMeetingId(meetingId))
+					.thenReturn(existingTopics);
+
+			final int sequenceId = existingTopics.size();
+			final var created = new TopicInfo(TOPIC_ID, ORGANISATION.getId(),
+					MEETING.getId(), sequenceId, TOPIC_NAME, TOPIC_DESCRIPTION);
+
+			when(topicStorageGateway.create(argThat(t -> {
+				assertThatThrownBy(t::getId)
+						.isInstanceOf(IllegalStateException.class);
+				assertThat(t.getOrganisationId())
+						.isEqualTo(ORGANISATION.getId());
+				assertThat(t.getMeetingId()).isEqualTo(meetingId);
+				assertThat(t.getSequenceId()).isEqualTo(sequenceId);
+				assertThat(t.getName()).isEqualTo(TOPIC_NAME);
+				assertThat(t.getDescription()).isEmpty();
+				return true;
+			}))).thenReturn(created);
+
+			final var action = new TopicAction.Create(sequenceId, TOPIC_NAME);
+
+			final TopicInfo result = topicService.create(PRINCIPAL, meetingId,
+					action);
+
+			assertThat(result).isEqualTo(created);
+
+			final var expectedAction = new TopicAction.Create(sequenceId,
+					TOPIC_NAME);
+			final var matcher = new TopicActionMatcher.Create(expectedAction);
+			verify(topicPublisher).publish(eq(meetingId), argThat(event -> {
+				assertThat(event.topicId()).isEqualTo(TOPIC_ID);
+				assertThat(event.action()).is(matcher.equal());
+				return true;
+			}));
+
+			final InOrder inOrder = inOrder(topicStorageGateway);
+			inOrder.verify(topicStorageGateway)
+					.updateAll(Collections.emptyList());
+			inOrder.verify(topicStorageGateway).create(any());
+		}
+
+		@Test
+		void topicAtStart() {
+			final long meetingId = MEETING.getId();
+
+			when(meetingService.getById(PRINCIPAL, meetingId))
+					.thenReturn(MEETING.info());
+
+			final List<TopicInfo> existingTopics = TestTopic.ofMeeting(MEETING)
+					.stream()
+					.map(TestTopic::info)
+					.toList();
+			when(topicStorageGateway.findAllByMeetingId(meetingId))
+					.thenReturn(existingTopics);
+
+			final int sequenceId = 0;
+			final var created = new TopicInfo(TOPIC_ID, ORGANISATION.getId(),
+					MEETING.getId(), sequenceId, TOPIC_NAME, TOPIC_DESCRIPTION);
+
+			when(topicStorageGateway.create(argThat(t -> {
+				assertThatThrownBy(t::getId)
+						.isInstanceOf(IllegalStateException.class);
+				assertThat(t.getOrganisationId())
+						.isEqualTo(ORGANISATION.getId());
+				assertThat(t.getMeetingId()).isEqualTo(meetingId);
+				assertThat(t.getSequenceId()).isZero();
+				assertThat(t.getName()).isEqualTo(TOPIC_NAME);
+				assertThat(t.getDescription()).isEmpty();
+				return true;
+			}))).thenReturn(created);
+
+			final var action = new TopicAction.Create(TOPIC_SEQUENCE_ID,
+					TOPIC_NAME);
+
+			final TopicInfo result = topicService.create(PRINCIPAL, meetingId,
+					action);
+
+			assertThat(result).isEqualTo(created);
+
+			final var expectedAction = new TopicAction.Create(TOPIC_SEQUENCE_ID,
+					TOPIC_NAME);
+			final var matcher = new TopicActionMatcher.Create(expectedAction);
+			verify(topicPublisher).publish(eq(meetingId), argThat(event -> {
+				assertThat(event.topicId()).isEqualTo(TOPIC_ID);
+				assertThat(event.action()).is(matcher.equal());
+				return true;
+			}));
+
+			final InOrder inOrder = inOrder(topicStorageGateway);
+			// TODO: should have been moved down!
+			inOrder.verify(topicStorageGateway).updateAll(existingTopics);
+			inOrder.verify(topicStorageGateway).create(any());
+		}
+
+		@Test
+		void invalidSequenceId() {
+			final long meetingId = MEETING.getId();
+
+			when(meetingService.getById(PRINCIPAL, meetingId))
+					.thenReturn(MEETING.info());
+
+			when(topicStorageGateway.findAllByMeetingId(meetingId))
+					.thenReturn(Collections.emptyList());
+
+			final var action = new TopicAction.Create(1, TOPIC_NAME);
+
+			assertThatThrownBy(
+					() -> topicService.create(PRINCIPAL, meetingId, action))
+							.isInstanceOf(IllegalArgumentException.class);
+
+			verifyNoInteractions(topicPublisher);
+			verify(topicStorageGateway, never()).updateAll(any());
+			verify(topicStorageGateway, never()).create(any());
+		}
+
+		@Test
 		void principalNull() {
 			final long meetingId = MEETING.getId();
-			final TopicAction.Create topic = new TopicAction.Create("Topic");
+			final TopicAction.Create topic = new TopicAction.Create(
+					TOPIC_SEQUENCE_ID, TOPIC_NAME);
 
 			assertThatThrownBy(
 					() -> topicService.create(null, meetingId, topic))
@@ -187,7 +327,11 @@ class TopicServiceTest {
 				assertThat(info.getOrganisationId())
 						.isEqualTo(MEETING.getOrganisation().getId());
 				assertThat(info.getMeetingId()).isEqualTo(meetingId);
+				assertThat(info.getSequenceId())
+						.isEqualTo(TOPIC.getSequenceId());
 				assertThat(info.getName()).isEqualTo("Project Timeline");
+				assertThat(info.getDescription())
+						.isEqualTo(TOPIC.getDescription());
 				return true;
 			}))).thenReturn(updated);
 
@@ -279,7 +423,8 @@ class TopicServiceTest {
 			verify(topicStorageGateway).delete(topicInfo);
 			verify(topicPublisher).publish(eq(meetingId), argThat(event -> {
 				assertThat(event.topicId()).isEqualTo(topicId);
-				assertThat(event.action()).isInstanceOf(TopicAction.Delete.class);
+				assertThat(event.action())
+						.isInstanceOf(TopicAction.Delete.class);
 				return true;
 			}));
 		}

@@ -2,9 +2,13 @@ package com.cvesters.notula.topic;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.ArgumentMatchers.anyIterable;
 import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.Mockito.inOrder;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 
 import java.util.ArrayList;
@@ -156,6 +160,113 @@ class TopicStorageGatewayTest {
 					.thenReturn(Collections.emptyList());
 
 			assertThat(gateway.findAllByMeetingId(Long.MAX_VALUE)).isEmpty();
+		}
+	}
+
+	@Nested
+	class UpdateAll {
+
+		private static final TestMeeting MEETING = TestMeeting.SPORER_PROJECT;
+
+		@Test
+		void single() {
+			final TestTopic topic = TestTopic.SPORER_PROJECT_DELIVERABLES;
+			final TopicInfo updateBdo = topic.info();
+			final List<TopicInfo> topics = List.of(updateBdo);
+
+			final TopicDao found = mock();
+			when(topicRepository.findByMeetingIdAndId(MEETING.getId(),
+					topic.getId())).thenReturn(Optional.of(found));
+
+			final TopicDao updatedDao = mock();
+			final TopicInfo updatedBdo = mock();
+			when(updatedDao.toBdo()).thenReturn(updatedBdo);
+
+			final List<TopicDao> updatedTopics = List.of(updatedDao);
+			when(topicRepository.saveAll(List.of(found)))
+					.thenReturn(updatedTopics);
+
+			final List<TopicInfo> result = gateway.updateAll(topics);
+
+			assertThat(result).hasSize(1).contains(updatedBdo);
+
+			final InOrder inOrder = inOrder(found, topicRepository);
+			inOrder.verify(found).update(updateBdo);
+			inOrder.verify(topicRepository).saveAll(List.of(found));
+		}
+
+		@Test
+		void multiple() {
+			final List<TestTopic> topics = List.of(
+					TestTopic.SPORER_PROJECT_DELIVERABLES,
+					TestTopic.SPORER_PROJECT_BLOCKERS);
+
+			final List<TopicInfo> updateBdos = new ArrayList<>();
+			final List<TopicDao> foundDaos = new ArrayList<>();
+			final List<TopicDao> updatedDaos = new ArrayList<>();
+			final List<TopicInfo> updatedBdos = new ArrayList<>();
+			for (final TestTopic topic : topics) {
+				final TopicInfo updateBdo = topic.info();
+				updateBdos.add(updateBdo);
+
+				final TopicDao found = mock();
+				when(topicRepository.findByMeetingIdAndId(
+						topic.getMeeting().getId(), topic.getId()))
+								.thenReturn(Optional.of(found));
+				foundDaos.add(found);
+
+				final TopicDao updatedDao = mock();
+				final TopicInfo updatedBdo = mock();
+				when(updatedDao.toBdo()).thenReturn(updatedBdo);
+
+				updatedDaos.add(updatedDao);
+				updatedBdos.add(updatedBdo);
+			}
+
+			when(topicRepository.saveAll(foundDaos)).thenReturn(updatedDaos);
+
+			final var result = gateway.updateAll(updateBdos);
+
+			assertThat(result).containsExactlyElementsOf(updatedBdos);
+		}
+
+		@Test
+		void emptyList() {
+			final List<TopicInfo> topics = List.of();
+
+			when(topicRepository
+					.saveAll(argThat((List<TopicDao> list) -> list.isEmpty())))
+							.thenReturn(List.of());
+
+			final var result = gateway.updateAll(topics);
+
+			assertThat(result).isEmpty();
+
+			verify(topicRepository).saveAll(anyIterable());
+			verifyNoMoreInteractions(topicRepository);
+		}
+
+		@Test
+		void notFound() {
+			final TestTopic topic = TestTopic.SPORER_PROJECT_DELIVERABLES;
+			final List<TopicInfo> topics = List.of(topic.info());
+
+			when(topicRepository.findByMeetingIdAndId(
+					topic.getMeeting().getId(), topic.getId()))
+							.thenReturn(Optional.empty());
+
+			assertThatThrownBy(() -> gateway.updateAll(topics))
+					.isInstanceOf(MissingEntityException.class);
+
+			verify(topicRepository, never()).saveAll(anyIterable());
+		}
+
+		@Test
+		void topicsNull() {
+			final List<TopicInfo> topics = null;
+
+			assertThatThrownBy(() -> gateway.updateAll(topics))
+					.isInstanceOf(NullPointerException.class);
 		}
 	}
 

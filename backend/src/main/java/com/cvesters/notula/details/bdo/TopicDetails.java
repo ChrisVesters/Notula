@@ -11,6 +11,7 @@ import com.cvesters.notula.topic.bdo.TopicInfo;
 public class TopicDetails {
 
 	private final long id;
+	private final int sequenceId;
 	private final String name;
 	private final String description;
 
@@ -21,6 +22,7 @@ public class TopicDetails {
 		Objects.requireNonNull(blocks);
 
 		this.id = info.getId();
+		this.sequenceId = info.getSequenceId();
 		this.name = info.getName();
 		this.description = info.getDescription();
 

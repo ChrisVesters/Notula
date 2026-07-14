@@ -18,9 +18,11 @@ class TopicActionDtoTest {
 
 		@Test
 		void toBdo() {
-			final var dto = new TopicActionDto.Create(TOPIC.getName());
+			final var dto = new TopicActionDto.Create(TOPIC.getSequenceId(),
+					TOPIC.getName());
 			final TopicAction.Create bdo = dto.toBdo();
 
+			assertThat(bdo.getSequenceId()).isEqualTo(TOPIC.getSequenceId());
 			assertThat(bdo.getName()).isEqualTo(TOPIC.getName());
 		}
 	}

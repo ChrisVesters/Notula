@@ -48,12 +48,13 @@ public class TopicWebSocketTest extends WebSocketTest {
 		@ValueSource(strings = { "topic", "!@#$%^&*(){}[]|:;'<>,.?/",
 				"Встреча: 你好 مرحبا" })
 		void success(final String name) throws Exception {
-			final byte[] payload = getRequestPayload(name);
+			final int sequenceId = 2;
+			final byte[] payload = getRequestPayload(sequenceId, name);
 
 			connect(SESSION);
 			send(getDestination(MEETING.getId()), payload);
 
-			final var action = new TopicAction.Create(name);
+			final var action = new TopicAction.Create(sequenceId, name);
 			final var matcher = new TopicActionMatcher.Create(action);
 			verify(topicService, timeout(WAIT_TIMEOUT.toMillis())).create(
 					eq(PRINCIPAL), eq(MEETING.getId()),
@@ -63,7 +64,8 @@ public class TopicWebSocketTest extends WebSocketTest {
 		@Test
 		void notFound() throws Exception {
 			final var topic = TestTopic.SPORER_PROJECT_BLOCKERS;
-			final byte[] payload = getRequestPayload(topic.getName());
+			final byte[] payload = getRequestPayload(topic.getSequenceId(),
+					topic.getName());
 
 			when(topicService.create(any(), anyLong(), any()))
 					.thenThrow(new MissingEntityException());
@@ -98,7 +100,7 @@ public class TopicWebSocketTest extends WebSocketTest {
 
 		@Test
 		void unauthenticated() throws Exception {
-			final byte[] payload = getRequestPayload("topic");
+			final byte[] payload = getRequestPayload(0, "topic");
 
 			connect();
 			send(getDestination(MEETING.getId()), payload);
@@ -112,12 +114,14 @@ public class TopicWebSocketTest extends WebSocketTest {
 			return DESTINATION_PREFIX + "/" + meetingId + DESTINATION_SUFFIX;
 		}
 
-		private byte[] getRequestPayload(final String name) {
+		private byte[] getRequestPayload(final int sequenceId,
+				final String name) {
 			final String json = """
 					{
+						"sequenceId": %d,
 						"name": "%s"
 					}
-					""".formatted(name);
+					""".formatted(sequenceId, name);
 
 			return json.getBytes(StandardCharsets.UTF_8);
 		}
