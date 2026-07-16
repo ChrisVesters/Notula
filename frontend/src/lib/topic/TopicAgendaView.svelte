@@ -17,14 +17,15 @@
 	import TopicWebSocketClient from "./TopicWebSocketClient";
 
 	export type TopicAgendaViewProps = {
-		meetingId: number;
-		topics: Array<TopicDetails>;
+		meetingId: Readonly<number>;
+		topics: Readonly<Array<TopicDetails>>;
 	};
 
 	let { meetingId, topics = $bindable() }: TopicAgendaViewProps = $props();
 
 	function addTopic(): Promise<void> {
 		const request = {
+			sequenceId: topics.length,
 			name: ""
 		};
 

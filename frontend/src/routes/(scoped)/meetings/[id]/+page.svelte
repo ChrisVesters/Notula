@@ -33,7 +33,8 @@
 
 	const id = $derived(Number(page.params.id));
 
-	let meeting: MeetingDetails | null = $state(null);
+	let meeting: MeetingDetails | undefined = $state();
+	let topics = $derived(meeting?.topics?.toSorted((a, b) => a.sequenceId - b.sequenceId) ?? []);
 
 	onMount(async () => {
 		MeetingWebSocketClient.connect(id, {
@@ -72,6 +73,7 @@
 			if (mutation.action === "CREATE") {
 				meeting?.topics.push({
 					id: event.topicId,
+					sequenceId: mutation.sequenceId,
 					name: mutation.name,
 					description: "",
 					blocks: []
@@ -133,10 +135,10 @@
 {#if meeting}
 	<MeetingInfoView bind:meeting />
 
-	<TopicAgendaView meetingId={meeting.id} bind:topics={meeting.topics} />
+	<TopicAgendaView meetingId={meeting.id} bind:topics={topics} />
 
 	<h2>{$t("common.notes")}</h2>
-	{#each meeting.topics as topic (topic.id)}
+	{#each topics as topic (topic.id)}
 		<Input
 			className="h2"
 			bind:value={topic.name}

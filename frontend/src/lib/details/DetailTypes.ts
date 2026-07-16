@@ -10,6 +10,7 @@ export type MeetingDetails = {
 
 export type TopicDetails = {
 	id: number;
+	sequenceId: number;
 	name: string;
 	description: string;
 

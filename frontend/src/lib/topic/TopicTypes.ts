@@ -1,4 +1,5 @@
 export type TopicCreateRequest = {
+	sequenceId: number;
 	name: string;
 };
 
@@ -32,8 +33,8 @@ export type TopicMutation =
 
 export type TopicMutationCreate = {
 	action: "CREATE";
+	sequenceId: number;
 	name: string;
-	description: string;
 };
 
 export type TopicMutationUpdateName = {
