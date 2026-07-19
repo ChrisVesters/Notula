@@ -60,6 +60,7 @@ public class TopicService {
 				.toList();
 		toUpdateTopics.forEach(TopicInfo::moveDown);
 		topicStorage.updateAll(toUpdateTopics);
+		// TODO: publish move action/event!!
 
 		final var topic = new TopicInfo(meeting.getOrganisationId(),
 				meeting.getId(), action.getSequenceId(), action.getName());
@@ -92,6 +93,16 @@ public class TopicService {
 
 		final TopicInfo topicInfo = getById(principal, meetingId, topicId);
 		topicStorage.delete(topicInfo);
+
+		final List<TopicInfo> existingTopics = topicStorage
+				.findAllByMeetingId(meetingId);
+		// TODO: move logic into action?
+		final List<TopicInfo> toUpdateTopics = existingTopics.stream()
+				.filter(t -> t.getSequenceId() > topicInfo.getSequenceId())
+				.toList();
+		toUpdateTopics.forEach(TopicInfo::moveUp);
+		topicStorage.updateAll(toUpdateTopics);
+		// TODO: publish move action/event!!
 
 		final var event = new TopicEvent(topicId, new TopicAction.Delete());
 		topicPublisher.publish(meetingId, event);

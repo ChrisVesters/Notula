@@ -405,7 +405,7 @@ class TopicServiceTest {
 		private static final TestMeeting MEETING = TOPIC.getMeeting();
 
 		@Test
-		void success() {
+		void onlyTopic() {
 			final Principal principal = SESSION.principal();
 			final long meetingId = MEETING.getId();
 			final long topicId = TOPIC.getId();
@@ -418,6 +418,9 @@ class TopicServiceTest {
 			when(topicStorageGateway.find(meetingId, topicId))
 					.thenReturn(Optional.of(topicInfo));
 
+			when(topicStorageGateway.findAllByMeetingId(meetingId))
+					.thenReturn(List.of(topicInfo));
+
 			topicService.delete(principal, meetingId, topicId);
 
 			verify(topicStorageGateway).delete(topicInfo);
@@ -427,6 +430,86 @@ class TopicServiceTest {
 						.isInstanceOf(TopicAction.Delete.class);
 				return true;
 			}));
+
+			verify(topicStorageGateway).updateAll(Collections.emptyList());
+		}
+
+		@Test
+		void firstTopic() {
+			final TestMeeting meeting = TestMeeting.SPORER_PROJECT;
+			final List<TestTopic> topics = TestTopic.ofMeeting(MEETING);
+			final TestTopic deleted = topics.getFirst();
+
+			final Principal principal = SESSION.principal();
+			final long meetingId = meeting.getId();
+			final long topicId = deleted.getId();
+
+			final MeetingInfo meetingInfo = MEETING.info();
+			when(meetingService.getById(principal, meetingId))
+					.thenReturn(meetingInfo);
+
+			final TopicInfo topicInfo = deleted.info();
+			when(topicStorageGateway.find(meetingId, topicId))
+					.thenReturn(Optional.of(topicInfo));
+
+			final List<TopicInfo> existingTopics = topics.stream()
+					.map(TestTopic::info)
+					.toList();
+			when(topicStorageGateway.findAllByMeetingId(meetingId))
+					.thenReturn(existingTopics);
+
+			topicService.delete(principal, meetingId, topicId);
+
+			verify(topicStorageGateway).delete(topicInfo);
+			verify(topicPublisher).publish(eq(meetingId), argThat(event -> {
+				assertThat(event.topicId()).isEqualTo(topicId);
+				assertThat(event.action())
+						.isInstanceOf(TopicAction.Delete.class);
+				return true;
+			}));
+
+			// TODO: should have been moved up!
+			final List<TopicInfo> toUpdateTopics = existingTopics.stream()
+					.filter(t -> t.getId() != topicId)
+					.toList();
+			verify(topicStorageGateway).updateAll(toUpdateTopics);
+		}
+
+		@Test
+		void lastTopic() {
+			final TestMeeting meeting = TestMeeting.SPORER_PROJECT;
+			final List<TestTopic> topics = TestTopic.ofMeeting(MEETING);
+			final TestTopic deleted = topics.getLast();
+
+			final Principal principal = SESSION.principal();
+			final long meetingId = meeting.getId();
+			final long topicId = deleted.getId();
+
+			final MeetingInfo meetingInfo = MEETING.info();
+			when(meetingService.getById(principal, meetingId))
+					.thenReturn(meetingInfo);
+
+			final TopicInfo topicInfo = deleted.info();
+			when(topicStorageGateway.find(meetingId, topicId))
+					.thenReturn(Optional.of(topicInfo));
+
+			final List<TopicInfo> existingTopics = topics.stream()
+					.map(TestTopic::info)
+					.toList();
+			when(topicStorageGateway.findAllByMeetingId(meetingId))
+					.thenReturn(existingTopics);
+
+			topicService.delete(principal, meetingId, topicId);
+
+			verify(topicStorageGateway).delete(topicInfo);
+			verify(topicPublisher).publish(eq(meetingId), argThat(event -> {
+				assertThat(event.topicId()).isEqualTo(topicId);
+				assertThat(event.action())
+						.isInstanceOf(TopicAction.Delete.class);
+				return true;
+			}));
+
+			verify(topicStorageGateway).updateAll(Collections.emptyList());
 		}
 
 		@Test
