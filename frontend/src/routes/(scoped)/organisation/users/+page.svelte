@@ -3,9 +3,11 @@
 
 	import Loading from "$lib/common/Loading.svelte";
 	import FeedbackButton from "$lib/form/FeedbackButton.svelte";
+	import SelectField from "$lib/form/SelectField.svelte";
 	import TextField from "$lib/form/TextField.svelte";
 
 	import OrganisationUserClient from "$lib/organisation/OrganisationUserClient";
+	import { OrganisationUserRole } from "$lib/organisation/OrganisationUserTypes";
 	import type {
 		OrganisationUserCreateRequest,
 		OrganisationUserView
@@ -14,6 +16,7 @@
 	let users: Array<OrganisationUserView> | undefined = $state();
 
 	let email = $state("");
+	let role = $state(OrganisationUserRole.MEMBER);
 
 	let dialog: HTMLDialogElement;
 
@@ -29,7 +32,8 @@
 		// TODO: check email uniqueness
 		try {
 			const request: OrganisationUserCreateRequest = {
-				email
+				email,
+				role
 			};
 
 			const user = await OrganisationUserClient.create(request);
@@ -56,6 +60,7 @@
 		<thead>
 			<tr>
 				<th>{$t("common.email")}</th>
+				<th>{$t("common.role")}</th>
 			</tr>
 		</thead>
 
@@ -63,6 +68,7 @@
 			{#each users as user}
 				<tr>
 					<td>{user.email}</td>
+					<td>{$t(`roles.${user.role}`)}</td>
 				</tr>
 			{/each}
 		</tbody>
@@ -81,6 +87,18 @@
 			type="email"
 			required={true}
 			autocomplete="email"
+		/>
+
+		<SelectField
+			bind:value={role}
+			options={Object.values(OrganisationUserRole).map(v => ({
+				value: v,
+				label: $t(`roles.${v}`)
+			}))}
+			label={$t("common.role")}
+			id="role"
+			required={true}
+			autocomplete="off"
 		/>
 	</form>
 	<button class="btn secondary" onclick={() => dialog.close()}>

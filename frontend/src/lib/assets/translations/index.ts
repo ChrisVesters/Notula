@@ -2,7 +2,7 @@ import i18n from "sveltekit-i18n";
 import type { Config } from "sveltekit-i18n";
 
 const languages = ["en"];
-const namespaces = ["common"];
+const namespaces = ["common", "roles"];
 
 export const defaultLocale = languages[0];
 
