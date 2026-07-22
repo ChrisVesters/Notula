@@ -26,6 +26,7 @@
 	"passwordsDoNotMatchErrorMessage": "Passwords do not match.",
 	"register": "register",
 	"requiredFieldErrorMessage": "This field is required.",
+	"role": "role",
 	"save": "save",
 	"selectOrganisation": "select organisation",
 	"startTodayMessage": "Start organizing your meetings today.",
