@@ -16,15 +16,31 @@ class OrganisationUserActionTest {
 		@Test
 		void success() {
 			final var email = new Email("user@test");
-			final var action = new OrganisationUserAction.Create(email);
+			final var role = OrganisationUserRole.ADMIN;
+			final var action = new OrganisationUserAction.Create(email, role);
 
 			assertThat(action.getEmail()).isEqualTo(email);
+			assertThat(action.getRole()).isEqualTo(role);
 		}
 
 		@Test
 		void emailNull() {
-			assertThatThrownBy(() -> new OrganisationUserAction.Create(null))
-					.isInstanceOf(NullPointerException.class);
+			final Email email = null;
+			final var role = OrganisationUserRole.ADMIN;
+
+			assertThatThrownBy(
+					() -> new OrganisationUserAction.Create(email, role))
+							.isInstanceOf(NullPointerException.class);
+		}
+
+		@Test
+		void roleNull() {
+			final var email = new Email("user@test");
+			final OrganisationUserRole role = null;
+
+			assertThatThrownBy(
+					() -> new OrganisationUserAction.Create(email, role))
+							.isInstanceOf(NullPointerException.class);
 		}
 	}
 }

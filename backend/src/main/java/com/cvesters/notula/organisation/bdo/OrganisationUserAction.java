@@ -11,11 +11,14 @@ public sealed interface OrganisationUserAction {
 	@Getter
 	final class Create implements OrganisationUserAction {
 		private final Email email;
+		private final OrganisationUserRole role;
 
-		public Create(final Email email) {
+		public Create(final Email email, final OrganisationUserRole role) {
 			Objects.requireNonNull(email);
+			Objects.requireNonNull(role);
 
 			this.email = email;
+			this.role = role;
 		}
 	}
 

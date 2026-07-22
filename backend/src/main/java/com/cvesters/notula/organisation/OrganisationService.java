@@ -9,6 +9,7 @@ import com.cvesters.notula.common.domain.Principal;
 import com.cvesters.notula.common.exception.MissingEntityException;
 import com.cvesters.notula.organisation.bdo.OrganisationInfo;
 import com.cvesters.notula.organisation.bdo.OrganisationUserInfo;
+import com.cvesters.notula.organisation.bdo.OrganisationUserRole;
 
 @Service
 public class OrganisationService {
@@ -56,7 +57,8 @@ public class OrganisationService {
 				.create(organisation);
 
 		final var orgUserInfo = new OrganisationUserInfo(
-				createdOrganisation.getId(), principal.userId());
+				createdOrganisation.getId(), principal.userId(),
+				OrganisationUserRole.ADMIN);
 		organisationUserStorage.create(orgUserInfo);
 
 		return createdOrganisation;

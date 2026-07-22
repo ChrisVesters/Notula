@@ -58,7 +58,7 @@ public class OrganisationUserService {
 		}
 
 		final var info = new OrganisationUserInfo(principal.organisationId(),
-				userInfo.getId());
+				userInfo.getId(), action.getRole());
 		return organisationUserStorage.create(info);
 	}
 }

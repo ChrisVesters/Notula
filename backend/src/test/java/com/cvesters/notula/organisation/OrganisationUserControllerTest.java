@@ -3,6 +3,7 @@ package com.cvesters.notula.organisation;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
@@ -126,7 +127,7 @@ class OrganisationUserControllerTest extends ControllerTest {
 			final OrganisationUserInfo info = ORG_USER.info();
 
 			final var expected = new OrganisationUserAction.Create(
-					USER.getEmail());
+					USER.getEmail(), ORG_USER.getRole());
 			final var matcher = new OrganisationUserActionMatcher.Create(
 					expected);
 			when(organisationUserService.create(eq(principal),
@@ -143,6 +144,30 @@ class OrganisationUserControllerTest extends ControllerTest {
 					.andExpect(header().string("location",
 							getUrl(BASE_ENDPOINT + "/" + ORG_USER.getId())))
 					.andExpect(content().json(expectedResponse));
+		}
+
+		@Test
+		void emailInvalid() throws Exception {
+			final String body = getBody("invalid", "ADMIN");
+
+			final var builder = post(BASE_ENDPOINT).content(body)
+					.contentType(MediaType.APPLICATION_JSON);
+
+			mockMvc.perform(builder).andExpect(status().isBadRequest());
+
+			verifyNoInteractions(organisationUserService);
+		}
+
+		@Test
+		void roleInvalid() throws Exception {
+			final String body = getBody("user@test", "GUEST");
+
+			final var builder = post(BASE_ENDPOINT).content(body)
+					.contentType(MediaType.APPLICATION_JSON);
+
+			mockMvc.perform(builder).andExpect(status().isBadRequest());
+
+			verifyNoInteractions(organisationUserService);
 		}
 
 		@Test
@@ -169,19 +194,25 @@ class OrganisationUserControllerTest extends ControllerTest {
 		}
 
 		private String getBody(final TestOrganisationUser user) {
-			return getBody(user.getUser().getEmail().value());
+			return getBody(user.getUser().getEmail().value(),
+					user.getRole().name());
 		}
 
-		private String getBody(final String email) {
+		private String getBody(final String email, final String role) {
 			final String formattedEmail = Optional.ofNullable(email)
+					.map(n -> String.format("\"%s\"", n))
+					.orElse(null);
+
+			final String formattedRole = Optional.ofNullable(role)
 					.map(n -> String.format("\"%s\"", n))
 					.orElse(null);
 
 			return """
 					{
-						"email": %s
+						"email": %s,
+						"role": %s
 					}
-					""".formatted(formattedEmail);
+					""".formatted(formattedEmail, formattedRole);
 		}
 
 		private String getResponse(final TestOrganisationUser orgUser) {
@@ -189,11 +220,12 @@ class OrganisationUserControllerTest extends ControllerTest {
 					{
 						"id": %s,
 						"organisationId": %s,
-						"userId": %s
+						"userId": %s,
+						"role": "%s"
 					}
 					""".formatted(orgUser.getId(),
 					orgUser.getOrganisation().getId(),
-					orgUser.getUser().getId());
+					orgUser.getUser().getId(), orgUser.getRole());
 		}
 	}
 
@@ -209,10 +241,11 @@ class OrganisationUserControllerTest extends ControllerTest {
 					"id": %s,
 					"organisationId": %s,
 					"userId": %s,
-					"email": "%s"
+					"email": "%s",
+					"role": "%s"
 				}
 				""".formatted(orgUser.getId(),
 				orgUser.getOrganisation().getId(), orgUser.getUser().getId(),
-				orgUser.getUser().getEmail().value());
+				orgUser.getUser().getEmail().value(), orgUser.getRole());
 	}
 }

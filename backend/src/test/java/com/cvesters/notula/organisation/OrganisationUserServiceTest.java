@@ -118,11 +118,13 @@ class OrganisationUserServiceTest {
 				assertThat(orgUser.getId()).isNull();
 				assertThat(orgUser.getOrganisationId()).isEqualTo(orgId);
 				assertThat(orgUser.getUserId()).isEqualTo(userId);
+				assertThat(orgUser.getRole())
+						.isEqualTo(ORGANISATION_USER.getRole());
 				return true;
 			}))).thenReturn(created);
 
 			final var create = new OrganisationUserAction.Create(
-					USER.getEmail());
+					USER.getEmail(), ORGANISATION_USER.getRole());
 			final OrganisationUserInfo result = organisationUserService
 					.create(SESSION.principal(), create);
 
@@ -146,16 +148,20 @@ class OrganisationUserServiceTest {
 			when(organisationUserStorage.findByUserIdAndOrganisationId(userId,
 					orgId)).thenReturn(Optional.empty());
 
-			final OrganisationUserInfo createdOrgUser = ORGANISATION_USER.info();
+			final OrganisationUserInfo createdOrgUser = ORGANISATION_USER
+					.info();
 			when(organisationUserStorage.create(argThat(orgUser -> {
 				assertThat(orgUser.getId()).isNull();
 				assertThat(orgUser.getOrganisationId()).isEqualTo(orgId);
 				assertThat(orgUser.getUserId()).isEqualTo(userId);
+				assertThat(orgUser.getRole())
+						.isEqualTo(ORGANISATION_USER.getRole());
 				return true;
 			}))).thenReturn(createdOrgUser);
 
 			final Principal principal = SESSION.principal();
-			final var create = new OrganisationUserAction.Create(email);
+			final var create = new OrganisationUserAction.Create(email,
+					ORGANISATION_USER.getRole());
 			final OrganisationUserInfo result = organisationUserService
 					.create(principal, create);
 
@@ -176,7 +182,7 @@ class OrganisationUserServiceTest {
 
 			final var principal = SESSION.principal();
 			final var create = new OrganisationUserAction.Create(
-					USER.getEmail());
+					USER.getEmail(), ORGANISATION_USER.getRole());
 			assertThatThrownBy(
 					() -> organisationUserService.create(principal, create))
 							.isInstanceOf(DuplicateEntityException.class);
@@ -198,7 +204,7 @@ class OrganisationUserServiceTest {
 		void principalNull() {
 			final Principal principal = null;
 			final var create = new OrganisationUserAction.Create(
-					USER.getEmail());
+					USER.getEmail(), ORGANISATION_USER.getRole());
 
 			assertThatThrownBy(
 					() -> organisationUserService.create(principal, create))

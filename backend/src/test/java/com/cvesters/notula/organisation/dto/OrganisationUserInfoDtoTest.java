@@ -14,6 +14,7 @@ class OrganisationUserInfoDtoTest {
 
 	@Nested
 	class Constructor {
+
 		@Test
 		void success() {
 			final var bdo = ORG_USER.info();
@@ -24,11 +25,13 @@ class OrganisationUserInfoDtoTest {
 			assertThat(dto.organisationId())
 					.isEqualTo(ORG_USER.getOrganisation().getId());
 			assertThat(dto.userId()).isEqualTo(ORG_USER.getUser().getId());
+			assertThat(dto.role())
+					.isEqualTo(new OrganisationUserRoleDto(ORG_USER.getRole()));
 		}
 
 		@Test
 		void organisationUserNull() {
-			assertThatThrownBy(() -> new OrganisationInfoDto(null))
+			assertThatThrownBy(() -> new OrganisationUserInfoDto(null))
 					.isInstanceOf(NullPointerException.class);
 		}
 	}

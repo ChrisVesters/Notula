@@ -14,6 +14,7 @@ import org.springframework.dao.InvalidDataAccessApiUsageException;
 import org.springframework.test.context.jdbc.Sql;
 
 import com.cvesters.notula.organisation.bdo.OrganisationUserInfo;
+import com.cvesters.notula.organisation.bdo.OrganisationUserRole;
 import com.cvesters.notula.organisation.bdo.OrganisationUserView;
 import com.cvesters.notula.organisation.dao.OrganisationUserDao;
 import com.cvesters.notula.test.RepositoryTest;
@@ -35,18 +36,19 @@ public class OrganisationUserRepositoryTest extends RepositoryTest {
 
 		@Test
 		void single() {
-			final var userId = TestUser.EDUARDO_CHRISTIANSEN.getId();
+			final var orgUser = TestOrganisationUser.SPORER_EDUARDO_CHRISTIANSEN;
+			final var org = orgUser.getOrganisation();
+			final var user = orgUser.getUser();
+			final var userId = user.getId();
 
 			final var result = organisationUserRepository
 					.findAllByUserId(userId);
 
-			assertThat(result).hasSize(1).anySatisfy(orgUser -> {
-				assertThat(orgUser.getId()).isEqualTo(
-						TestOrganisationUser.SPORER_EDUARDO_CHRISTIANSEN
-								.getId());
-				assertThat(orgUser.getOrganisationId())
-						.isEqualTo(TestOrganisation.SPORER.getId());
-				assertThat(orgUser.getUserId()).isEqualTo(userId);
+			assertThat(result).hasSize(1).anySatisfy(actual -> {
+				assertThat(actual.getId()).isEqualTo(orgUser.getId());
+				assertThat(actual.getOrganisationId()).isEqualTo(org.getId());
+				assertThat(actual.getUserId()).isEqualTo(userId);
+				assertThat(actual.getRole()).isEqualTo(orgUser.getRole());
 			});
 		}
 
@@ -58,17 +60,27 @@ public class OrganisationUserRepositoryTest extends RepositoryTest {
 					.findAllByUserId(userId);
 
 			assertThat(result).hasSize(2).anySatisfy(orgUser -> {
-				assertThat(orgUser.getId()).isEqualTo(
-						TestOrganisationUser.GLOVER_ALISON_DACH.getId());
+				final var expectedOrgUser = TestOrganisationUser.GLOVER_ALISON_DACH;
+				final var expectedOrg = expectedOrgUser.getOrganisation();
+				final var expectedUser = expectedOrgUser.getUser();
+
+				assertThat(orgUser.getId()).isEqualTo(expectedOrgUser.getId());
 				assertThat(orgUser.getOrganisationId())
-						.isEqualTo(TestOrganisation.GLOVER.getId());
-				assertThat(orgUser.getUserId()).isEqualTo(userId);
+						.isEqualTo(expectedOrg.getId());
+				assertThat(orgUser.getUserId()).isEqualTo(expectedUser.getId());
+				assertThat(orgUser.getRole())
+						.isEqualTo(expectedOrgUser.getRole());
 			}).anySatisfy(orgUser -> {
-				assertThat(orgUser.getId()).isEqualTo(
-						TestOrganisationUser.HEUL_ALISON_DACH.getId());
+				final var expectedOrgUser = TestOrganisationUser.HEUL_ALISON_DACH;
+				final var expectedOrg = expectedOrgUser.getOrganisation();
+				final var expectedUser = expectedOrgUser.getUser();
+
+				assertThat(orgUser.getId()).isEqualTo(expectedOrgUser.getId());
 				assertThat(orgUser.getOrganisationId())
-						.isEqualTo(TestOrganisation.HEUL.getId());
-				assertThat(orgUser.getUserId()).isEqualTo(userId);
+						.isEqualTo(expectedOrg.getId());
+				assertThat(orgUser.getUserId()).isEqualTo(expectedUser.getId());
+				assertThat(orgUser.getRole())
+						.isEqualTo(expectedOrgUser.getRole());
 			});
 		}
 
@@ -143,6 +155,8 @@ public class OrganisationUserRepositoryTest extends RepositoryTest {
 				assertThat(orgUser.getOrganisationId())
 						.isEqualTo(ORGANISATION.getId());
 				assertThat(orgUser.getUserId()).isEqualTo(USER.getId());
+				assertThat(orgUser.getRole())
+						.isEqualTo(ORGANISATION_USER.getRole());
 			});
 		}
 
@@ -162,8 +176,10 @@ public class OrganisationUserRepositoryTest extends RepositoryTest {
 		@Test
 		void success() {
 			final var user = TestUser.DAPHNEE_LESCH;
+			final var role = OrganisationUserRole.MEMBER;
+
 			final var bdo = new OrganisationUserInfo(ORGANISATION.getId(),
-					user.getId());
+					user.getId(), role);
 			final var dao = new OrganisationUserDao(bdo);
 
 			final OrganisationUserDao saved = organisationUserRepository
@@ -180,6 +196,7 @@ public class OrganisationUserRepositoryTest extends RepositoryTest {
 			assertThat(found.getOrganisationId())
 					.isEqualTo(ORGANISATION.getId());
 			assertThat(found.getUserId()).isEqualTo(user.getId());
+			assertThat(found.getRole()).isEqualTo(role);
 		}
 
 		@Test
@@ -199,6 +216,7 @@ public class OrganisationUserRepositoryTest extends RepositoryTest {
 					.isEqualTo(expected.getUser().getId());
 			assertThat(actual.getEmail())
 					.isEqualTo(expected.getUser().getEmail().value());
+			assertThat(actual.getRole()).isEqualTo(expected.getRole());
 			return true;
 		}, "equal");
 	}

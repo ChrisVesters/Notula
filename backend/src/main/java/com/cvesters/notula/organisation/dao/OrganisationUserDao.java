@@ -15,6 +15,7 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 
 import com.cvesters.notula.organisation.bdo.OrganisationUserInfo;
+import com.cvesters.notula.organisation.bdo.OrganisationUserRole;
 
 @Getter
 @Entity(name = "organisation_users")
@@ -31,16 +32,20 @@ public class OrganisationUserDao {
 	@Column(name = "user_id", nullable = false)
 	private long userId;
 
+	@Column(nullable = false)
+	private OrganisationUserRole role;
+
 	public OrganisationUserDao(final OrganisationUserInfo bdo) {
 		Objects.requireNonNull(bdo);
 
 		this.organisationId = bdo.getOrganisationId();
 		this.userId = bdo.getUserId();
+		this.role = bdo.getRole();
 	}
 
 	public OrganisationUserInfo toBdo() {
 		Validate.validState(id != null);
 
-		return new OrganisationUserInfo(id, organisationId, userId);
+		return new OrganisationUserInfo(id, organisationId, userId, role);
 	}
 }

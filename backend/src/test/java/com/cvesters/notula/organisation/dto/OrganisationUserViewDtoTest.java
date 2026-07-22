@@ -29,11 +29,13 @@ class OrganisationUserViewDtoTest {
 			assertThat(dto.id()).isEqualTo(ORGANISATION_USER.getId());
 			assertThat(dto.organisationId()).isEqualTo(ORGANISATION.getId());
 			assertThat(dto.userId()).isEqualTo(USER.getId());
+			assertThat(dto.email()).isEqualTo(USER.getEmail().value());
+			assertThat(dto.role().role()).isEqualTo("ADMIN");
 		}
 
 		@Test
 		void organisationNull() {
-			assertThatThrownBy(() -> new OrganisationInfoDto(null))
+			assertThatThrownBy(() -> new OrganisationUserViewDto(null))
 					.isInstanceOf(NullPointerException.class);
 		}
 	}

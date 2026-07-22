@@ -6,6 +6,7 @@ import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 
 import com.cvesters.notula.organisation.bdo.OrganisationUserAction;
+import com.cvesters.notula.organisation.bdo.OrganisationUserRole;
 import com.cvesters.notula.user.TestUser;
 
 class OrganisationUserActionDtoTest {
@@ -17,11 +18,14 @@ class OrganisationUserActionDtoTest {
 
 		@Test
 		void toBdo() {
+			final var role = new OrganisationUserRoleDto(
+					OrganisationUserRole.MEMBER);
 			final var dto = new OrganisationUserActionDto.Create(
-					USER.getEmail().value());
+					USER.getEmail().value(), role);
 			final OrganisationUserAction.Create bdo = dto.toBdo();
 
 			assertThat(bdo.getEmail()).isEqualTo(USER.getEmail());
+			assertThat(bdo.getRole()).isEqualTo(OrganisationUserRole.MEMBER);
 		}
 	}
 }

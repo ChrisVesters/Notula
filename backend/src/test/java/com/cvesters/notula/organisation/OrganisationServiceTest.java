@@ -20,6 +20,7 @@ import com.cvesters.notula.common.domain.Principal;
 import com.cvesters.notula.common.exception.MissingEntityException;
 import com.cvesters.notula.organisation.bdo.OrganisationInfo;
 import com.cvesters.notula.organisation.bdo.OrganisationUserInfo;
+import com.cvesters.notula.organisation.bdo.OrganisationUserRole;
 import com.cvesters.notula.session.TestSession;
 import com.cvesters.notula.user.TestUser;
 
@@ -184,6 +185,8 @@ class OrganisationServiceTest {
 				assertThat(orgUserInfo.getOrganisationId())
 						.isEqualTo(ORGANISATION.getId());
 				assertThat(orgUserInfo.getUserId()).isEqualTo(USER.getId());
+				assertThat(orgUserInfo.getRole())
+						.isEqualTo(OrganisationUserRole.ADMIN);
 				return true;
 			})));
 		}

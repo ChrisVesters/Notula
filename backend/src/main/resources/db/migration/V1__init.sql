@@ -32,6 +32,7 @@ CREATE TABLE organisation_users(
 	id BIGINT NOT NULL GENERATED ALWAYS AS IDENTITY,
 	organisation_id BIGINT NOT NULL,
 	user_id BIGINT NOT NULL,
+	role SMALLINT NOT NULL,
 
 	PRIMARY KEY(id),
 	FOREIGN KEY(organisation_id) REFERENCES organisations(id) ON DELETE CASCADE,
