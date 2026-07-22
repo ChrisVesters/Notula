@@ -4,6 +4,7 @@ import jakarta.validation.constraints.NotBlank;
 
 import com.cvesters.notula.common.domain.Email;
 import com.cvesters.notula.organisation.bdo.OrganisationUserAction;
+import com.cvesters.notula.organisation.bdo.OrganisationUserRole;
 
 public final class OrganisationUserActionDto {
 
@@ -11,11 +12,14 @@ public final class OrganisationUserActionDto {
 	}
 
 	public static record Create(
-			@NotBlank @jakarta.validation.constraints.Email String email) {
+			@NotBlank @jakarta.validation.constraints.Email String email,
+			OrganisationUserRoleDto role) {
 
 		public OrganisationUserAction.Create toBdo() {
 			final var validatedEmail = new Email(email);
-			return new OrganisationUserAction.Create(validatedEmail);
+			final OrganisationUserRole validatedRole = role.toBdo();
+			return new OrganisationUserAction.Create(validatedEmail,
+					validatedRole);
 		}
 	}
 }

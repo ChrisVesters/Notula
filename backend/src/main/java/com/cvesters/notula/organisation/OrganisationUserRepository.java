@@ -19,7 +19,8 @@ public interface OrganisationUserRepository
 			ou.id AS id,
 			ou.organisationId AS organisationId,
 			ou.userId AS userId,
-			u.email AS email
+			u.email AS email,
+			ou.role AS role
 		FROM organisation_users ou
 		JOIN users u ON ou.userId = u.id
 		WHERE ou.organisationId = :organisationId

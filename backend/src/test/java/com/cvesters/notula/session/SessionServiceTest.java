@@ -31,7 +31,6 @@ import com.cvesters.notula.credential.bdo.CredentialAction;
 import com.cvesters.notula.organisation.OrganisationUserService;
 import com.cvesters.notula.organisation.TestOrganisation;
 import com.cvesters.notula.organisation.TestOrganisationUser;
-import com.cvesters.notula.organisation.bdo.OrganisationUserInfo;
 import com.cvesters.notula.session.bdo.SessionAction;
 import com.cvesters.notula.session.bdo.SessionInfo;
 import com.cvesters.notula.session.bdo.SessionTokens;
@@ -313,11 +312,6 @@ class SessionServiceTest {
 
 			when(sessionStorageGateway.findById(SESSION.getId()))
 					.thenReturn(Optional.of(SESSION.info()));
-
-			final var found = new OrganisationUserInfo(Long.MAX_VALUE,
-					USER.getId());
-			when(organisationUserService.getAllForUser(PRINCIPAL))
-					.thenReturn(List.of(found));
 
 			assertThatThrownBy(
 					() -> sessionService.update(PRINCIPAL, sessionId, UPDATE))

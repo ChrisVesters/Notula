@@ -8,14 +8,15 @@ import org.junit.jupiter.api.Test;
 
 import com.cvesters.notula.organisation.TestOrganisation;
 import com.cvesters.notula.organisation.TestOrganisationUser;
+import com.cvesters.notula.organisation.bdo.OrganisationUserRole;
 import com.cvesters.notula.user.TestUser;
 
 class OrganisationUserDaoTest {
 
-	private final TestOrganisationUser ORGANISATION_USER = TestOrganisationUser.SPORER_EDUARDO_CHRISTIANSEN;
-	private final TestOrganisation ORGANISATION = ORGANISATION_USER
+	private static final TestOrganisationUser ORGANISATION_USER = TestOrganisationUser.SPORER_EDUARDO_CHRISTIANSEN;
+	private static final TestOrganisation ORGANISATION = ORGANISATION_USER
 			.getOrganisation();
-	private final TestUser USER = ORGANISATION_USER.getUser();
+	private static final TestUser USER = ORGANISATION_USER.getUser();
 
 	@Nested
 	class Constructor {
@@ -27,6 +28,7 @@ class OrganisationUserDaoTest {
 
 			assertThat(dao.getOrganisationId()).isEqualTo(ORGANISATION.getId());
 			assertThat(dao.getUserId()).isEqualTo(USER.getId());
+			assertThat(dao.getRole()).isEqualTo(ORGANISATION_USER.getRole());
 		}
 
 		@Test
@@ -51,9 +53,9 @@ class OrganisationUserDaoTest {
 			final var bdo = dao.toBdo();
 
 			assertThat(bdo.getId()).isEqualTo(ORGANISATION_USER.getId());
-			assertThat(bdo.getOrganisationId())
-					.isEqualTo(ORGANISATION.getId());
+			assertThat(bdo.getOrganisationId()).isEqualTo(ORGANISATION.getId());
 			assertThat(bdo.getUserId()).isEqualTo(USER.getId());
+			assertThat(bdo.getRole()).isEqualTo(OrganisationUserRole.ADMIN);
 		}
 
 		@Test

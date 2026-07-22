@@ -21,21 +21,31 @@ class OrganisationUserInfoTest {
 
 		@Test
 		void withoutId() {
-			final var organisationUserInfo = new OrganisationUserInfo(
-					ORGANISATION.getId(), USER.getId());
+			final var orgId = ORGANISATION.getId();
+			final var userId = USER.getId();
+			final var role = ORGANISATION_USER.getRole();
+
+			final var organisationUserInfo = new OrganisationUserInfo(orgId,
+					userId, role);
 
 			assertThat(organisationUserInfo.getId()).isNull();
 			assertThat(organisationUserInfo.getOrganisationId())
 					.isEqualTo(ORGANISATION.getId());
 			assertThat(organisationUserInfo.getUserId())
 					.isEqualTo(USER.getId());
+			assertThat(organisationUserInfo.getRole())
+					.isEqualTo(ORGANISATION_USER.getRole());
 		}
 
 		@Test
 		void withId() {
-			final var organisationUserInfo = new OrganisationUserInfo(
-					ORGANISATION_USER.getId(), ORGANISATION.getId(),
-					USER.getId());
+			final var orgUserId = ORGANISATION_USER.getId();
+			final var orgId = ORGANISATION.getId();
+			final var userId = USER.getId();
+			final var role = ORGANISATION_USER.getRole();
+
+			final var organisationUserInfo = new OrganisationUserInfo(orgUserId,
+					orgId, userId, role);
 
 			assertThat(organisationUserInfo.getId())
 					.isEqualTo(ORGANISATION_USER.getId());
@@ -43,18 +53,27 @@ class OrganisationUserInfoTest {
 					.isEqualTo(ORGANISATION.getId());
 			assertThat(organisationUserInfo.getUserId())
 					.isEqualTo(USER.getId());
+			assertThat(organisationUserInfo.getRole())
+					.isEqualTo(ORGANISATION_USER.getRole());
 		}
 
 		@Test
 		void idNull() {
-			final var organisationUserInfo = new OrganisationUserInfo(null,
-					ORGANISATION.getId(), USER.getId());
+			final Long orgUserId = null;
+			final var orgId = ORGANISATION.getId();
+			final var userId = USER.getId();
+			final var role = ORGANISATION_USER.getRole();
+
+			final var organisationUserInfo = new OrganisationUserInfo(orgUserId,
+					orgId, userId, role);
 
 			assertThat(organisationUserInfo.getId()).isNull();
 			assertThat(organisationUserInfo.getOrganisationId())
 					.isEqualTo(ORGANISATION.getId());
 			assertThat(organisationUserInfo.getUserId())
 					.isEqualTo(USER.getId());
+			assertThat(organisationUserInfo.getRole())
+					.isEqualTo(ORGANISATION_USER.getRole());
 		}
 	}
 }

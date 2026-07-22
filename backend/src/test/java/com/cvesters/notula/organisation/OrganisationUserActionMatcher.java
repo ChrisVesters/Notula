@@ -19,6 +19,7 @@ public final class OrganisationUserActionMatcher {
 		@Override
 		public void assertEquals(final OrganisationUserAction.Create actual) {
 			assertThat(actual.getEmail()).isEqualTo(expected.getEmail());
+			assertThat(actual.getRole()).isEqualTo(expected.getRole());
 		}
 	}
 }

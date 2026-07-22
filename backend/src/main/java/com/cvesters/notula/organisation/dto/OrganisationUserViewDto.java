@@ -4,8 +4,8 @@ import java.util.Objects;
 
 import com.cvesters.notula.organisation.bdo.OrganisationUserView;
 
-public record OrganisationUserViewDto(long id, long organisationId,
-		long userId, String email) {
+public record OrganisationUserViewDto(long id, long organisationId, long userId,
+		String email, OrganisationUserRoleDto role) {
 
 	public OrganisationUserViewDto(final OrganisationUserView user) {
 		Objects.requireNonNull(user);
@@ -14,6 +14,8 @@ public record OrganisationUserViewDto(long id, long organisationId,
 		final long organisationId = user.getOrganisationId();
 		final long userId = user.getUserId();
 		final String email = user.getEmail();
-		this(id, organisationId, userId, email);
+		final var role = new OrganisationUserRoleDto(user.getRole());
+
+		this(id, organisationId, userId, email, role);
 	}
 }
