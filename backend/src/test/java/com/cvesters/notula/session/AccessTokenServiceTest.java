@@ -15,6 +15,7 @@ import org.junit.jupiter.api.Test;
 import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.security.oauth2.jwt.JwtEncoder;
 
+import com.cvesters.notula.organisation.bdo.OrganisationUserRole;
 import com.cvesters.notula.session.bdo.SessionInfo;
 
 class AccessTokenServiceTest {
@@ -47,7 +48,8 @@ class AccessTokenServiceTest {
 				assertThat(claims.getSubject())
 						.isEqualTo(String.valueOf(SESSION.getUser().getId()));
 				assertThat(claims.getClaimAsString("organisation_id"))
-						.isEqualTo(Long.toString(SESSION.getOrganisation().getId()));
+						.isEqualTo(Long
+								.toString(SESSION.getOrganisation().getId()));
 				assertThat(claims.getIssuedAt()).isCloseTo(now,
 						within(Duration.ofSeconds(1)));
 				assertThat(claims.getExpiresAt()).isCloseTo(
@@ -56,7 +58,43 @@ class AccessTokenServiceTest {
 				return true;
 			}))).thenReturn(token);
 
-			final String result = accessTokenService.create(sessionInfo);
+			final String result = accessTokenService.create(sessionInfo, null);
+
+			assertThat(result).isEqualTo(tokenValue);
+		}
+
+		@Test
+		void withRole() {
+			final SessionInfo sessionInfo = SESSION.info();
+
+			final var now = Instant.now();
+
+			final Jwt token = mock();
+			final String tokenValue = "JWT";
+			when((token).getTokenValue()).thenReturn(tokenValue);
+
+			when(jwtEncoder.encode(argThat(params -> {
+				final var header = params.getJwsHeader();
+				assertThat(header.getAlgorithm().getName()).isEqualTo("HS512");
+
+				final var claims = params.getClaims();
+				assertThat(claims.getSubject())
+						.isEqualTo(String.valueOf(SESSION.getUser().getId()));
+				assertThat(claims.getClaimAsString("organisation_id"))
+						.isEqualTo(Long
+								.toString(SESSION.getOrganisation().getId()));
+				assertThat(claims.getClaimAsString("role")).isEqualTo("ADMIN");
+				assertThat(claims.getIssuedAt()).isCloseTo(now,
+						within(Duration.ofSeconds(1)));
+				assertThat(claims.getExpiresAt()).isCloseTo(
+						now.plus(Duration.ofMinutes(30)),
+						within(Duration.ofSeconds(1)));
+				return true;
+			}))).thenReturn(token);
+
+			final var role = OrganisationUserRole.ADMIN;
+
+			final String result = accessTokenService.create(sessionInfo, role);
 
 			assertThat(result).isEqualTo(tokenValue);
 		}
@@ -88,14 +126,14 @@ class AccessTokenServiceTest {
 				return true;
 			}))).thenReturn(token);
 
-			final String result = accessTokenService.create(sessionInfo);
+			final String result = accessTokenService.create(sessionInfo, null);
 
 			assertThat(result).isEqualTo(tokenValue);
 		}
 
 		@Test
 		void sessionNull() {
-			assertThatThrownBy(() -> accessTokenService.create(null))
+			assertThatThrownBy(() -> accessTokenService.create(null, null))
 					.isInstanceOf(NullPointerException.class);
 		}
 	}

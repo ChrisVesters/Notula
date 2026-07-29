@@ -100,6 +100,48 @@ class OrganisationUserServiceTest {
 	}
 
 	@Nested
+	class FindByUserIdAndOrganisationId {
+
+		@Test
+		void success() {
+			final var organisation = ORGANISATION_USER.getOrganisation();
+			final var user = ORGANISATION_USER.getUser();
+
+			final var organisationUser = Optional.of(ORGANISATION_USER.info());
+			when(organisationUserStorage.findByUserIdAndOrganisationId(
+					user.getId(), organisation.getId()))
+							.thenReturn(organisationUser);
+
+			final Optional<OrganisationUserInfo> result = organisationUserService
+					.findByUserIdAndOrganisationId(PRINCIPAL);
+
+			assertThat(result).isEqualTo(organisationUser);
+		}
+
+		@Test
+		void notFound() {
+			final var organisation = ORGANISATION_USER.getOrganisation();
+			final var user = ORGANISATION_USER.getUser();
+
+			when(organisationUserStorage.findByUserIdAndOrganisationId(
+					user.getId(), organisation.getId()))
+							.thenReturn(Optional.empty());
+
+			final Optional<OrganisationUserInfo> result = organisationUserService
+					.findByUserIdAndOrganisationId(PRINCIPAL);
+
+			assertThat(result).isEmpty();
+		}
+
+		@Test
+		void principalNull() {
+			assertThatThrownBy(() -> organisationUserService
+					.findByUserIdAndOrganisationId(null))
+							.isInstanceOf(NullPointerException.class);
+		}
+	}
+
+	@Nested
 	class Create {
 
 		@Test

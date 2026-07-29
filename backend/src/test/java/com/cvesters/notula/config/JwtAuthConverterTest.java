@@ -9,6 +9,7 @@ import org.junit.jupiter.api.Test;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.oauth2.jwt.Jwt;
 
+import com.cvesters.notula.organisation.bdo.OrganisationUserRole;
 import com.cvesters.notula.session.TestSession;
 
 class JwtAuthConverterTest {
@@ -23,7 +24,8 @@ class JwtAuthConverterTest {
 		final var token = converter.convert(jwt);
 
 		assertThat(token.isAuthenticated()).isTrue();
-		assertThat(Long.parseLong(token.getName())).isEqualTo(session.getUser().getId());
+		assertThat(Long.parseLong(token.getName()))
+				.isEqualTo(session.getUser().getId());
 		assertThat(token.getPrincipal()).isEqualTo(session.principal());
 		assertThat(token.getAuthorities())
 				.extracting(GrantedAuthority::getAuthority)
@@ -38,14 +40,36 @@ class JwtAuthConverterTest {
 		final var token = converter.convert(jwt);
 
 		assertThat(token.isAuthenticated()).isTrue();
-		assertThat(Long.parseLong(token.getName())).isEqualTo(session.getUser().getId());
+		assertThat(Long.parseLong(token.getName()))
+				.isEqualTo(session.getUser().getId());
 		assertThat(token.getPrincipal()).isEqualTo(session.principal());
 		assertThat(token.getAuthorities())
 				.extracting(GrantedAuthority::getAuthority)
 				.containsOnly("CLAIM_ORGANISATION");
 	}
 
+	@Test
+	void withRole() {
+		final var session = TestSession.EDUARDO_CHRISTIANSEN_SPORER;
+		final var jwt = toJwt(session, OrganisationUserRole.ADMIN);
+
+		final var token = converter.convert(jwt);
+
+		assertThat(token.isAuthenticated()).isTrue();
+		assertThat(Long.parseLong(token.getName()))
+				.isEqualTo(session.getUser().getId());
+		assertThat(token.getPrincipal()).isEqualTo(session.principal());
+		assertThat(token.getAuthorities())
+				.extracting(GrantedAuthority::getAuthority)
+				.contains("ROLE_ADMIN");
+	}
+
 	private Jwt toJwt(final TestSession session) {
+		return toJwt(session, null);
+	}
+
+	private Jwt toJwt(final TestSession session,
+			final OrganisationUserRole role) {
 		final var iat = Instant.now();
 		final var exp = session.getActiveUntil().toInstant();
 
@@ -57,6 +81,10 @@ class JwtAuthConverterTest {
 
 		if (session.getOrganisation() != null) {
 			claims.put("organisation_id", session.getOrganisation().getId());
+		}
+
+		if (role != null) {
+			claims.put("role", role.name());
 		}
 
 		return new Jwt("token", iat, exp, headers, claims);

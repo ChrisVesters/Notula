@@ -19,6 +19,7 @@ public class JwtAuthConverter
 
 	// TODO: Some enum?!
 	public static final String ORGANISATION_CLAIM = "CLAIM_ORGANISATION";
+	private static final String ROLE_PREFIX = "ROLE_";
 
 	@Override
 	public AbstractAuthenticationToken convert(final Jwt jwt) {
@@ -34,6 +35,11 @@ public class JwtAuthConverter
 		if (jwt.hasClaim("organisation_id")) {
 			authorities.add(new SimpleGrantedAuthority(ORGANISATION_CLAIM));
 		}
+
+		Optional.ofNullable(jwt.getClaim("role"))
+			.map(role -> ROLE_PREFIX + role)
+			.map(SimpleGrantedAuthority::new)
+			.ifPresent(authorities::add);
 
 		final var principal = new Principal(userId, organisationId);
 		return new AuthToken(principal, authorities);

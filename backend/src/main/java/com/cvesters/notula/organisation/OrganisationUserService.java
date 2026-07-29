@@ -41,6 +41,17 @@ public class OrganisationUserService {
 				.findAllByOrganisationId(principal.organisationId());
 	}
 
+	public Optional<OrganisationUserInfo> findByUserIdAndOrganisationId(
+			final Principal principal) {
+		Objects.requireNonNull(principal);
+
+		final long userId = principal.userId();
+		final long organisationId = principal.organisationId();
+
+		return organisationUserStorage.findByUserIdAndOrganisationId(userId,
+				organisationId);
+	}
+
 	public OrganisationUserInfo create(final Principal principal,
 			final OrganisationUserAction.Create action) {
 		Objects.requireNonNull(principal);

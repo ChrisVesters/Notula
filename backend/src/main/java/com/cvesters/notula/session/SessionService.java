@@ -14,6 +14,7 @@ import com.cvesters.notula.credential.CredentialService;
 import com.cvesters.notula.credential.bdo.CredentialAction;
 import com.cvesters.notula.organisation.OrganisationUserService;
 import com.cvesters.notula.organisation.bdo.OrganisationUserInfo;
+import com.cvesters.notula.organisation.bdo.OrganisationUserRole;
 import com.cvesters.notula.session.bdo.SessionAction;
 import com.cvesters.notula.session.bdo.SessionInfo;
 import com.cvesters.notula.session.bdo.SessionTokens;
@@ -57,14 +58,20 @@ public class SessionService {
 		final Optional<OrganisationUserInfo> defaultOrganisation = getDefaultOrganisation(
 				user);
 
-		final var action = new SessionInfo(user.getId(),
-				defaultOrganisation.map(OrganisationUserInfo::getOrganisationId)
-						.orElse(null));
+		final Long defaultOrganisationId = defaultOrganisation
+				.map(OrganisationUserInfo::getOrganisationId)
+				.orElse(null);
+		final var action = new SessionInfo(user.getId(), defaultOrganisationId);
 		final String refreshToken = generateRefreshToken();
 
 		final SessionInfo createdSession = sessionStorage.create(action,
 				refreshToken);
-		final String accessToken = accessTokenService.create(createdSession);
+
+		final OrganisationUserRole role = defaultOrganisation
+				.map(OrganisationUserInfo::getRole)
+				.orElse(null);
+		final String accessToken = accessTokenService.create(createdSession,
+				role);
 
 		return new SessionTokens(createdSession, accessToken, refreshToken);
 	}
@@ -74,7 +81,8 @@ public class SessionService {
 		Objects.requireNonNull(principal);
 		Objects.requireNonNull(update);
 
-		organisationUserService.getAllForUser(principal)
+		final OrganisationUserInfo orgUser = organisationUserService
+				.getAllForUser(principal)
 				.stream()
 				.filter(ou -> ou.getOrganisationId() == update.organisationId())
 				.findFirst()
@@ -88,7 +96,8 @@ public class SessionService {
 		bdo.update(update);
 
 		final SessionInfo session = sessionStorage.update(bdo);
-		final String accessToken = accessTokenService.create(session);
+		final String accessToken = accessTokenService.create(session,
+				orgUser.getRole());
 
 		return new SessionTokens(session, accessToken);
 	}
@@ -102,11 +111,19 @@ public class SessionService {
 				.filter(SessionInfo::isActive)
 				.orElseThrow(MissingEntityException::new);
 
+		final OrganisationUserRole role = bdo.getOrganisationId()
+				.map(orgId -> new Principal(bdo.getUserId(), orgId))
+				.map(principal -> organisationUserService
+						.findByUserIdAndOrganisationId(principal)
+						.orElseThrow(MissingEntityException::new))
+				.map(OrganisationUserInfo::getRole)
+				.orElse(null);
+
 		bdo.refresh();
 		final String newToken = generateRefreshToken();
 
 		final SessionInfo session = sessionStorage.update(bdo, newToken);
-		final String accessToken = accessTokenService.create(session);
+		final String accessToken = accessTokenService.create(session, role);
 
 		return new SessionTokens(session, accessToken, newToken);
 	}
@@ -132,7 +149,7 @@ public class SessionService {
 
 	private Optional<OrganisationUserInfo> getDefaultOrganisation(
 			final UserInfo user) {
-		final var principal = new Principal(user.getId(), null);
+		final var principal = new Principal(user.getId());
 		final List<OrganisationUserInfo> organisations = organisationUserService
 				.getAllForUser(principal);
 		if (organisations.size() == 1) {

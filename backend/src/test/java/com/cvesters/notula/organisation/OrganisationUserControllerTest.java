@@ -107,6 +107,22 @@ class OrganisationUserControllerTest extends ControllerTest {
 		}
 
 		@Test
+		@WithSession(TestSession.KRISTINA_THIEL_SPORER)
+		void nonAdmin() throws Exception {
+			final var builder = get(BASE_ENDPOINT);
+
+			mockMvc.perform(builder).andExpect(status().isForbidden());
+		}
+
+		@Test
+		@WithSession(TestSession.EDUARDO_CHRISTIANSEN)
+		void noOrganisation() throws Exception {
+			final var builder = get(BASE_ENDPOINT);
+
+			mockMvc.perform(builder).andExpect(status().isForbidden());
+		}
+
+		@Test
 		@WithAnonymousUser
 		void unauthorized() throws Exception {
 			final var builder = get(BASE_ENDPOINT);
@@ -168,6 +184,24 @@ class OrganisationUserControllerTest extends ControllerTest {
 			mockMvc.perform(builder).andExpect(status().isBadRequest());
 
 			verifyNoInteractions(organisationUserService);
+		}
+
+		@Test
+		@WithSession(TestSession.KRISTINA_THIEL_SPORER)
+		void nonAdmin() throws Exception {
+			final var builder = post(BASE_ENDPOINT).content(getBody(ORG_USER))
+					.contentType(MediaType.APPLICATION_JSON);
+
+			mockMvc.perform(builder).andExpect(status().isForbidden());
+		}
+
+		@Test
+		@WithSession(TestSession.EDUARDO_CHRISTIANSEN)
+		void noOrganisation() throws Exception {
+			final var builder = post(BASE_ENDPOINT).content(getBody(ORG_USER))
+					.contentType(MediaType.APPLICATION_JSON);
+
+			mockMvc.perform(builder).andExpect(status().isForbidden());
 		}
 
 		@Test

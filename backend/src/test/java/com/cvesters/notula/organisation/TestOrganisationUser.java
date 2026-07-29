@@ -41,6 +41,16 @@ public enum TestOrganisationUser {
 				.toList();
 	}
 
+	public static TestOrganisationUser ofUserAndOrganisation(
+			final TestUser user, final TestOrganisation organisation) {
+
+		return Arrays.stream(TestOrganisationUser.values())
+				.filter(u -> u.user.equals(user))
+				.filter(u -> u.organisation.equals(organisation))
+				.findFirst()
+				.orElse(null);
+	}
+
 	public OrganisationUserInfo info() {
 		return new OrganisationUserInfo(id, organisation.getId(), user.getId(),
 				role);
@@ -74,6 +84,6 @@ public enum TestOrganisationUser {
 				return role;
 			}
 
-		} ;
+		};
 	}
 }

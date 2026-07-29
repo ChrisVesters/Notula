@@ -15,6 +15,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.cvesters.notula.common.controller.BaseController;
+import com.cvesters.notula.common.controller.IsAdmin;
 import com.cvesters.notula.common.domain.Principal;
 import com.cvesters.notula.organisation.bdo.OrganisationInfo;
 import com.cvesters.notula.organisation.dto.OrganisationCreateDto;
@@ -72,6 +73,7 @@ public class OrganisationController extends BaseController {
 	}
 
 	@PutMapping(path = "/{id}")
+	@IsAdmin
 	public ResponseEntity<OrganisationInfoDto> update(
 			@PathVariable final long id,
 			@Valid @RequestBody OrganisationUpdateDto request) {
