@@ -232,8 +232,11 @@ class OrganisationControllerTest extends ControllerTest {
 		private static final String ENDPOINT = BASE_ENDPOINT + "/{id}";
 
 		@Test
-		void success() throws Exception {
-			final Principal principal = SESSION.principal();
+		@WithSession(TestSession.EDUARDO_CHRISTIANSEN_SPORER)
+		void admin() throws Exception {
+			final TestSession session = TestSession.EDUARDO_CHRISTIANSEN_SPORER;
+
+			final Principal principal = session.principal();
 			final OrganisationInfo info = ORGANISATION.info();
 
 			when(organisationService.update(eq(principal),
@@ -245,11 +248,10 @@ class OrganisationControllerTest extends ControllerTest {
 						return true;
 					}))).thenReturn(info);
 
-			final String body = getBody(ORGANISATION);
 			final String expectedResponse = getResponse(ORGANISATION);
 
 			final var builder = put(ENDPOINT, ORGANISATION.getId())
-					.content(body)
+					.content(getBody(ORGANISATION))
 					.contentType(MediaType.APPLICATION_JSON);
 
 			mockMvc.perform(builder)
@@ -258,9 +260,29 @@ class OrganisationControllerTest extends ControllerTest {
 		}
 
 		@Test
+		@WithSession(TestSession.KRISTINA_THIEL_SPORER)
+		void nonAdmin() throws Exception {
+			final var builder = put(ENDPOINT, ORGANISATION.getId())
+					.content(getBody(ORGANISATION))
+					.contentType(MediaType.APPLICATION_JSON);
+
+			mockMvc.perform(builder).andExpect(status().isForbidden());
+		}
+
+		@Test
+		@WithSession(TestSession.EDUARDO_CHRISTIANSEN)
+		void noOrganisation() throws Exception {
+			final var builder = put(ENDPOINT, ORGANISATION.getId())
+					.content(getBody(ORGANISATION))
+					.contentType(MediaType.APPLICATION_JSON);
+
+			mockMvc.perform(builder).andExpect(status().isForbidden());
+		}
+
+		@Test
 		@WithAnonymousUser
 		void unauthorized() throws Exception {
-			final var builder = post(ENDPOINT, ORGANISATION.getId())
+			final var builder = put(ENDPOINT, ORGANISATION.getId())
 					.content(getBody(ORGANISATION))
 					.contentType(MediaType.APPLICATION_JSON);
 

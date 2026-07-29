@@ -12,6 +12,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.cvesters.notula.common.controller.BaseController;
+import com.cvesters.notula.common.controller.IsAdmin;
 import com.cvesters.notula.common.domain.Principal;
 import com.cvesters.notula.organisation.bdo.OrganisationUserAction;
 import com.cvesters.notula.organisation.bdo.OrganisationUserInfo;
@@ -22,6 +23,7 @@ import com.cvesters.notula.organisation.dto.OrganisationUserViewDto;
 
 @RestController
 @RequestMapping("/api/organisation-users")
+@IsAdmin
 public class OrganisationUserController extends BaseController {
 
 	private final OrganisationUserService organisationUserService;

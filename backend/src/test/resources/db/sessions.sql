@@ -5,6 +5,7 @@ VALUES
 	(2, 2, NULL, 'eff74def', NOW() + INTERVAL '30 days'),
 	(3, 4, NULL, 'ghj89tyu', NOW() + INTERVAL '15 days'),
 	(7, 1, NULL, 'ddef741', NOW() - INTERVAL '1 days'),
-	(8, 4, 2, 'ad98gh3', NOW() + INTERVAL '3 days');
+	(8, 4, 2, 'ad98gh3', NOW() + INTERVAL '3 days'),
+	(9, 2, 1, 'qwer123', NOW() + INTERVAL '2 days');
 
 SELECT setval('sessions_id_seq', (SELECT MAX(id) from "sessions"));

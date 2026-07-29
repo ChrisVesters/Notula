@@ -87,7 +87,7 @@ class SessionServiceTest {
 				return true;
 			}), anyString())).thenReturn(createdSession);
 
-			when(accessTokenService.create(createdSession))
+			when(accessTokenService.create(createdSession, null))
 					.thenReturn(ACCESS_TOKEN);
 
 			final SessionTokens tokens = sessionService.create(request);
@@ -133,8 +133,8 @@ class SessionServiceTest {
 				return true;
 			}), anyString())).thenReturn(createdSession);
 
-			when(accessTokenService.create(createdSession))
-					.thenReturn(ACCESS_TOKEN);
+			when(accessTokenService.create(createdSession,
+					organisationUser.getRole())).thenReturn(ACCESS_TOKEN);
 
 			final SessionTokens tokens = sessionService.create(request);
 
@@ -179,7 +179,7 @@ class SessionServiceTest {
 				return true;
 			}), anyString())).thenReturn(createdSession);
 
-			when(accessTokenService.create(createdSession))
+			when(accessTokenService.create(createdSession, null))
 					.thenReturn(ACCESS_TOKEN);
 
 			final SessionTokens tokens = sessionService.create(request);
@@ -255,7 +255,8 @@ class SessionServiceTest {
 			final SessionInfo updated = new SessionInfo(sessionId, USER.getId(),
 					ORGANISATION.getId(), SESSION.getActiveUntil());
 			when(sessionStorageGateway.update(bdo)).thenReturn(updated);
-			when(accessTokenService.create(updated)).thenReturn(ACCESS_TOKEN);
+			when(accessTokenService.create(updated,
+					ORGANISATION_USER.getRole())).thenReturn(ACCESS_TOKEN);
 
 			final SessionTokens result = sessionService.update(PRINCIPAL,
 					sessionId, UPDATE);
@@ -270,7 +271,8 @@ class SessionServiceTest {
 					accessTokenService);
 			order.verify(bdo).update(UPDATE);
 			order.verify(sessionStorageGateway).update(bdo);
-			order.verify(accessTokenService).create(updated);
+			order.verify(accessTokenService)
+					.create(updated, ORGANISATION_USER.getRole());
 		}
 
 		@Test
@@ -353,7 +355,7 @@ class SessionServiceTest {
 		private static final Principal PRINCIPAL = SESSION.principal();
 
 		@Test
-		void success() {
+		void withoutOrganisation() {
 			final long sessionId = SESSION.getId();
 			final String refreshToken = SESSION.getRefreshToken();
 
@@ -362,13 +364,15 @@ class SessionServiceTest {
 					refreshToken)).thenReturn(Optional.of(bdo));
 
 			when(bdo.isActive()).thenReturn(true);
+			when(bdo.getOrganisationId()).thenReturn(Optional.empty());
 
 			final SessionInfo updated = new SessionInfo(SESSION.getId(),
 					USER.getId(), ORGANISATION.getId(),
 					SESSION.getActiveUntil());
 			when(sessionStorageGateway.update(eq(bdo), anyString()))
 					.thenReturn(updated);
-			when(accessTokenService.create(updated)).thenReturn(ACCESS_TOKEN);
+			when(accessTokenService.create(updated, null))
+					.thenReturn(ACCESS_TOKEN);
 
 			final SessionTokens result = sessionService.refresh(SESSION.getId(),
 					SESSION.getRefreshToken());
@@ -380,14 +384,90 @@ class SessionServiceTest {
 			order.verify(bdo).refresh();
 			order.verify(sessionStorageGateway)
 					.update(eq(bdo), newToken.capture());
-			order.verify(accessTokenService).create(updated);
+			order.verify(accessTokenService).create(updated, null);
+
+			verifyNoInteractions(organisationUserService);
 
 			assertThat(result.getId()).isEqualTo(SESSION.getId());
 			assertThat(result.getAccessToken()).isEqualTo(ACCESS_TOKEN);
 			assertThat(result.getRefreshToken()).contains(newToken.getValue());
 			assertThat(result.getActiveUntil())
 					.isEqualTo(SESSION.getActiveUntil());
+		}
 
+		@Test
+		void withOrganisation() {
+			final long sessionId = SESSION.getId();
+			final String refreshToken = SESSION.getRefreshToken();
+
+			final SessionInfo bdo = mock();
+			when(sessionStorageGateway.findByIdAndRefreshToken(sessionId,
+					refreshToken)).thenReturn(Optional.of(bdo));
+
+			when(bdo.isActive()).thenReturn(true);
+			when(bdo.getOrganisationId())
+					.thenReturn(Optional.of(ORGANISATION.getId()));
+			when(bdo.getUserId()).thenReturn(USER.getId());
+
+			final var orgUser = TestOrganisationUser.SPORER_EDUARDO_CHRISTIANSEN;
+			when(organisationUserService
+					.findByUserIdAndOrganisationId(argThat(principal -> {
+						assertThat(principal.userId()).isEqualTo(USER.getId());
+						assertThat(principal.organisationId())
+								.isEqualTo(ORGANISATION.getId());
+						return true;
+					}))).thenReturn(Optional.of(orgUser.info()));
+
+			final SessionInfo updated = new SessionInfo(SESSION.getId(),
+					USER.getId(), ORGANISATION.getId(),
+					SESSION.getActiveUntil());
+			when(sessionStorageGateway.update(eq(bdo), anyString()))
+					.thenReturn(updated);
+			when(accessTokenService.create(updated, orgUser.getRole()))
+					.thenReturn(ACCESS_TOKEN);
+
+			final SessionTokens result = sessionService.refresh(SESSION.getId(),
+					SESSION.getRefreshToken());
+
+			final var newToken = ArgumentCaptor.forClass(String.class);
+
+			final InOrder order = inOrder(bdo, sessionStorageGateway,
+					accessTokenService);
+			order.verify(bdo).refresh();
+			order.verify(sessionStorageGateway)
+					.update(eq(bdo), newToken.capture());
+			order.verify(accessTokenService).create(updated, orgUser.getRole());
+
+			assertThat(result.getId()).isEqualTo(SESSION.getId());
+			assertThat(result.getAccessToken()).isEqualTo(ACCESS_TOKEN);
+			assertThat(result.getRefreshToken()).contains(newToken.getValue());
+			assertThat(result.getActiveUntil())
+					.isEqualTo(SESSION.getActiveUntil());
+		}
+
+		@Test
+		void organisationUserNotFound() {
+			final long sessionId = SESSION.getId();
+			final String refreshToken = SESSION.getRefreshToken();
+
+			final SessionInfo bdo = mock();
+			when(sessionStorageGateway.findByIdAndRefreshToken(sessionId,
+					refreshToken)).thenReturn(Optional.of(bdo));
+
+			when(bdo.isActive()).thenReturn(true);
+			when(bdo.getOrganisationId())
+					.thenReturn(Optional.of(ORGANISATION.getId()));
+			when(bdo.getUserId()).thenReturn(USER.getId());
+
+			when(organisationUserService.findByUserIdAndOrganisationId(any()))
+					.thenReturn(Optional.empty());
+
+			assertThatThrownBy(
+					() -> sessionService.refresh(sessionId, refreshToken))
+							.isInstanceOf(MissingEntityException.class);
+
+			verifyNoInteractions(accessTokenService);
+			verify(sessionStorageGateway, never()).update(any(), anyString());
 		}
 
 		@Test
