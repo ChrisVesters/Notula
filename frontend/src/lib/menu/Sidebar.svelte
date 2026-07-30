@@ -15,6 +15,8 @@
 	import Session from "$lib/auth/Session";
 	import SessionClient from "$lib/session/SessionClient";
 
+	import { OrganisationUserRole } from "$lib/organisation/OrganisationUserTypes";
+
 	let isOpen = $state(true);
 	let principal = Auth.getPrincipal();
 
@@ -69,14 +71,16 @@
 
 		<div class="sidebar-footer">
 			{#if $principal?.isScoped()}
-				<a
-					href="/organisation"
-					class={`sidebar-link ${isActive("/organisation") ? "active" : ""}`}
-					aria-label="Organisation"
-				>
-					<IconOrganisationSettings />
-					<span>{$t("common.organisation")}</span>
-				</a>
+				{#if $principal?.role === OrganisationUserRole.ADMIN}
+					<a
+						href="/organisation"
+						class={`sidebar-link ${isActive("/organisation") ? "active" : ""}`}
+						aria-label="Organisation"
+					>
+						<IconOrganisationSettings />
+						<span>{$t("common.organisation")}</span>
+					</a>
+				{/if}
 
 				<a
 					href="/select-organisation"

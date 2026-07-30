@@ -1,20 +1,23 @@
 import { writable } from "svelte/store";
 import type { Writable } from "svelte/store";
 
-import DataStorage from "$lib/common/DataStorage";
+import type { OrganisationUserRole } from "$lib/organisation/OrganisationUserTypes";
 
 export class Principal {
 	readonly userId: number;
 	readonly organisationId: number | null;
+	readonly role: OrganisationUserRole | null;
 	readonly expiresAt: Date;
 
 	constructor(
 		userId: number,
 		organisationId: number | null,
+		role: OrganisationUserRole | null,
 		expiresAt: Date
 	) {
 		this.userId = userId;
 		this.organisationId = organisationId;
+		this.role = role;
 		this.expiresAt = expiresAt;
 	}
 
@@ -37,6 +40,7 @@ type JwtPayload = {
 	iat: number;
 
 	organisation_id?: number;
+	role?: OrganisationUserRole;
 };
 
 const principal = writable<Principal | null>(null);
@@ -52,9 +56,10 @@ export default class Auth {
 
 		const userId = parseInt(payload.sub, 10);
 		const organisationId = payload.organisation_id ?? null;
+		const role = payload.role ?? null;
 		const expiresAt = new Date(payload.exp * 1000);
 
-		principal.set(new Principal(userId, organisationId, expiresAt));
+		principal.set(new Principal(userId, organisationId, role, expiresAt));
 	}
 
 	public static deletePrincipal(): void {

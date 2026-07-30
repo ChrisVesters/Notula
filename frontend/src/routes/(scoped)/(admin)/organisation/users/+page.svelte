@@ -42,6 +42,9 @@
 				email
 			});
 			dialog.close();
+
+			email = "";
+			role = OrganisationUserRole.MEMBER;
 		} catch (error) {
 			// TODO: better error handling
 			alert("Adding user failed. Please try again.");
