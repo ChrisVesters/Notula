@@ -7,7 +7,7 @@ import java.lang.annotation.Target;
 
 import org.springframework.security.access.prepost.PreAuthorize;
 
-@Target({ElementType.METHOD, ElementType.TYPE})
+@Target({ ElementType.METHOD, ElementType.TYPE })
 @Retention(RetentionPolicy.RUNTIME)
 @PreAuthorize("hasRole('ADMIN')")
 public @interface IsAdmin {
