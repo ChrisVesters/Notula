@@ -1,6 +1,7 @@
 package com.cvesters.notula.block;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatCode;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.lang.reflect.Field;
@@ -256,9 +257,9 @@ public class BlockRepositoryTest extends RepositoryTest {
 			final TestOrganisation organisation = topic.getOrganisation();
 
 			final var bdo1 = new BlockInfo(organisation.getId(), topic.getId(),
-			BlockType.TEXT, 2);
+					BlockType.TEXT, 2);
 			final var dao1 = new BlockDao(bdo1);
-			
+
 			final TestBlock existingBlock = TestBlock.SPORER_PROJECT_BLOCKERS_THIRD;
 			final var bdo2 = existingBlock.info();
 			bdo2.moveDown();
@@ -266,7 +267,7 @@ public class BlockRepositoryTest extends RepositoryTest {
 			final Field idField = dao2.getClass().getDeclaredField("id");
 			idField.setAccessible(true);
 			idField.set(dao2, existingBlock.getId());
-			
+
 			final var daos = List.of(dao1, dao2);
 
 			final List<BlockDao> saved = blockRepository.saveAll(daos);
@@ -296,6 +297,47 @@ public class BlockRepositoryTest extends RepositoryTest {
 
 			assertThatThrownBy(() -> blockRepository.saveAll(dao))
 					.isInstanceOf(InvalidDataAccessApiUsageException.class);
+		}
+	}
+
+	@Nested
+	class Delete {
+
+		@Test
+		void success() {
+			final TestBlock block = TestBlock.SPORER_PROJECT_BLOCKERS_THIRD;
+			final BlockDao dao = entityManager.find(BlockDao.class,
+					block.getId());
+
+			blockRepository.delete(dao);
+
+			final BlockDao deleted = entityManager.find(BlockDao.class,
+					block.getId());
+			assertThat(deleted).isNull();
+		}
+
+		@Test
+		void topicNull() {
+			assertThatThrownBy(() -> blockRepository.delete(null))
+					.isInstanceOf(InvalidDataAccessApiUsageException.class);
+		}
+
+		@Test
+		void nonExisting() throws Exception {
+			final TestBlock block = TestBlock.SPORER_PROJECT_BLOCKERS_THIRD;
+			final BlockDao dao = new BlockDao(block.info());
+
+			final Field idField = dao.getClass().getDeclaredField("id");
+			idField.setAccessible(true);
+			idField.set(dao, Long.MAX_VALUE);
+
+			assertThatCode(() -> blockRepository.delete(dao))
+					.doesNotThrowAnyException();
+
+			final BlockDao found = entityManager.find(BlockDao.class,
+					Long.MAX_VALUE);
+
+			assertThat(found).isNull();
 		}
 	}
 

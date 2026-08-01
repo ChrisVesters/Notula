@@ -57,4 +57,14 @@ public class BlockStorageGateway {
 				.map(BlockDao::toBdo)
 				.toList();
 	}
+
+	public void delete(final BlockInfo block) {
+		Objects.requireNonNull(block);
+
+		final BlockDao dao = blockRepository
+				.findByTopicIdAndId(block.getTopicId(), block.getId())
+				.orElseThrow(MissingEntityException::new);
+
+		blockRepository.delete(dao);
+	}
 }

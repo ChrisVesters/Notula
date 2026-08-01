@@ -5,6 +5,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.timeout;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
@@ -80,7 +81,8 @@ class BlockWebSocketTest extends WebSocketTest {
 
 		@Test
 		void typeNull() throws Exception {
-			final byte[] payload = "{\"sequenceId\": 0}".getBytes(StandardCharsets.UTF_8);
+			final byte[] payload = "{\"sequenceId\": 0}"
+					.getBytes(StandardCharsets.UTF_8);
 
 			connect(SESSION);
 			final FrameHandler errorFrameHandler = subscribeToErrors();
@@ -144,7 +146,8 @@ class BlockWebSocketTest extends WebSocketTest {
 					+ "/" + topicId + DESTINATION_SUFFIX;
 		}
 
-		private byte[] getRequestPayload(final String type, final int sequenceId) {
+		private byte[] getRequestPayload(final String type,
+				final int sequenceId) {
 			final String json = """
 					{
 						"type": "%s",
@@ -153,6 +156,67 @@ class BlockWebSocketTest extends WebSocketTest {
 					""".formatted(type, sequenceId);
 
 			return json.getBytes(StandardCharsets.UTF_8);
+		}
+	}
+
+	@Nested
+	class Delete {
+
+		private static final TestBlock BLOCK = TestBlock.SPORER_PROJECT_BLOCKERS_FIRST;
+
+		@Test
+		void success() throws Exception {
+			final byte[] payload = getRequestPayload();
+
+			connect(SESSION);
+			send(getDestination(MEETING.getId(), TOPIC.getId(), BLOCK.getId()),
+					payload);
+
+			verify(blockService, timeout(WAIT_TIMEOUT.toMillis())).delete(
+					PRINCIPAL, MEETING.getId(), TOPIC.getId(), BLOCK.getId());
+		}
+
+		@Test
+		void notFound() throws Exception {
+			final byte[] payload = getRequestPayload();
+
+			doThrow(new MissingEntityException()).when(blockService)
+					.delete(any(), anyLong(), anyLong(), anyLong());
+
+			connect(SESSION);
+			final FrameHandler errorFrameHandler = subscribeToErrors();
+			send(getDestination(MEETING.getId(), TOPIC.getId(), BLOCK.getId()),
+					payload);
+
+			assertThat(errorFrameHandler.getResponse())
+					.succeedsWithin(WAIT_TIMEOUT.toSeconds(), TimeUnit.SECONDS)
+					.isNotNull()
+					.satisfies(
+							message -> assertThat(message).startsWith("Error"));
+		}
+
+		@Test
+		void unauthenticated() throws Exception {
+			final byte[] payload = getRequestPayload();
+
+			connect();
+			send(getDestination(MEETING.getId(), TOPIC.getId(), BLOCK.getId()),
+					payload);
+
+			assertThat(stompSessionHandler.getError())
+					.succeedsWithin(WAIT_TIMEOUT.toSeconds(), TimeUnit.SECONDS)
+					.isInstanceOf(ConnectionLostException.class);
+		}
+
+		private byte[] getRequestPayload() {
+			return new byte[0];
+		}
+
+		private String getDestination(final long meetingId, final long topicId,
+				final long blockId) {
+			return DESTINATION_PREFIX + "/" + meetingId + DESTINATION_TOPIC
+					+ "/" + topicId + DESTINATION_SUFFIX + "/" + blockId
+					+ "/delete";
 		}
 	}
 

@@ -72,4 +72,27 @@ public class BlockService {
 
 		return created;
 	}
+
+	public void delete(final Principal principal, final long meetingId,
+			final long topicId, final long blockId) {
+		Objects.requireNonNull(principal);
+
+		final BlockInfo blockInfo = getById(principal, meetingId, topicId,
+				blockId);
+		blockStorage.delete(blockInfo);
+
+		final List<BlockInfo> existingBlocks = blockStorage
+				.findAllByTopicId(topicId);
+		// TODO: move logic into action?
+		final List<BlockInfo> toUpdateTopics = existingBlocks.stream()
+				.filter(t -> t.getSequenceId() > blockInfo.getSequenceId())
+				.toList();
+		toUpdateTopics.forEach(BlockInfo::moveUp);
+		blockStorage.updateAll(toUpdateTopics);
+		// TODO: publish move action/event!!
+
+		final var event = new BlockEvent(topicId, blockId,
+				new BlockAction.Delete());
+		blockPublisher.publish(meetingId, event);
+	}
 }

@@ -22,4 +22,8 @@ public sealed interface BlockAction {
 			this.sequenceId = sequenceId;
 		}
 	}
+
+	@Getter
+	final class Delete implements BlockAction {
+	}
 }
