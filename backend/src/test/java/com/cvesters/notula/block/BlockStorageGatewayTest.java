@@ -249,4 +249,39 @@ class BlockStorageGatewayTest {
 					.isInstanceOf(NullPointerException.class);
 		}
 	}
+
+	@Nested
+	class Delete {
+
+		private static final TestBlock BLOCK = TestBlock.SPORER_PROJECT_BLOCKERS_FIRST;
+
+		@Test
+		void success() {
+			final BlockDao found = mock();
+			when(blockRepository.findByTopicIdAndId(BLOCK.getTopic().getId(),
+					BLOCK.getId())).thenReturn(Optional.of(found));
+
+			final BlockInfo update = BLOCK.info();
+			gateway.delete(update);
+
+			final InOrder inOrder = inOrder(blockRepository);
+			inOrder.verify(blockRepository).delete(found);
+		}
+
+		@Test
+		void notFound() {
+			when(blockRepository.findByTopicIdAndId(BLOCK.getTopic().getId(),
+					BLOCK.getId())).thenReturn(Optional.empty());
+
+			final BlockInfo update = BLOCK.info();
+			assertThatThrownBy(() -> gateway.delete(update))
+					.isInstanceOf(MissingEntityException.class);
+		}
+
+		@Test
+		void blockNull() {
+			assertThatThrownBy(() -> gateway.delete(null))
+					.isInstanceOf(NullPointerException.class);
+		}
+	}
 }

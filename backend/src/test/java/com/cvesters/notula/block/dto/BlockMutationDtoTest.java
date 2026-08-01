@@ -32,6 +32,15 @@ class BlockMutationDtoTest {
 		}
 
 		@Test
+		void delete() {
+			final var action = new BlockAction.Delete();
+
+			final var dto = BlockMutationDto.of(action);
+
+			assertThat(dto).isInstanceOf(BlockMutationDto.Delete.class);
+		}
+
+		@Test
 		void actionNull() {
 			assertThatThrownBy(() -> BlockMutationDto.of(null))
 					.isInstanceOf(NullPointerException.class);

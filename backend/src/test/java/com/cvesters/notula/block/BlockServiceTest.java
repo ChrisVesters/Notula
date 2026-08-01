@@ -310,4 +310,170 @@ class BlockServiceTest {
 		}
 
 	}
+
+	@Nested
+	class Delete {
+
+		private static final TestSession SESSION = TestSession.EDUARDO_CHRISTIANSEN_SPORER;
+		private static final TestBlock BLOCK = TestBlock.SPORER_PROJECT_BLOCKERS_FIRST;
+		private static final TestTopic TOPIC = BLOCK.getTopic();
+		private static final TestMeeting MEETING = TOPIC.getMeeting();
+
+		@Test
+		void onlyBlock() {
+			final Principal principal = SESSION.principal();
+			final long blockId = BLOCK.getId();
+			final long topicId = TOPIC.getId();
+			final long meetingId = MEETING.getId();
+
+			final TopicInfo topicInfo = TOPIC.info();
+			when(topicService.getById(principal, meetingId, topicId))
+					.thenReturn(topicInfo);
+
+			final BlockInfo blockInfo = BLOCK.info();
+			when(blockStorageGateway.find(topicId, blockId))
+					.thenReturn(Optional.of(blockInfo));
+
+			when(blockStorageGateway.findAllByTopicId(topicId))
+					.thenReturn(List.of(blockInfo));
+
+			blockService.delete(principal, meetingId, topicId, blockId);
+
+			verify(blockStorageGateway).delete(blockInfo);
+			verify(blockPublisher).publish(eq(meetingId), argThat(event -> {
+				assertThat(event.topicId()).isEqualTo(topicId);
+				assertThat(event.blockId()).isEqualTo(blockId);
+				assertThat(event.action())
+						.isInstanceOf(BlockAction.Delete.class);
+				return true;
+			}));
+
+			verify(blockStorageGateway).updateAll(Collections.emptyList());
+		}
+
+		@Test
+		void firstBlock() {
+			final TestTopic topic = TestTopic.SPORER_PROJECT_BLOCKERS;
+			final TestMeeting meeting = topic.getMeeting();
+			final List<TestBlock> blocks = TestBlock.ofTopic(topic);
+			final TestBlock deleted = blocks.getFirst();
+
+			final Principal principal = SESSION.principal();
+			final long blockId = deleted.getId();
+			final long topicId = topic.getId();
+			final long meetingId = meeting.getId();
+
+			final TopicInfo topicInfo = topic.info();
+			when(topicService.getById(principal, meetingId, topicId))
+					.thenReturn(topicInfo);
+
+			final BlockInfo blockInfo = deleted.info();
+			when(blockStorageGateway.find(topicId, blockId))
+					.thenReturn(Optional.of(blockInfo));
+
+			when(blockStorageGateway.findAllByTopicId(topicId))
+					.thenReturn(List.of(blockInfo));
+			final List<BlockInfo> existingBlocks = blocks.stream()
+					.map(TestBlock::info)
+					.toList();
+			when(blockStorageGateway.findAllByTopicId(topicId))
+					.thenReturn(existingBlocks);
+
+			blockService.delete(principal, meetingId, topicId, blockId);
+
+			verify(blockStorageGateway).delete(blockInfo);
+			verify(blockPublisher).publish(eq(meetingId), argThat(event -> {
+				assertThat(event.topicId()).isEqualTo(topicId);
+				assertThat(event.blockId()).isEqualTo(blockId);
+				assertThat(event.action())
+						.isInstanceOf(BlockAction.Delete.class);
+				return true;
+			}));
+
+			// TODO: should have been moved up!
+			final List<BlockInfo> toUpdateBlocks = existingBlocks.stream()
+					.filter(t -> t.getId() != topicId)
+					.toList();
+			verify(blockStorageGateway).updateAll(toUpdateBlocks);
+		}
+
+		@Test
+		void lastBlock() {
+			final TestTopic topic = TestTopic.SPORER_PROJECT_BLOCKERS;
+			final TestMeeting meeting = topic.getMeeting();
+			final List<TestBlock> blocks = TestBlock.ofTopic(topic);
+			final TestBlock deleted = blocks.getLast();
+
+			final Principal principal = SESSION.principal();
+			final long blockId = deleted.getId();
+			final long topicId = topic.getId();
+			final long meetingId = meeting.getId();
+
+			final TopicInfo topicInfo = topic.info();
+			when(topicService.getById(principal, meetingId, topicId))
+					.thenReturn(topicInfo);
+
+			final BlockInfo blockInfo = deleted.info();
+			when(blockStorageGateway.find(topicId, blockId))
+					.thenReturn(Optional.of(blockInfo));
+
+			when(blockStorageGateway.findAllByTopicId(topicId))
+					.thenReturn(List.of(blockInfo));
+			final List<BlockInfo> existingBlocks = blocks.stream()
+					.map(TestBlock::info)
+					.toList();
+			when(blockStorageGateway.findAllByTopicId(topicId))
+					.thenReturn(existingBlocks);
+
+			blockService.delete(principal, meetingId, topicId, blockId);
+
+			verify(blockStorageGateway).delete(blockInfo);
+			verify(blockPublisher).publish(eq(meetingId), argThat(event -> {
+				assertThat(event.topicId()).isEqualTo(topicId);
+				assertThat(event.action())
+						.isInstanceOf(BlockAction.Delete.class);
+				return true;
+			}));
+
+			verify(blockStorageGateway).updateAll(Collections.emptyList());
+		}
+
+		@Test
+		void notFound() {
+			final TestTopic topic = TestTopic.SPORER_PROJECT_BLOCKERS;
+			final TestMeeting meeting = topic.getMeeting();
+			final List<TestBlock> blocks = TestBlock.ofTopic(topic);
+			final TestBlock deleted = blocks.getLast();
+
+			final Principal principal = SESSION.principal();
+			final long blockId = deleted.getId();
+			final long topicId = topic.getId();
+			final long meetingId = meeting.getId();
+
+			final TopicInfo topicInfo = topic.info();
+			when(topicService.getById(principal, meetingId, topicId))
+					.thenReturn(topicInfo);
+
+			when(blockStorageGateway.find(topicId, blockId))
+					.thenReturn(Optional.empty());
+
+			assertThatThrownBy(() -> blockService.delete(principal, meetingId,
+					topicId, blockId))
+							.isInstanceOf(MissingEntityException.class);
+
+			verify(blockStorageGateway, never()).delete(any());
+			verifyNoInteractions(blockPublisher);
+		}
+
+		@Test
+		void principalNull() {
+			final long meetingId = MEETING.getId();
+			final long topicId = TOPIC.getId();
+			final long blockId = BLOCK.getId();
+
+			assertThatThrownBy(() -> blockService.delete(null, meetingId,
+					topicId, blockId)).isInstanceOf(NullPointerException.class);
+		}
+	}
+
 }

@@ -32,4 +32,13 @@ public class BlockWebSocket extends BaseController {
 		final BlockAction.Create action = dto.toBdo();
 		blockService.create(principal, meetingId, topicId, action);
 	}
+
+	@MessageMapping(BASE_ENDPOINT + "/{blockId}/delete")
+	public void delete(@DestinationVariable final long meetingId,
+			@DestinationVariable final long topicId,
+			@DestinationVariable final long blockId) {
+		final Principal principal = getPrincipal();
+
+		blockService.delete(principal, meetingId, topicId, blockId);
+	}
 }

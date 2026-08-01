@@ -40,4 +40,15 @@ class BlockActionTest {
 					.isInstanceOf(IllegalArgumentException.class);
 		}
 	}
+
+	@Nested
+	class Delete {
+
+		@Test
+		void success() {
+			final var action = new BlockAction.Delete();
+
+			assertThat(action).isNotNull();
+		}
+	}
 }
