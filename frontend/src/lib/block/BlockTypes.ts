@@ -1,8 +1,8 @@
 export const BlockType = {
-    TEXT: "TEXT"
+	TEXT: "TEXT"
 } as const;
 
-export type BlockType = typeof BlockType[keyof typeof BlockType];
+export type BlockType = (typeof BlockType)[keyof typeof BlockType];
 
 export type BlockInfo = {
 	id: number;
@@ -23,8 +23,14 @@ export type BlockEvent = {
 	mutation: BlockMutation;
 };
 
-export type BlockMutation = {
+export type BlockMutation = BlockMutationCreate | BlockMutationDelete;
+
+export type BlockMutationCreate = {
 	action: "CREATE";
 	type: BlockType;
 	sequenceId: number;
+};
+
+export type BlockMutationDelete = {
+	action: "DELETE";
 };

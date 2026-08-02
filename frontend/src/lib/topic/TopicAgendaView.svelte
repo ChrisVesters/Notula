@@ -1,7 +1,8 @@
 <script lang="ts">
+	import { t } from "$lib/assets/translations";
+	
 	import IconDelete from "$lib/assets/icons/IconDelete.svelte";
 	import IconPlus from "$lib/assets/icons/IconPlus.svelte";
-	import { t } from "$lib/assets/translations";
 
 	import type { TopicDetails } from "$lib/details/DetailTypes";
 	import type { UpdateAction } from "$lib/editor/ActionTypes";

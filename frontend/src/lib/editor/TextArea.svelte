@@ -43,8 +43,6 @@
 		const end = el.selectionEnd ?? start;
 		const length = end - start;
 
-		console.log(e.inputType, e.data, start, length);
-
 		// TODO: https://w3c.github.io/input-events/#interface-InputEvent-Attributes
 		// TODO: Extract common logic, but must be based on element.
 		// TODO: insertLineBreak not allowed for HtmlInputElement
