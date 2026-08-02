@@ -33,6 +33,7 @@
 			"lombok",
 			"com",
 			""
-		]
+		],
+		"files.insertFinalNewline": true
 	}
 }
