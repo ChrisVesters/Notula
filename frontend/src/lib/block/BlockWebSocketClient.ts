@@ -17,6 +17,19 @@ export default class BlockWebSocketClient {
 		);
 	}
 
+	public static delete(
+		meetingId: number,
+		topicId: number,
+		blockId: number
+	): void {
+		const client: WebSocketClient = Session.getWebSocketClient();
+
+		client.send(
+			this.getDestination(meetingId, topicId, blockId) + "/delete",
+			""
+		);
+	}
+
 	private static getDestination(
 		meetingId: number,
 		topicId: number,

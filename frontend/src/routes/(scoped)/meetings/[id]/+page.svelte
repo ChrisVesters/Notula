@@ -104,6 +104,18 @@
 				} else {
 					console.error("Unhandled block type:", mutation.type);
 				}
+			} else if (mutation.action === "DELETE") {
+				const topic = meeting?.topics.find(t => t.id === event.topicId);
+				// TODO: what if topic does not exist? Out of sync?
+				if (!topic) {
+					console.error("Topic does not exist");
+					return;
+				}
+
+				const index = topic.blocks.findIndex(b => b.id === event.blockId);
+				if (index !== undefined && index >= 0) {
+					topic.blocks.splice(index, 1);
+				}
 			}
 		}
 	};
