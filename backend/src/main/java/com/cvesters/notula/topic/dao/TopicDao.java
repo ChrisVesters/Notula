@@ -1,6 +1,8 @@
 package com.cvesters.notula.topic.dao;
 
+import java.time.Duration;
 import java.util.Objects;
+import java.util.Optional;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
@@ -40,6 +42,9 @@ public class TopicDao {
 	@Column(nullable = false)
 	private String description;
 
+	@Column(nullable = true)
+	private Integer duration;
+
 	public TopicDao(final TopicInfo topic) {
 		Objects.requireNonNull(topic);
 
@@ -48,6 +53,10 @@ public class TopicDao {
 		this.sequenceId = topic.getSequenceId();
 		this.name = topic.getName();
 		this.description = topic.getDescription();
+		this.duration = topic.getDuration()
+				.map(Duration::toMinutes)
+				.map(Math::toIntExact)
+				.orElse(null);
 	}
 
 	public void update(final TopicInfo bdo) {
@@ -56,12 +65,20 @@ public class TopicDao {
 		this.sequenceId = bdo.getSequenceId();
 		this.name = bdo.getName();
 		this.description = bdo.getDescription();
+		this.duration = bdo.getDuration()
+				.map(Duration::toMinutes)
+				.map(Math::toIntExact)
+				.orElse(null);
 	}
 
 	public TopicInfo toBdo() {
 		Validate.validState(id != null);
 
+		final var d = Optional.ofNullable(duration)
+				.map(Duration::ofMinutes)
+				.orElse(null);
+
 		return new TopicInfo(id, organisationId, meetingId, sequenceId, name,
-				description);
+				description, d);
 	}
 }

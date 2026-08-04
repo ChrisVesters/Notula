@@ -287,6 +287,30 @@ class SessionServiceTest {
 			assertThatThrownBy(
 					() -> sessionService.update(PRINCIPAL, sessionId, UPDATE))
 							.isInstanceOf(MissingEntityException.class);
+
+			verify(sessionStorageGateway, never()).update(any());
+			verifyNoInteractions(accessTokenService);
+		}
+
+		@Test
+		void sessionNotActive() {
+			final long sessionId = SESSION.getId();
+			final SessionInfo bdo = mock();
+			when(bdo.getUserId()).thenReturn(SESSION.getUser().getId());
+			when(bdo.isActive()).thenReturn(false);
+
+			when(organisationUserService.getAllForUser(PRINCIPAL))
+					.thenReturn(List.of(ORGANISATION_USER.info()));
+
+			when(sessionStorageGateway.findById(sessionId))
+					.thenReturn(Optional.of(bdo));
+
+			assertThatThrownBy(
+					() -> sessionService.update(PRINCIPAL, sessionId, UPDATE))
+							.isInstanceOf(MissingEntityException.class);
+
+			verify(sessionStorageGateway, never()).update(any());
+			verifyNoInteractions(accessTokenService);
 		}
 
 		@Test
@@ -304,20 +328,40 @@ class SessionServiceTest {
 			assertThatThrownBy(
 					() -> sessionService.update(PRINCIPAL, sessionId, UPDATE))
 							.isInstanceOf(MissingEntityException.class);
+
+			verify(sessionStorageGateway, never()).update(any());
+			verifyNoInteractions(accessTokenService);
+		}
+
+		@Test
+		void organisationUsersNotFound() {
+			final long sessionId = SESSION.getId();
+			when(organisationUserService.getAllForUser(PRINCIPAL))
+					.thenReturn(Collections.emptyList());
+
+			assertThatThrownBy(
+					() -> sessionService.update(PRINCIPAL, sessionId, UPDATE))
+							.isInstanceOf(MissingEntityException.class);
+
+			verifyNoInteractions(sessionStorageGateway);
+			verifyNoInteractions(accessTokenService);
 		}
 
 		@Test
 		void organisationNotFound() {
 			final long sessionId = SESSION.getId();
 			when(organisationUserService.getAllForUser(PRINCIPAL))
-					.thenReturn(Collections.emptyList());
+					.thenReturn(List.of(ORGANISATION_USER.info()));
 
-			when(sessionStorageGateway.findById(SESSION.getId()))
-					.thenReturn(Optional.of(SESSION.info()));
+			final SessionUpdate update = new SessionUpdate(
+					ORGANISATION.getId() + 1);
 
 			assertThatThrownBy(
-					() -> sessionService.update(PRINCIPAL, sessionId, UPDATE))
+					() -> sessionService.update(PRINCIPAL, sessionId, update))
 							.isInstanceOf(MissingEntityException.class);
+
+			verifyNoInteractions(sessionStorageGateway);
+			verifyNoInteractions(accessTokenService);
 		}
 
 		@Test

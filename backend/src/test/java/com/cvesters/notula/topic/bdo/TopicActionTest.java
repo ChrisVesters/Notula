@@ -7,10 +7,13 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 
+import java.time.Duration;
+
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
+import org.junit.jupiter.params.provider.ValueSource;
 
 class TopicActionTest {
 
@@ -102,6 +105,58 @@ class TopicActionTest {
 			verify(topic).getDescription();
 			verify(topic).setDescription(expected);
 			verifyNoMoreInteractions(topic);
+		}
+	}
+
+	@Nested
+	class UpdateDuration {
+
+		@Test
+		void success() {
+			final var duration = Duration.ofMinutes(45);
+			final var action = new TopicAction.UpdateDuration(duration);
+
+			assertThat(action.getDuration()).isEqualTo(duration);
+
+			final TopicInfo topic = mock();
+
+			action.apply(topic);
+
+			verify(topic).setDuration(duration);
+			verifyNoMoreInteractions(topic);
+		}
+
+		@Test
+		void durationNull() {
+			final var action = new TopicAction.UpdateDuration(null);
+
+			assertThat(action.getDuration()).isNull();
+
+			final TopicInfo topic = mock();
+
+			action.apply(topic);
+
+			verify(topic).setDuration(null);
+			verifyNoMoreInteractions(topic);
+		}
+
+		@ParameterizedTest
+		@ValueSource(ints = { 0, -1 })
+		void durationInvalid(final int minutes) {
+			final var duration = Duration.ofMinutes(minutes);
+
+			assertThatThrownBy(() -> new TopicAction.UpdateDuration(duration))
+					.isInstanceOf(IllegalArgumentException.class);
+		}
+
+		@Test
+		void topicNull() {
+			final var duration = Duration.ofMinutes(45);
+
+			final var action = new TopicAction.UpdateDuration(duration);
+
+			assertThatThrownBy(() -> action.apply(null))
+					.isInstanceOf(NullPointerException.class);
 		}
 	}
 

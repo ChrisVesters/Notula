@@ -1,5 +1,6 @@
 package com.cvesters.notula.details.dto;
 
+import java.time.Duration;
 import java.util.List;
 import java.util.Objects;
 
@@ -14,6 +15,7 @@ public class TopicDetailsDto {
 	private final int sequenceId;
 	private final String name;
 	private final String description;
+	private final Integer duration;
 
 	private final List<BlockDetailsDto> blocks;
 
@@ -24,6 +26,10 @@ public class TopicDetailsDto {
 		this.sequenceId = details.getSequenceId();
 		this.name = details.getName();
 		this.description = details.getDescription();
+		this.duration = details.getDuration()
+				.map(Duration::toMinutes)
+				.map(Math::toIntExact)
+				.orElse(null);
 		this.blocks = details.getBlocks()
 				.stream()
 				.map(BlockDetailsDto::new)

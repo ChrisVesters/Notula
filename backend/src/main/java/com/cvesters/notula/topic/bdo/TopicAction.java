@@ -1,5 +1,6 @@
 package com.cvesters.notula.topic.bdo;
 
+import java.time.Duration;
 import java.util.Objects;
 
 import org.apache.commons.lang3.Validate;
@@ -49,6 +50,25 @@ public sealed interface TopicAction {
 				final String value) {
 			super(TopicInfo::getDescription, TopicInfo::setDescription,
 					position, length, value);
+		}
+	}
+
+	@Getter
+	final class UpdateDuration implements TopicAction.Update {
+
+		private final Duration duration;
+
+		public UpdateDuration(final Duration duration) {
+			Validate.isTrue(duration == null || duration.isPositive());
+
+			this.duration = duration;
+		}
+
+		@Override
+		public void apply(final TopicInfo object) {
+			Objects.requireNonNull(object);
+
+			object.setDuration(duration);
 		}
 	}
 

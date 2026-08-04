@@ -120,7 +120,7 @@ class TopicServiceTest {
 
 			final var created = new TopicInfo(TOPIC_ID, ORGANISATION.getId(),
 					MEETING.getId(), TOPIC_SEQUENCE_ID, TOPIC_NAME,
-					TOPIC_DESCRIPTION);
+					TOPIC_DESCRIPTION, null);
 
 			when(topicStorageGateway.create(argThat(t -> {
 				assertThatThrownBy(t::getId)
@@ -131,6 +131,7 @@ class TopicServiceTest {
 				assertThat(t.getSequenceId()).isEqualTo(TOPIC_SEQUENCE_ID);
 				assertThat(t.getName()).isEqualTo(TOPIC_NAME);
 				assertThat(t.getDescription()).isEmpty();
+				assertThat(t.getDuration()).isEmpty();
 				return true;
 			}))).thenReturn(created);
 
@@ -168,7 +169,8 @@ class TopicServiceTest {
 
 			final int sequenceId = existingTopics.size();
 			final var created = new TopicInfo(TOPIC_ID, ORGANISATION.getId(),
-					MEETING.getId(), sequenceId, TOPIC_NAME, TOPIC_DESCRIPTION);
+					MEETING.getId(), sequenceId, TOPIC_NAME,
+					TOPIC_DESCRIPTION, null);
 
 			when(topicStorageGateway.create(argThat(t -> {
 				assertThatThrownBy(t::getId)
@@ -179,6 +181,7 @@ class TopicServiceTest {
 				assertThat(t.getSequenceId()).isEqualTo(sequenceId);
 				assertThat(t.getName()).isEqualTo(TOPIC_NAME);
 				assertThat(t.getDescription()).isEmpty();
+				assertThat(t.getDuration()).isEmpty();
 				return true;
 			}))).thenReturn(created);
 
@@ -220,7 +223,8 @@ class TopicServiceTest {
 
 			final int sequenceId = 0;
 			final var created = new TopicInfo(TOPIC_ID, ORGANISATION.getId(),
-					MEETING.getId(), sequenceId, TOPIC_NAME, TOPIC_DESCRIPTION);
+					MEETING.getId(), sequenceId, TOPIC_NAME,
+					TOPIC_DESCRIPTION, null);
 
 			when(topicStorageGateway.create(argThat(t -> {
 				assertThatThrownBy(t::getId)
@@ -231,6 +235,7 @@ class TopicServiceTest {
 				assertThat(t.getSequenceId()).isZero();
 				assertThat(t.getName()).isEqualTo(TOPIC_NAME);
 				assertThat(t.getDescription()).isEmpty();
+				assertThat(t.getDuration()).isEmpty();
 				return true;
 			}))).thenReturn(created);
 

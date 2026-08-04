@@ -4,6 +4,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.lang.reflect.Field;
+import java.time.Duration;
 
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -33,6 +34,7 @@ class TopicDaoTest {
 			assertThat(dao.getSequenceId()).isEqualTo(TOPIC.getSequenceId());
 			assertThat(dao.getName()).isEqualTo(TOPIC.getName());
 			assertThat(dao.getDescription()).isEqualTo(TOPIC.getDescription());
+			assertThat(dao.getDuration()).isEqualTo(TOPIC.getDuration());
 		}
 
 		@Test
@@ -52,16 +54,18 @@ class TopicDaoTest {
 			final int updatedSequenceId = 5;
 			final String updatedName = "Updated name";
 			final String updatedDescription = "Updated description";
+			final var updatedDuration = Duration.ofMinutes(60);
 
 			final var updated = new TopicInfo(TOPIC.getId(),
 					ORGANISATION.getId(), MEETING.getId(), updatedSequenceId,
-					updatedName, updatedDescription);
+					updatedName, updatedDescription, updatedDuration);
 
 			dao.update(updated);
 
 			assertThat(dao.getSequenceId()).isEqualTo(updatedSequenceId);
 			assertThat(dao.getName()).isEqualTo(updatedName);
 			assertThat(dao.getDescription()).isEqualTo(updatedDescription);
+			assertThat(dao.getDuration()).isEqualTo(60);
 		}
 
 		@Test
@@ -90,6 +94,10 @@ class TopicDaoTest {
 			assertThat(bdo.getSequenceId()).isEqualTo(TOPIC.getSequenceId());
 			assertThat(bdo.getName()).isEqualTo(TOPIC.getName());
 			assertThat(bdo.getDescription()).isEqualTo(TOPIC.getDescription());
+			assertThat(bdo.getDuration()).hasValueSatisfying(duration -> {
+				assertThat(duration.toMinutes())
+						.isEqualTo(TOPIC.getDuration().longValue());
+			});
 		}
 
 		@Test

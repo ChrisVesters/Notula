@@ -50,4 +50,16 @@ public final class TopicActionMatcher {
 			assertThat(actual.getValue()).isEqualTo(expected.getValue());
 		}
 	}
+
+	public static class UpdateDuration
+			extends Matcher<TopicAction.UpdateDuration> {
+
+		public UpdateDuration(final TopicAction.UpdateDuration expected) {
+			super(expected, TopicAction.UpdateDuration.class);
+		}
+
+		public void assertEquals(final TopicAction.UpdateDuration actual) {
+			assertThat(actual.getDuration()).isEqualTo(expected.getDuration());
+		}
+	}
 }

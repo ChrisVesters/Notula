@@ -3,8 +3,12 @@ package com.cvesters.notula.topic.bdo;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
+import java.time.Duration;
+
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 
 import com.cvesters.notula.meeting.TestMeeting;
 import com.cvesters.notula.organisation.TestOrganisation;
@@ -33,23 +37,29 @@ class TopicInfoTest {
 			assertThat(result.getSequenceId()).isEqualTo(TOPIC.getSequenceId());
 			assertThat(result.getName()).isEqualTo(TOPIC.getName());
 			assertThat(result.getDescription()).isEmpty();
+			assertThat(result.getDuration()).isEmpty();
 		}
 
 		@Test
 		void withId() {
-			final var result = new TopicInfo(TOPIC.getId(),
-					ORGANISATION.getId(), MEETING.getId(),
-					TOPIC.getSequenceId(), TOPIC.getName(),
-					TOPIC.getDescription());
+			final long topicId = TOPIC.getId();
+			final long orgId = ORGANISATION.getId();
+			final long meetingId = MEETING.getId();
+			final int sequenceId = TOPIC.getSequenceId();
+			final String name = TOPIC.getName();
+			final String description = TOPIC.getDescription();
+			final var duration = Duration.ofMinutes(TOPIC.getDuration());
 
-			assertThat(result.getId()).isEqualTo(TOPIC.getId());
-			assertThat(result.getOrganisationId())
-					.isEqualTo(ORGANISATION.getId());
-			assertThat(result.getMeetingId()).isEqualTo(MEETING.getId());
-			assertThat(result.getSequenceId()).isEqualTo(TOPIC.getSequenceId());
-			assertThat(result.getName()).isEqualTo(TOPIC.getName());
-			assertThat(result.getDescription())
-					.isEqualTo(TOPIC.getDescription());
+			final var result = new TopicInfo(topicId, orgId, meetingId,
+					sequenceId, name, description, duration);
+
+			assertThat(result.getId()).isEqualTo(topicId);
+			assertThat(result.getOrganisationId()).isEqualTo(orgId);
+			assertThat(result.getMeetingId()).isEqualTo(meetingId);
+			assertThat(result.getSequenceId()).isEqualTo(sequenceId);
+			assertThat(result.getName()).isEqualTo(name);
+			assertThat(result.getDescription()).isEqualTo(description);
+			assertThat(result.getDuration()).hasValue(duration);
 		}
 
 		@Test
@@ -60,9 +70,10 @@ class TopicInfoTest {
 			final int sequenceId = -1;
 			final String name = TOPIC.getName();
 			final String description = TOPIC.getDescription();
+			final var duration = Duration.ofMinutes(TOPIC.getDuration());
 
 			assertThatThrownBy(() -> new TopicInfo(id, organisationId,
-					meetingId, sequenceId, name, description))
+					meetingId, sequenceId, name, description, duration))
 							.isInstanceOf(IllegalArgumentException.class);
 		}
 
@@ -74,9 +85,10 @@ class TopicInfoTest {
 			final int sequenceId = TOPIC.getSequenceId();
 			final String name = null;
 			final String description = TOPIC.getDescription();
+			final var duration = Duration.ofMinutes(TOPIC.getDuration());
 
 			assertThatThrownBy(() -> new TopicInfo(id, organisationId,
-					meetingId, sequenceId, name, description))
+					meetingId, sequenceId, name, description, duration))
 							.isInstanceOf(NullPointerException.class);
 		}
 
@@ -88,10 +100,27 @@ class TopicInfoTest {
 			final int sequenceId = TOPIC.getSequenceId();
 			final String name = TOPIC.getName();
 			final String description = null;
+			final var duration = Duration.ofMinutes(TOPIC.getDuration());
 
 			assertThatThrownBy(() -> new TopicInfo(id, organisationId,
-					meetingId, sequenceId, name, description))
+					meetingId, sequenceId, name, description, duration))
 							.isInstanceOf(NullPointerException.class);
+		}
+
+		@ParameterizedTest
+		@ValueSource(ints = { 0, -1 })
+		void durationInvalid(final int minutes) {
+			final long id = TOPIC.getId();
+			final long organisationId = ORGANISATION.getId();
+			final long meetingId = MEETING.getId();
+			final int sequenceId = TOPIC.getSequenceId();
+			final String name = TOPIC.getName();
+			final String description = TOPIC.getDescription();
+			final var duration = Duration.ofMinutes(minutes);
+
+			assertThatThrownBy(() -> new TopicInfo(id, organisationId,
+					meetingId, sequenceId, name, description, duration))
+							.isInstanceOf(IllegalArgumentException.class);
 		}
 	}
 
@@ -135,9 +164,15 @@ class TopicInfoTest {
 
 		@Test
 		void overflow() {
-			final var topicInfo = new TopicInfo(TOPIC.getId(),
-					ORGANISATION.getId(), MEETING.getId(), Integer.MAX_VALUE,
-					TOPIC.getName(), TOPIC.getDescription());
+			final long id = TOPIC.getId();
+			final long organisationId = ORGANISATION.getId();
+			final long meetingId = MEETING.getId();
+			final String name = TOPIC.getName();
+			final String description = TOPIC.getDescription();
+			final var duration = Duration.ofMinutes(TOPIC.getDuration());
+
+			final var topicInfo = new TopicInfo(id, organisationId, meetingId,
+					Integer.MAX_VALUE, name, description, duration);
 
 			assertThatThrownBy(topicInfo::moveDown)
 					.isInstanceOf(IllegalStateException.class);
@@ -183,6 +218,37 @@ class TopicInfoTest {
 		void descriptionNull() {
 			assertThatThrownBy(() -> topicInfo.setDescription(null))
 					.isInstanceOf(NullPointerException.class);
+		}
+	}
+
+	@Nested
+	class SetDuration {
+
+		private TopicInfo topicInfo = TOPIC.info();
+
+		@Test
+		void success() {
+			final var duration = Duration.ofMinutes(45);
+
+			topicInfo.setDuration(duration);
+
+			assertThat(topicInfo.getDuration()).hasValue(duration);
+		}
+
+		@Test
+		void durationNull() {
+			topicInfo.setDuration(null);
+
+			assertThat(topicInfo.getDuration()).isEmpty();
+		}
+
+		@ParameterizedTest
+		@ValueSource(ints = { 0, -1 })
+		void durationInvalid(final int minutes) {
+			final var duration = Duration.ofMinutes(minutes);
+
+			assertThatThrownBy(() -> topicInfo.setDuration(duration))
+					.isInstanceOf(IllegalArgumentException.class);
 		}
 	}
 }

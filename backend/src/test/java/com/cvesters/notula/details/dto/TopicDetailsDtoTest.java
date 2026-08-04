@@ -41,6 +41,7 @@ class TopicDetailsDtoTest {
 			assertThat(dto.getName()).isEqualTo(details.getName());
 			assertThat(dto.getDescription())
 					.isEqualTo(details.getDescription());
+			assertThat(dto.getDuration()).isEqualTo(topic.getDuration());
 			assertThat(dto.getBlocks()).hasSize(blocks.size());
 			blocks.forEach(block -> {
 				assertThat(dto.getBlocks()).anySatisfy(b -> {

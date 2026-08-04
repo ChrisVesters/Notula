@@ -2,6 +2,8 @@ package com.cvesters.notula.topic.dto;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import java.time.Duration;
+
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 
@@ -54,6 +56,31 @@ class TopicActionDtoTest {
 					"Updated");
 			final var matcher = new TopicActionMatcher.UpdateDescription(
 					expected);
+			assertThat(bdo).is(matcher.equal());
+		}
+	}
+
+	@Nested
+	class UpdateDuration {
+
+		@Test
+		void toBdo() {
+			final var dto = new TopicActionDto.Update.Duration(45);
+			final TopicAction.Update bdo = dto.toBdo();
+
+			final var duration = Duration.ofMinutes(45);
+			final var expected = new TopicAction.UpdateDuration(duration);
+			final var matcher = new TopicActionMatcher.UpdateDuration(expected);
+			assertThat(bdo).is(matcher.equal());
+		}
+
+		@Test
+		void toBdoWithoutDuration() {
+			final var dto = new TopicActionDto.Update.Duration(null);
+			final TopicAction.Update bdo = dto.toBdo();
+
+			final var expected = new TopicAction.UpdateDuration(null);
+			final var matcher = new TopicActionMatcher.UpdateDuration(expected);
 			assertThat(bdo).is(matcher.equal());
 		}
 	}

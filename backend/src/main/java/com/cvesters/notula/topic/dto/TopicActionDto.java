@@ -1,6 +1,9 @@
 package com.cvesters.notula.topic.dto;
 
+import java.util.Optional;
+
 import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Positive;
 import jakarta.validation.constraints.PositiveOrZero;
 
 import com.cvesters.notula.topic.bdo.TopicAction;
@@ -23,7 +26,8 @@ public final class TopicActionDto {
 
 	@JsonTypeInfo(use = JsonTypeInfo.Id.NAME, include = JsonTypeInfo.As.PROPERTY, property = "action")
 	@JsonSubTypes({ @Type(value = Update.Name.class, name = "UPDATE_NAME"),
-			@Type(value = Update.Description.class, name = "UPDATE_DESCRIPTION") })
+			@Type(value = Update.Description.class, name = "UPDATE_DESCRIPTION"),
+			@Type(value = Update.Duration.class, name = "UPDATE_DURATION") })
 	public sealed interface Update {
 
 		TopicAction.Update toBdo();
@@ -44,6 +48,18 @@ public final class TopicActionDto {
 			public TopicAction.Update toBdo() {
 				return new TopicAction.UpdateDescription(position, length,
 						value);
+			}
+		}
+
+		public static record Duration(@Positive Integer duration)
+				implements Update {
+
+			public TopicAction.Update toBdo() {
+				final var v = Optional.ofNullable(duration)
+						.map(java.time.Duration::ofMinutes)
+						.orElse(null);
+
+				return new TopicAction.UpdateDuration(v);
 			}
 		}
 
