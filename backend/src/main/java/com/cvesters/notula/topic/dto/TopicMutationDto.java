@@ -1,6 +1,8 @@
 package com.cvesters.notula.topic.dto;
 
+import java.time.Duration;
 import java.util.Objects;
+import java.util.Optional;
 
 import lombok.Getter;
 
@@ -13,6 +15,7 @@ import com.fasterxml.jackson.annotation.JsonTypeInfo;
 @JsonSubTypes({ @Type(value = TopicMutationDto.Create.class, name = "CREATE"),
 		@Type(value = TopicMutationDto.UpdateName.class, name = "UPDATE_NAME"),
 		@Type(value = TopicMutationDto.UpdateDescription.class, name = "UPDATE_DESCRIPTION"),
+		@Type(value = TopicMutationDto.UpdateDuration.class, name = "UPDATE_DURATION"),
 		@Type(value = TopicMutationDto.Delete.class, name = "DELETE") })
 public sealed interface TopicMutationDto {
 
@@ -25,6 +28,8 @@ public sealed interface TopicMutationDto {
 					updateName);
 			case TopicAction.UpdateDescription updateDescription -> new UpdateDescription(
 					updateDescription);
+			case TopicAction.UpdateDuration updateDuration -> new UpdateDuration(
+					updateDuration);
 			case TopicAction.Delete _ -> new Delete();
 		};
 	}
@@ -66,6 +71,19 @@ public sealed interface TopicMutationDto {
 			this.position = action.getPosition();
 			this.length = action.getLength();
 			this.value = action.getValue();
+		}
+	}
+
+	@Getter
+	final class UpdateDuration implements TopicMutationDto {
+
+		private final Integer duration;
+
+		private UpdateDuration(final TopicAction.UpdateDuration action) {
+			this.duration = Optional.ofNullable(action.getDuration())
+					.map(Duration::toMinutes)
+					.map(Math::toIntExact)
+					.orElse(null);
 		}
 	}
 

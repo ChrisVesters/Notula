@@ -127,6 +127,7 @@ class TopicRepositoryTest extends RepositoryTest {
 			assertThat(saved.getSequenceId()).isEqualTo(sequenceId);
 			assertThat(saved.getName()).isEqualTo(name);
 			assertThat(saved.getDescription()).isEmpty();
+			assertThat(saved.getDuration()).isNull();
 
 			final TopicDao found = entityManager.find(TopicDao.class,
 					saved.getId());
@@ -138,6 +139,7 @@ class TopicRepositoryTest extends RepositoryTest {
 			assertThat(found.getSequenceId()).isEqualTo(saved.getSequenceId());
 			assertThat(found.getName()).isEqualTo(saved.getName());
 			assertThat(found.getDescription()).isEmpty();
+			assertThat(found.getDuration()).isNull();
 		}
 
 		@Test
@@ -351,5 +353,6 @@ class TopicRepositoryTest extends RepositoryTest {
 		assertThat(dao.getSequenceId()).isEqualTo(topic.getSequenceId());
 		assertThat(dao.getName()).isEqualTo(topic.getName());
 		assertThat(dao.getDescription()).isEqualTo(topic.getDescription());
+		assertThat(dao.getDuration()).isEqualTo(topic.getDuration());
 	}
 }

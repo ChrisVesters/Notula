@@ -3,6 +3,8 @@ package com.cvesters.notula.topic.dto;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
+import java.time.Duration;
+
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 
@@ -62,6 +64,31 @@ class TopicMutationDtoTest {
 			assertThat(updateDescriptionDto.getPosition()).isEqualTo(position);
 			assertThat(updateDescriptionDto.getLength()).isEqualTo(length);
 			assertThat(updateDescriptionDto.getValue()).isEqualTo(value);
+		}
+
+		@Test
+		void updateDuration() {
+			final var duration = Duration.ofMinutes(45);
+			final var action = new TopicAction.UpdateDuration(duration);
+
+			final var dto = TopicMutationDto.of(action);
+
+			assertThat(dto).isInstanceOf(TopicMutationDto.UpdateDuration.class);
+
+			final var updateDurationDto = (TopicMutationDto.UpdateDuration) dto;
+			assertThat(updateDurationDto.getDuration()).isEqualTo(45);
+		}
+
+		@Test
+		void updateDurationNull() {
+			final var action = new TopicAction.UpdateDuration(null);
+
+			final var dto = TopicMutationDto.of(action);
+
+			assertThat(dto).isInstanceOf(TopicMutationDto.UpdateDuration.class);
+
+			final var updateDurationDto = (TopicMutationDto.UpdateDuration) dto;
+			assertThat(updateDurationDto.getDuration()).isNull();
 		}
 
 		@Test

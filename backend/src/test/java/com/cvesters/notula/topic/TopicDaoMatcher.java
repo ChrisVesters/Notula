@@ -30,6 +30,7 @@ public class TopicDaoMatcher {
 			assertThat(saved.getName()).isEqualTo(expected.getName());
 			assertThat(saved.getDescription())
 					.isEqualTo(expected.getDescription());
+			assertThat(saved.getDuration()).isEqualTo(expected.getDuration());
 			return true;
 		}, "created");
 	}
@@ -48,6 +49,7 @@ public class TopicDaoMatcher {
 			assertThat(found.getName()).isEqualTo(saved.getName());
 			assertThat(found.getDescription())
 					.isEqualTo(saved.getDescription());
+			assertThat(found.getDuration()).isEqualTo(saved.getDuration());
 			return true;
 		}, "found");
 

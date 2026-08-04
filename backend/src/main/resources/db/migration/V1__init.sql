@@ -75,6 +75,7 @@ CREATE TABLE topics(
 	sequence_id INTEGER NOT NULL,
 	name TEXT NOT NULL,
 	description TEXT NOT NULL,
+	duration INTEGER,
 
 	PRIMARY KEY(id),
 	FOREIGN KEY(organisation_id) REFERENCES organisations(id) ON DELETE CASCADE,

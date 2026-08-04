@@ -1,6 +1,8 @@
 package com.cvesters.notula.topic.bdo;
 
+import java.time.Duration;
 import java.util.Objects;
+import java.util.Optional;
 
 import org.apache.commons.lang3.Validate;
 
@@ -15,18 +17,20 @@ public class TopicInfo {
 	private int sequenceId;
 	private String name;
 	private String description;
+	private Duration duration;
 
 	public TopicInfo(final long organisationId, final long meetingId,
 			final int sequenceId, final String name) {
-		this(null, organisationId, meetingId, sequenceId, name, "");
+		this(null, organisationId, meetingId, sequenceId, name, "", null);
 	}
 
 	public TopicInfo(final Long id, final long organisationId,
 			final long meetingId, final int sequenceId, final String name,
-			final String description) {
+			final String description, final Duration duration) {
 		Validate.isTrue(sequenceId >= 0);
 		Objects.requireNonNull(name);
 		Objects.requireNonNull(description);
+		Validate.isTrue(duration == null || duration.isPositive());
 
 		this.id = id;
 		this.organisationId = organisationId;
@@ -34,12 +38,17 @@ public class TopicInfo {
 		this.sequenceId = sequenceId;
 		this.name = name;
 		this.description = description;
+		this.duration = duration;
 	}
 
 	public long getId() {
 		Validate.validState(id != null);
 
 		return id;
+	}
+
+	public Optional<Duration> getDuration() {
+		return Optional.ofNullable(duration);
 	}
 
 	public void moveUp() {
@@ -64,5 +73,11 @@ public class TopicInfo {
 		Objects.requireNonNull(description);
 
 		this.description = description;
+	}
+
+	public void setDuration(final Duration duration) {
+		Validate.isTrue(duration == null || duration.isPositive());
+
+		this.duration = duration;
 	}
 }
