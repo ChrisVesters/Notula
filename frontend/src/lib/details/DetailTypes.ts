@@ -13,6 +13,7 @@ export type TopicDetails = {
 	sequenceId: number;
 	name: string;
 	description: string;
+	duration: number | null;
 
 	blocks: Array<BlockDetails>;
 };
