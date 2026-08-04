@@ -76,8 +76,14 @@
 					sequenceId: mutation.sequenceId,
 					name: mutation.name,
 					description: "",
+					duration: null,
 					blocks: []
 				});
+			} else if (mutation.action === "UPDATE_DURATION") {
+				const topic = meeting?.topics.find(t => t.id === event.topicId);
+				if (topic) {
+					topic.duration = mutation.duration;
+				}
 			} else if (mutation.action === "DELETE") {
 				const index = meeting?.topics.findIndex(t => t.id === event.topicId);
 				if (index !== undefined && index >= 0) {

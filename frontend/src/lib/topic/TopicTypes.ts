@@ -3,7 +3,10 @@ export type TopicCreateRequest = {
 	name: string;
 };
 
-export type TopicAction = TopicUpdateNameAction | TopicUpdateDescriptionAction;
+export type TopicAction =
+	| TopicUpdateNameAction
+	| TopicUpdateDescriptionAction
+	| TopicUpdateDurationAction;
 
 export type TopicUpdateNameAction = {
 	action: "UPDATE_NAME";
@@ -19,6 +22,11 @@ export type TopicUpdateDescriptionAction = {
 	value: string;
 };
 
+export type TopicUpdateDurationAction = {
+	action: "UPDATE_DURATION";
+	duration: number | null;
+};
+
 export type TopicEvent = {
 	target: "TOPIC";
 	topicId: number;
@@ -29,6 +37,7 @@ export type TopicMutation =
 	| TopicMutationCreate
 	| TopicMutationUpdateName
 	| TopicMutationUpdateDescription
+	| TopicMutationUpdateDuration
 	| TopicMutationDelete;
 
 export type TopicMutationCreate = {
@@ -49,6 +58,11 @@ export type TopicMutationUpdateDescription = {
 	position: number;
 	length: number;
 	value: string;
+};
+
+export type TopicMutationUpdateDuration = {
+	action: "UPDATE_DURATION";
+	duration: number | null;
 };
 
 export type TopicMutationDelete = {
