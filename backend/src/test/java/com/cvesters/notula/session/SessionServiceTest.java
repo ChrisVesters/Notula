@@ -318,6 +318,7 @@ class SessionServiceTest {
 			final long sessionId = SESSION.getId();
 			final SessionInfo bdo = mock();
 			when(bdo.getUserId()).thenReturn(SESSION.getUser().getId() + 1);
+			when(bdo.isActive()).thenReturn(true);
 
 			when(organisationUserService.getAllForUser(PRINCIPAL))
 					.thenReturn(List.of(ORGANISATION_USER.info()));
@@ -437,6 +438,10 @@ class SessionServiceTest {
 			assertThat(result.getRefreshToken()).contains(newToken.getValue());
 			assertThat(result.getActiveUntil())
 					.isEqualTo(SESSION.getActiveUntil());
+
+			assertThat(newToken.getValue()).hasSize(86)
+					.satisfies(v -> assertThat(v.chars().distinct().count())
+							.isGreaterThanOrEqualTo(16));
 		}
 
 		@Test
@@ -487,6 +492,10 @@ class SessionServiceTest {
 			assertThat(result.getRefreshToken()).contains(newToken.getValue());
 			assertThat(result.getActiveUntil())
 					.isEqualTo(SESSION.getActiveUntil());
+
+			assertThat(newToken.getValue()).hasSize(86)
+					.satisfies(v -> assertThat(v.chars().distinct().count())
+							.isGreaterThanOrEqualTo(16));
 		}
 
 		@Test
@@ -622,6 +631,8 @@ class SessionServiceTest {
 			final long sessionId = SESSION.getId();
 			final SessionInfo bdo = mock();
 			when(bdo.getUserId()).thenReturn(SESSION.getUser().getId() + 1);
+			when(bdo.isActive()).thenReturn(true);
+
 			when(sessionStorageGateway.findById(SESSION.getId()))
 					.thenReturn(Optional.of(bdo));
 

@@ -97,12 +97,19 @@ class SessionStorageGatewayTest {
 		@Test
 		void tokenWrong() {
 			final SessionDao dao = mock();
+			final SessionInfo bdo = mock();
+			when(dao.getRefreshToken()).thenReturn(HASHED_REFRESH_TOKEN);
+			when(dao.toBdo()).thenReturn(bdo);
 
 			when(sessionRepository.findById(SESSION.getId()))
 					.thenReturn(Optional.of(dao));
 
+			when(passwordEncoder.matches(SESSION.getRefreshToken(),
+					HASHED_REFRESH_TOKEN)).thenReturn(false);
+
 			final Optional<SessionInfo> result = gateway
-					.findByIdAndRefreshToken(SESSION.getId(), "Wrong");
+					.findByIdAndRefreshToken(SESSION.getId(),
+							SESSION.getRefreshToken());
 
 			assertThat(result).isEmpty();
 		}
