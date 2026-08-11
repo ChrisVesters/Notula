@@ -11,6 +11,8 @@
 	<Sidebar />
 
 	<main class="container">
-		{@render children?.()}
+		<div class="content">
+			{@render children?.()}
+		</div>
 	</main>
 </ProtectedRoute>

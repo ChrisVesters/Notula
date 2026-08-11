@@ -82,7 +82,8 @@ body {
 
 .app {
 	display: flex;
-	min-height: 100vh;
+	height: 100vh;
+	overflow: hidden;
 }
 
 main {
@@ -241,6 +242,11 @@ a:hover {
 }
 
 .container {
+	height: 100%;
+	overflow-y: auto;
+}
+
+.content {
 	max-width: 720px;
 	margin: 0rem auto;
 }
