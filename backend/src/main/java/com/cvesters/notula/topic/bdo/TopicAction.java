@@ -1,12 +1,12 @@
 package com.cvesters.notula.topic.bdo;
 
-import java.time.Duration;
 import java.util.Objects;
 
 import org.apache.commons.lang3.Validate;
 
 import lombok.Getter;
 
+import com.cvesters.notula.common.domain.Minutes;
 import com.cvesters.notula.common.domain.TextUpdate;
 
 public sealed interface TopicAction {
@@ -56,11 +56,9 @@ public sealed interface TopicAction {
 	@Getter
 	final class UpdateDuration implements TopicAction.Update {
 
-		private final Duration duration;
+		private final Minutes duration;
 
-		public UpdateDuration(final Duration duration) {
-			Validate.isTrue(duration == null || duration.isPositive());
-
+		public UpdateDuration(final Minutes duration) {
 			this.duration = duration;
 		}
 

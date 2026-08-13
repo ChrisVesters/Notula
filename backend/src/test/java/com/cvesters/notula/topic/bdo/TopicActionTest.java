@@ -7,13 +7,12 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 
-import java.time.Duration;
-
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
-import org.junit.jupiter.params.provider.ValueSource;
+
+import com.cvesters.notula.common.domain.Minutes;
 
 class TopicActionTest {
 
@@ -113,7 +112,7 @@ class TopicActionTest {
 
 		@Test
 		void success() {
-			final var duration = Duration.ofMinutes(45);
+			final var duration = new Minutes(45);
 			final var action = new TopicAction.UpdateDuration(duration);
 
 			assertThat(action.getDuration()).isEqualTo(duration);
@@ -140,18 +139,9 @@ class TopicActionTest {
 			verifyNoMoreInteractions(topic);
 		}
 
-		@ParameterizedTest
-		@ValueSource(ints = { 0, -1 })
-		void durationInvalid(final int minutes) {
-			final var duration = Duration.ofMinutes(minutes);
-
-			assertThatThrownBy(() -> new TopicAction.UpdateDuration(duration))
-					.isInstanceOf(IllegalArgumentException.class);
-		}
-
 		@Test
 		void topicNull() {
-			final var duration = Duration.ofMinutes(45);
+			final var duration = new Minutes(45);
 
 			final var action = new TopicAction.UpdateDuration(duration);
 

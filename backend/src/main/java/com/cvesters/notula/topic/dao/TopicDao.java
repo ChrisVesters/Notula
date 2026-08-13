@@ -1,6 +1,5 @@
 package com.cvesters.notula.topic.dao;
 
-import java.time.Duration;
 import java.util.Objects;
 import java.util.Optional;
 
@@ -16,6 +15,7 @@ import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 
+import com.cvesters.notula.common.domain.Minutes;
 import com.cvesters.notula.topic.bdo.TopicInfo;
 
 @Getter
@@ -54,8 +54,7 @@ public class TopicDao {
 		this.name = topic.getName();
 		this.description = topic.getDescription();
 		this.duration = topic.getDuration()
-				.map(Duration::toMinutes)
-				.map(Math::toIntExact)
+				.map(Minutes::value)
 				.orElse(null);
 	}
 
@@ -66,8 +65,7 @@ public class TopicDao {
 		this.name = bdo.getName();
 		this.description = bdo.getDescription();
 		this.duration = bdo.getDuration()
-				.map(Duration::toMinutes)
-				.map(Math::toIntExact)
+				.map(Minutes::value)
 				.orElse(null);
 	}
 
@@ -75,7 +73,7 @@ public class TopicDao {
 		Validate.validState(id != null);
 
 		final var d = Optional.ofNullable(duration)
-				.map(Duration::ofMinutes)
+				.map(Minutes::new)
 				.orElse(null);
 
 		return new TopicInfo(id, organisationId, meetingId, sequenceId, name,

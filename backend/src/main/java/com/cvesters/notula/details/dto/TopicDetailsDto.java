@@ -1,11 +1,11 @@
 package com.cvesters.notula.details.dto;
 
-import java.time.Duration;
 import java.util.List;
 import java.util.Objects;
 
 import lombok.Getter;
 
+import com.cvesters.notula.common.domain.Minutes;
 import com.cvesters.notula.details.bdo.TopicDetails;
 
 @Getter
@@ -27,8 +27,7 @@ public class TopicDetailsDto {
 		this.name = details.getName();
 		this.description = details.getDescription();
 		this.duration = details.getDuration()
-				.map(Duration::toMinutes)
-				.map(Math::toIntExact)
+				.map(Minutes::value)
 				.orElse(null);
 		this.blocks = details.getBlocks()
 				.stream()

@@ -1,12 +1,13 @@
 package com.cvesters.notula.topic.bdo;
 
-import java.time.Duration;
 import java.util.Objects;
 import java.util.Optional;
 
 import org.apache.commons.lang3.Validate;
 
 import lombok.Getter;
+
+import com.cvesters.notula.common.domain.Minutes;
 
 @Getter
 public class TopicInfo {
@@ -17,7 +18,7 @@ public class TopicInfo {
 	private int sequenceId;
 	private String name;
 	private String description;
-	private Duration duration;
+	private Minutes duration;
 
 	public TopicInfo(final long organisationId, final long meetingId,
 			final int sequenceId, final String name) {
@@ -26,11 +27,10 @@ public class TopicInfo {
 
 	public TopicInfo(final Long id, final long organisationId,
 			final long meetingId, final int sequenceId, final String name,
-			final String description, final Duration duration) {
+			final String description, final Minutes duration) {
 		Validate.isTrue(sequenceId >= 0);
 		Objects.requireNonNull(name);
 		Objects.requireNonNull(description);
-		Validate.isTrue(duration == null || duration.isPositive());
 
 		this.id = id;
 		this.organisationId = organisationId;
@@ -47,7 +47,7 @@ public class TopicInfo {
 		return id;
 	}
 
-	public Optional<Duration> getDuration() {
+	public Optional<Minutes> getDuration() {
 		return Optional.ofNullable(duration);
 	}
 
@@ -75,9 +75,7 @@ public class TopicInfo {
 		this.description = description;
 	}
 
-	public void setDuration(final Duration duration) {
-		Validate.isTrue(duration == null || duration.isPositive());
-
+	public void setDuration(final Minutes duration) {
 		this.duration = duration;
 	}
 }

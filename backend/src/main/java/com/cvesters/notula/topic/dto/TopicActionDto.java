@@ -6,6 +6,7 @@ import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Positive;
 import jakarta.validation.constraints.PositiveOrZero;
 
+import com.cvesters.notula.common.domain.Minutes;
 import com.cvesters.notula.topic.bdo.TopicAction;
 import com.fasterxml.jackson.annotation.JsonSubTypes;
 import com.fasterxml.jackson.annotation.JsonSubTypes.Type;
@@ -55,8 +56,8 @@ public final class TopicActionDto {
 				implements Update {
 
 			public TopicAction.Update toBdo() {
-				final var v = Optional.ofNullable(duration)
-						.map(java.time.Duration::ofMinutes)
+				final Minutes v = Optional.ofNullable(duration)
+						.map(Minutes::new)
 						.orElse(null);
 
 				return new TopicAction.UpdateDuration(v);

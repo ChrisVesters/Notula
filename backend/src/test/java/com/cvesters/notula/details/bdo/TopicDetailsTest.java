@@ -35,9 +35,7 @@ class TopicDetailsTest {
 			assertThat(details.getSequenceId()).isEqualTo(TOPICS.getSequenceId());
 			assertThat(details.getName()).isEqualTo(TOPICS.getName());
 			assertThat(details.getDescription()).isEqualTo(TOPICS.getDescription());
-			assertThat(details.getDuration()).hasValueSatisfying(duration -> {
-				assertThat(duration.toMinutes()).isEqualTo(TOPICS.getDuration().longValue());
-			});
+			assertThat(details.getDuration()).contains(TOPICS.getDuration());
 			assertThat(details.getBlocks()).isEqualTo(blocksDetails);
 		}
 
