@@ -353,6 +353,6 @@ class TopicRepositoryTest extends RepositoryTest {
 		assertThat(dao.getSequenceId()).isEqualTo(topic.getSequenceId());
 		assertThat(dao.getName()).isEqualTo(topic.getName());
 		assertThat(dao.getDescription()).isEqualTo(topic.getDescription());
-		assertThat(dao.getDuration()).isEqualTo(topic.getDuration());
+		assertThat(dao.getDuration()).isEqualTo(topic.getDuration().value());
 	}
 }

@@ -1,11 +1,11 @@
 package com.cvesters.notula.topic.dto;
 
-import java.time.Duration;
 import java.util.Objects;
 import java.util.Optional;
 
 import lombok.Getter;
 
+import com.cvesters.notula.common.domain.Minutes;
 import com.cvesters.notula.topic.bdo.TopicAction;
 import com.fasterxml.jackson.annotation.JsonSubTypes;
 import com.fasterxml.jackson.annotation.JsonSubTypes.Type;
@@ -81,8 +81,7 @@ public sealed interface TopicMutationDto {
 
 		private UpdateDuration(final TopicAction.UpdateDuration action) {
 			this.duration = Optional.ofNullable(action.getDuration())
-					.map(Duration::toMinutes)
-					.map(Math::toIntExact)
+					.map(Minutes::value)
 					.orElse(null);
 		}
 	}

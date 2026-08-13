@@ -3,11 +3,10 @@ package com.cvesters.notula.topic.dto;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
-import java.time.Duration;
-
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 
+import com.cvesters.notula.common.domain.Minutes;
 import com.cvesters.notula.topic.bdo.TopicAction;
 
 class TopicMutationDtoTest {
@@ -68,7 +67,7 @@ class TopicMutationDtoTest {
 
 		@Test
 		void updateDuration() {
-			final var duration = Duration.ofMinutes(45);
+			final var duration = new Minutes(45);
 			final var action = new TopicAction.UpdateDuration(duration);
 
 			final var dto = TopicMutationDto.of(action);

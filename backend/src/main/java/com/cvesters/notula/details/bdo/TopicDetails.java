@@ -1,12 +1,12 @@
 package com.cvesters.notula.details.bdo;
 
-import java.time.Duration;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
 
 import lombok.Getter;
 
+import com.cvesters.notula.common.domain.Minutes;
 import com.cvesters.notula.topic.bdo.TopicInfo;
 
 @Getter
@@ -16,7 +16,7 @@ public class TopicDetails {
 	private final int sequenceId;
 	private final String name;
 	private final String description;
-	private final Duration duration;
+	private final Minutes duration;
 
 	private List<BlockDetails> blocks;
 
@@ -33,7 +33,7 @@ public class TopicDetails {
 		this.blocks = List.copyOf(blocks);
 	}
 
-	public Optional<Duration> getDuration() {
+	public Optional<Minutes> getDuration() {
 		return Optional.ofNullable(duration);
 	}
 
