@@ -35,7 +35,7 @@ class BlockEventDtoTest {
 					.isInstanceOf(BlockMutationDto.Create.class);
 
 			final var mutation = (BlockMutationDto.Create) dto.getMutation();
-			assertThat(mutation.getType()).isEqualTo(BLOCK.getTypeString());
+			assertThat(mutation.getType()).isEqualTo(BLOCK.getTypeDto());
 			assertThat(mutation.getSequenceId())
 					.isEqualTo(BLOCK.getSequenceId());
 		}

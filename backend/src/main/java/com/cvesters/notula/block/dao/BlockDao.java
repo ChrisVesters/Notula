@@ -33,7 +33,7 @@ public class BlockDao {
 	private long topicId;
 
 	@Column(name = "type", nullable = false, updatable = false)
-	private int type;
+	private BlockType type;
 
 	@Column(name = "sequence_id", nullable = false)
 	private int sequenceId;
@@ -43,7 +43,7 @@ public class BlockDao {
 
 		this.organisationId = bdo.getOrganisationId();
 		this.topicId = bdo.getTopicId();
-		this.type = BlockTypeDao.toDao(bdo.getType());
+		this.type = bdo.getType();
 		this.sequenceId = bdo.getSequenceId();
 	}
 
@@ -56,8 +56,6 @@ public class BlockDao {
 	public BlockInfo toBdo() {
 		Validate.validState(id != null);
 
-		final BlockType blockType = BlockTypeDao.toBdo(type);
-		return new BlockInfo(id, organisationId, topicId, blockType,
-				sequenceId);
+		return new BlockInfo(id, organisationId, topicId, type, sequenceId);
 	}
 }

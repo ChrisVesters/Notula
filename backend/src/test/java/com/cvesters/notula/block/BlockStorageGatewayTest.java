@@ -53,7 +53,7 @@ class BlockStorageGatewayTest {
 				assertThat(dao.getOrganisationId())
 						.isEqualTo(organisation.getId());
 				assertThat(dao.getTopicId()).isEqualTo(topic.getId());
-				assertThat(dao.getType()).isEqualTo(block.getTypeId());
+				assertThat(dao.getType()).isEqualTo(block.getType());
 				return true;
 			}))).thenReturn(created);
 

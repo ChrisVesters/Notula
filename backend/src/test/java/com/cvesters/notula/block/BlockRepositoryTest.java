@@ -347,7 +347,7 @@ public class BlockRepositoryTest extends RepositoryTest {
 		assertThat(dao.getOrganisationId()).isEqualTo(
 				block.getTopic().getMeeting().getOrganisation().getId());
 		assertThat(dao.getTopicId()).isEqualTo(block.getTopic().getId());
-		assertThat(dao.getType()).isEqualTo(block.getTypeId());
+		assertThat(dao.getType()).isEqualTo(block.getType());
 		assertThat(dao.getSequenceId()).isEqualTo(block.getSequenceId());
 	}
 }

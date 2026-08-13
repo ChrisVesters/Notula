@@ -26,7 +26,7 @@ class BlockMutationDtoTest {
 			assertThat(dto).isInstanceOf(BlockMutationDto.Create.class);
 
 			final var createDto = (BlockMutationDto.Create) dto;
-			assertThat(createDto.getType()).isEqualTo(BLOCK.getTypeString());
+			assertThat(createDto.getType()).isEqualTo(BLOCK.getTypeDto());
 			assertThat(createDto.getSequenceId())
 					.isEqualTo(BLOCK.getSequenceId());
 		}

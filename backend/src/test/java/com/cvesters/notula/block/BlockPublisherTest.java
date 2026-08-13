@@ -59,7 +59,7 @@ class BlockPublisherTest {
 						final var mutation = (BlockMutationDto.Create) dto
 								.getMutation();
 						assertThat(mutation.getType())
-								.isEqualTo(BLOCK.getTypeString());
+								.isEqualTo(BLOCK.getTypeDto());
 						assertThat(mutation.getSequenceId())
 								.isEqualTo(BLOCK.getSequenceId());
 						return true;

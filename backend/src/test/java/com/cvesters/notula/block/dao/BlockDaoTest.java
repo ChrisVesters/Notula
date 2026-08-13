@@ -32,7 +32,7 @@ class BlockDaoTest {
 			assertThat(dao.getId()).isNull();
 			assertThat(dao.getOrganisationId()).isEqualTo(ORGANISATION.getId());
 			assertThat(dao.getTopicId()).isEqualTo(TOPIC.getId());
-			assertThat(dao.getType()).isEqualTo(BLOCK.getTypeId());
+			assertThat(dao.getType()).isEqualTo(BLOCK.getType());
 			assertThat(dao.getSequenceId()).isEqualTo(BLOCK.getSequenceId());
 		}
 
