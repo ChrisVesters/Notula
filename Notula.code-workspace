@@ -8,10 +8,13 @@
 		}
 	],
 	"settings": {
-		"java.compile.nullAnalysis.mode": "automatic",
+		"java.compile.nullAnalysis.mode": "disabled",
 		"java.configuration.updateBuildConfiguration": "automatic",
 		"java.format.settings.url": "java-formatter.xml",
-		"java.saveActions.organizeImports": true,
+		"editor.codeActionsOnSave": {
+			"source.organizeImports": "explicit",
+			"source.fixAll.eslint": "explicit"
+		},
 		"editor.detectIndentation": false,
 		"editor.insertSpaces": false,
 		"java.completion.favoriteStaticMembers": [
