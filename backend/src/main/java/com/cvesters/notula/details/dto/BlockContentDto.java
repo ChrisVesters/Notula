@@ -12,10 +12,10 @@ import com.cvesters.notula.details.bdo.BlockContent;
 @Getter
 public class BlockContentDto {
 
-	private final String type;
+	private final BlockTypeDto type;
 
 	protected BlockContentDto(final BlockType type) {
-		this.type = BlockTypeDto.toDto(type);
+		this.type = new BlockTypeDto(type);
 	}
 
 	public static BlockContentDto of(final BlockContent content) {

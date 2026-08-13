@@ -3,58 +3,71 @@ package com.cvesters.notula.block.dto;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
-import java.util.stream.Stream;
-
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.params.ParameterizedTest;
-import org.junit.jupiter.params.provider.Arguments;
-import org.junit.jupiter.params.provider.MethodSource;
-import org.junit.jupiter.params.provider.ValueSource;
 
 import com.cvesters.notula.block.bdo.BlockType;
+import com.cvesters.notula.common.exception.InvalidActionException;
 
 class BlockTypeDtoTest {
 
 	@Nested
-	class ToBdo {
+	class Constructor {
 
-		@ParameterizedTest
-		@MethodSource("com.cvesters.notula.block.dto.BlockTypeDtoTest#mapping")
-		void success(final BlockType type, final String value) {
-			assertThat(BlockTypeDto.toBdo(value)).isEqualTo(type);
+		@Test
+		void text() {
+			final var dto = new BlockTypeDto(BlockType.TEXT);
+
+			assertThat(dto.type()).isEqualTo("TEXT");
 		}
 
 		@Test
 		void typeNull() {
-			assertThatThrownBy(() -> BlockTypeDto.toBdo(null))
+			final BlockType type = null;
+
+			assertThatThrownBy(() -> new BlockTypeDto(type))
 					.isInstanceOf(NullPointerException.class);
 		}
 
-		@ParameterizedTest
-		@ValueSource(strings = { "", " ", "UNKNOWN" })
-		void valueInvalid(final String value) {
-			assertThatThrownBy(() -> BlockTypeDto.toBdo(value))
-					.isInstanceOf(IllegalArgumentException.class);
+		@Test
+		void valueNull() {
+			final String value = null;
+
+			assertThatThrownBy(() -> new BlockTypeDto(value))
+					.isInstanceOf(NullPointerException.class);
+		}
+
+		@Test
+		void valueInvalid() {
+			final var dto = new BlockTypeDto("invalid");
+
+			assertThat(dto.type()).isEqualTo("invalid");
 		}
 	}
 
 	@Nested
-	class ToDto {
+	class ToBdo {
 
-		@ParameterizedTest
-		@MethodSource("com.cvesters.notula.block.dto.BlockTypeDtoTest#mapping")
-		void success(final BlockType type, final String value) {
-			assertThat(BlockTypeDto.toDto(type)).isEqualTo(value);
+		@Test
+		void enumConstructed() {
+			final var dto = new BlockTypeDto(BlockType.TEXT);
+
+			assertThat(dto.toBdo()).isEqualTo(BlockType.TEXT);
 		}
 
-		void typeNull() {
-			assertThatThrownBy(() -> BlockTypeDto.toDto(null))
-					.isInstanceOf(NullPointerException.class);
-		}
-	}
+		@Test
+		void text() {
+			final var dto = new BlockTypeDto("TEXT");
 
-	static Stream<Arguments> mapping() {
-		return Stream.of(Arguments.of(BlockType.TEXT, "TEXT"));
+			assertThat(dto.toBdo()).isEqualTo(BlockType.TEXT);
+		}
+
+		@Test
+		void typeInvalid() {
+			final var dto = new BlockTypeDto("invalid");
+
+			assertThatThrownBy(dto::toBdo)
+					.isInstanceOf(InvalidActionException.class);
+		}
 	}
 }

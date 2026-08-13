@@ -11,10 +11,10 @@ public final class BlockActionDto {
 	private BlockActionDto() {
 	}
 
-	public record Create(@NotNull String type, @PositiveOrZero int sequenceId) {
+	public record Create(@NotNull BlockTypeDto type, @PositiveOrZero int sequenceId) {
 
 		public BlockAction.Create toBdo() {
-			final BlockType blockType = BlockTypeDto.toBdo(type);
+			final BlockType blockType = type.toBdo();
 			return new BlockAction.Create(blockType, sequenceId);
 		}
 	}

@@ -7,6 +7,7 @@ import lombok.Getter;
 
 import com.cvesters.notula.block.bdo.BlockInfo;
 import com.cvesters.notula.block.bdo.BlockType;
+import com.cvesters.notula.block.dto.BlockTypeDto;
 import com.cvesters.notula.topic.TestTopic;
 
 @Getter
@@ -44,15 +45,7 @@ public enum TestBlock {
 				type, sequenceId);
 	}
 
-	public int getTypeId() {
-		return switch (type) {
-			case TEXT -> 0;
-		};
-	}
-
-	public String getTypeString() {
-		return switch (type) {
-			case TEXT -> "TEXT";
-		};
+	public BlockTypeDto getTypeDto() {
+		return new BlockTypeDto(type);
 	}
 }

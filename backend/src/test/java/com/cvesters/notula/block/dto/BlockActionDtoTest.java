@@ -17,7 +17,7 @@ class BlockActionDtoTest {
 
 		@Test
 		void toBdo() {
-			final var dto = new BlockActionDto.Create(BLOCK.getTypeString(),
+			final var dto = new BlockActionDto.Create(BLOCK.getTypeDto(),
 					BLOCK.getSequenceId());
 			final BlockAction.Create bdo = dto.toBdo();
 

@@ -22,7 +22,7 @@ class BlockContentDtoTest {
 			final var dto = BlockContentDto.of(content);
 
 			assertThat(dto.getType())
-					.isEqualTo(BlockTypeDto.toDto(BlockType.TEXT));
+					.isEqualTo(new BlockTypeDto(BlockType.TEXT));
 			assertThat(dto).isInstanceOf(Text.class);
 
 			final var textDto = (Text) dto;

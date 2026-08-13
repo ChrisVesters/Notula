@@ -3,27 +3,30 @@ package com.cvesters.notula.block.dto;
 import java.util.Objects;
 
 import com.cvesters.notula.block.bdo.BlockType;
+import com.cvesters.notula.common.exception.InvalidActionException;
+import com.fasterxml.jackson.annotation.JsonValue;
 
-public final class BlockTypeDto {
+public record BlockTypeDto(@JsonValue String type) {
 
-	private BlockTypeDto() {
+	public BlockTypeDto {
+		Objects.requireNonNull(type);
 	}
 
-	public static BlockType toBdo(final String type) {
+	public BlockTypeDto(final BlockType type) {
 		Objects.requireNonNull(type);
 
-		return switch (type) {
-			case "TEXT" -> BlockType.TEXT;
-			default -> throw new IllegalArgumentException();
-		};
-	}
-
-	public static String toDto(final BlockType type) {
-		Objects.requireNonNull(type);
-
-		return switch (type) {
+		final String value = switch (type) {
 			case TEXT -> "TEXT";
 		};
+
+		this(value);
 	}
 
+	public BlockType toBdo() {
+		return switch (type) {
+			case "TEXT" -> BlockType.TEXT;
+			// TODO: proper validation exception
+			default -> throw new InvalidActionException();
+		};
+	}
 }
