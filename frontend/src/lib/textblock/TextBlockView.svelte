@@ -1,9 +1,7 @@
 <script lang="ts">
 	import { t } from "$lib/assets/translations";
 
-	import type {
-		TextBlockContent
-	} from "$lib/details/DetailTypes";
+	import type { TextBlockContent } from "$lib/details/DetailTypes";
 	import type { UpdateAction } from "$lib/editor/ActionTypes";
 	import TextArea from "$lib/editor/TextArea.svelte";
 
@@ -26,18 +24,16 @@
 
 	const handleUpdateContent = (action: UpdateAction) => {
 		const request: TextBlockUpdateContentAction = {
+			meetingId,
+			topicId,
+			blockId,
 			action: "UPDATE_CONTENT",
 			position: action.position,
 			length: action.length,
 			value: action.value
 		};
 
-		TextBlockWebSocketClient.updateContent(
-			meetingId,
-			topicId,
-			blockId,
-			request
-		);
+		TextBlockWebSocketClient.updateContent(request);
 	};
 </script>
 

@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { t } from "$lib/assets/translations";
-	
+
 	import IconDelete from "$lib/assets/icons/IconDelete.svelte";
 	import IconPlus from "$lib/assets/icons/IconPlus.svelte";
 
@@ -12,6 +12,8 @@
 	import IconButton from "$lib/form/IconButton.svelte";
 
 	import type {
+		TopicCreateAction,
+		TopicDeleteAction,
 		TopicUpdateDescriptionAction,
 		TopicUpdateDurationAction,
 		TopicUpdateNameAction
@@ -26,24 +28,27 @@
 	let { meetingId, topics = $bindable() }: TopicAgendaViewProps = $props();
 
 	function addTopic(): Promise<void> {
-		const request = {
+		const request: TopicCreateAction = {
+			meetingId,
 			sequenceId: topics.length,
 			name: ""
 		};
 
-		TopicWebSocketClient.create(meetingId, request);
+		TopicWebSocketClient.create(request);
 		return Promise.resolve();
 	}
 
 	const handleUpdateTopicName = (topicId: number, action: UpdateAction) => {
 		const request: TopicUpdateNameAction = {
+			meetingId,
+			topicId,
 			action: "UPDATE_NAME",
 			position: action.position,
 			length: action.length,
 			value: action.value
 		};
 
-		TopicWebSocketClient.update(meetingId, topicId, request);
+		TopicWebSocketClient.update(request);
 	};
 
 	const handleUpdateTopicDescription = (
@@ -51,13 +56,15 @@
 		action: UpdateAction
 	) => {
 		const request: TopicUpdateDescriptionAction = {
+			meetingId,
+			topicId,
 			action: "UPDATE_DESCRIPTION",
 			position: action.position,
 			length: action.length,
 			value: action.value
 		};
 
-		TopicWebSocketClient.update(meetingId, topicId, request);
+		TopicWebSocketClient.update(request);
 	};
 
 	const handleUpdateTopicDuration = (
@@ -65,15 +72,22 @@
 		duration: number | null
 	) => {
 		const request: TopicUpdateDurationAction = {
+			meetingId,
+			topicId,
 			action: "UPDATE_DURATION",
 			duration: duration
 		};
 
-		TopicWebSocketClient.update(meetingId, topicId, request);
+		TopicWebSocketClient.update(request);
 	};
 
 	const handleDeleteTopic = (topicId: number) => {
-		TopicWebSocketClient.delete(meetingId, topicId);
+		const request: TopicDeleteAction = {
+			meetingId,
+			topicId
+		};
+
+		TopicWebSocketClient.delete(request);
 	};
 </script>
 
