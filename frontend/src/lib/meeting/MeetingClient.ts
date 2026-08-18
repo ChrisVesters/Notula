@@ -1,13 +1,13 @@
 import Client from "$lib/common/Client";
 
-import type { MeetingCreateRequest, MeetingInfo } from "./MeetingTypes";
+import type { MeetingCreateAction, MeetingInfo } from "./MeetingTypes";
 
 export default class MeetingClient extends Client {
 	public static getAll(): Promise<MeetingInfo[]> {
 		return this.fetchGetAuth(getEndpoint());
 	}
 
-	public static create(request: MeetingCreateRequest): Promise<MeetingInfo> {
+	public static create(request: MeetingCreateAction): Promise<MeetingInfo> {
 		return this.fetchPostAuth(getEndpoint(), request);
 	}
 

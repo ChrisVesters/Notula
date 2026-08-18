@@ -1,6 +1,5 @@
 import type { Attachment } from "svelte/attachments";
 
-// FocusHandler.ts
 export type FocusHandlerOptions = {
 	onFocusChange: (focused: boolean) => void;
 };

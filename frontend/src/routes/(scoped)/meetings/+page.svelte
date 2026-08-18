@@ -8,11 +8,11 @@
 
 	import { trim } from "$lib/common/NameUtils";
 
+	import IconDelete from "$lib/assets/icons/IconDelete.svelte";
 	import FeedbackButton from "$lib/form/FeedbackButton.svelte";
+	import IconButton from "$lib/form/IconButton.svelte";
 	import MeetingClient from "$lib/meeting/MeetingClient";
 	import type { MeetingInfo } from "$lib/meeting/MeetingTypes";
-	import IconDelete from "$lib/assets/icons/IconDelete.svelte";
-	import IconButton from "$lib/form/IconButton.svelte";
 
 	let meetings: Array<MeetingInfo> = $state([]);
 
@@ -42,6 +42,7 @@
 	}
 </script>
 
+<!-- TODO: extract to component? -->
 <h1>{$t("common.meetings")}</h1>
 
 <FeedbackButton className="primary" onClick={addMeeting}>

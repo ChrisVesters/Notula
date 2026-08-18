@@ -6,22 +6,20 @@ import type { BlockCreateAction, BlockDeleteAction } from "./BlockTypes";
 export default class BlockWebSocketClient {
 	private static readonly ENDPOINT = "/app/blocks";
 
-	// TODO: remove duplicate code
 	public static create(action: BlockCreateAction): void {
-		const client: WebSocketClient = Session.getWebSocketClient();
-
-		client.send(
-			`${BlockWebSocketClient.ENDPOINT}/create`,
-			JSON.stringify(action)
-		);
+		BlockWebSocketClient.send("/create", action);
 	}
 
 	public static delete(action: BlockDeleteAction): void {
+		BlockWebSocketClient.send("/delete", action);
+	}
+
+	private static send(suffix: string, payload: unknown): void {
 		const client: WebSocketClient = Session.getWebSocketClient();
 
 		client.send(
-			`${BlockWebSocketClient.ENDPOINT}/delete`,
-			JSON.stringify(action)
+			`${BlockWebSocketClient.ENDPOINT}${suffix}`,
+			JSON.stringify(payload)
 		);
 	}
 }

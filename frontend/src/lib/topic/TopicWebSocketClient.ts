@@ -10,31 +10,24 @@ import type {
 export default class TopicWebSocketClient {
 	private static readonly ENDPOINT = "/app/topics";
 
-	// TODO: remove duplicated code
 	public static create(topic: TopicCreateAction): void {
-		const client: WebSocketClient = Session.getWebSocketClient();
-
-		client.send(
-			`${TopicWebSocketClient.ENDPOINT}/create`,
-			JSON.stringify(topic)
-		);
+		TopicWebSocketClient.send("/create", topic);
 	}
 
 	public static update(action: TopicUpdateAction): void {
-		const client: WebSocketClient = Session.getWebSocketClient();
-
-		client.send(
-			`${TopicWebSocketClient.ENDPOINT}/update`,
-			JSON.stringify(action)
-		);
+		TopicWebSocketClient.send("/update", action);
 	}
 
 	public static delete(action: TopicDeleteAction): void {
+		TopicWebSocketClient.send("/delete", action);
+	}
+
+	private static send(suffix: string, payload: unknown): void {
 		const client: WebSocketClient = Session.getWebSocketClient();
 
 		client.send(
-			`${TopicWebSocketClient.ENDPOINT}/delete`,
-			JSON.stringify(action)
+			`${TopicWebSocketClient.ENDPOINT}${suffix}`,
+			JSON.stringify(payload)
 		);
 	}
 }

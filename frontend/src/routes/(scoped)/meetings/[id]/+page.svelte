@@ -3,33 +3,24 @@
 
 	import { goto } from "$app/navigation";
 	import { page } from "$app/state";
-	import { t } from "$lib/assets/translations";
 
-	import IconPlus from "$lib/assets/icons/IconPlus.svelte";
-	import type { BlockCreateAction, BlockMutation } from "$lib/block/BlockTypes";
+	import type { BlockMutation } from "$lib/block/BlockTypes";
 	import { BlockType } from "$lib/block/BlockTypes";
-	import BlockView from "$lib/block/BlockView.svelte";
-	import BlockWebSocketClient from "$lib/block/BlockWebSocketClient";
 	import Loading from "$lib/common/Loading.svelte";
 	import type {
-		MeetingDetails,
-		TopicDetails
+		MeetingDetails
 	} from "$lib/details/DetailTypes";
-	import type { UpdateAction } from "$lib/editor/ActionTypes";
-	import Input from "$lib/editor/Input.svelte";
-	import FeedbackButton from "$lib/form/FeedbackButton.svelte";
 	import MeetingInfoView from "$lib/meeting/MeetingInfoView.svelte";
 	import type {
 		MeetingMessage,
 		MeetingMutation
 	} from "$lib/meeting/MeetingTypes";
 	import MeetingWebSocketClient from "$lib/meeting/MeetingWebSocketClient";
-	import TopicAgendaView from "$lib/topic/TopicAgendaView.svelte";
+	import TopicsAgendaView from "$lib/topic/TopicsAgendaView.svelte";
+	import TopicsNoteView from "$lib/topic/TopicsNoteView.svelte";
 	import type {
-		TopicMutation,
-		TopicUpdateNameAction
+		TopicMutation
 	} from "$lib/topic/TopicTypes";
-	import TopicWebSocketClient from "$lib/topic/TopicWebSocketClient";
 
 	const id = $derived(Number(page.params.id));
 
@@ -61,6 +52,7 @@
 		// TODO: what if initial data is not yet loaded?
 		// TODO: keep in queue and apply once loaded.
 		// TODO: swich case?
+		// TODO: extract this logic into handlers? Or at least separate functions
 		console.debug("Received event:", event);
 		if (event.target == "MEETING") {
 			const mutation: MeetingMutation = event.mutation;
@@ -126,65 +118,15 @@
 		}
 	};
 
-	const handleUpdateTopicName = (topicId: number, action: UpdateAction) => {
-		const request: TopicUpdateNameAction = {
-			meetingId: id,
-			topicId,
-			action: "UPDATE_NAME",
-			position: action.position,
-			length: action.length,
-			value: action.value
-		};
 
-		TopicWebSocketClient.update(request);
-	};
 
-	function addBlock(topic: TopicDetails): Promise<void> {
-		const request: BlockCreateAction = {
-			meetingId: id,
-			topicId: topic.id,
-			type: BlockType.TEXT,
-			sequenceId: topic.blocks.length
-		};
-
-		BlockWebSocketClient.create(request);
-
-		return Promise.resolve();
-	}
 </script>
 
 {#if meeting}
 	<MeetingInfoView bind:meeting />
 
-	<TopicAgendaView meetingId={meeting.id} bind:topics={topics} />
-
-	<h2>{$t("common.notes")}</h2>
-	{#each topics as topic (topic.id)}
-		<Input
-			className="h2"
-			bind:value={topic.name}
-			placeholder={$t("common.untitled")}
-			onAction={action => handleUpdateTopicName(topic.id, action)}
-		/>
-		<FeedbackButton className="primary" onClick={() => addBlock(topic)}>
-			<span class="label">
-				<IconPlus />
-				{$t("common.addObject", { object: $t("common.note") })}
-			</span>
-		</FeedbackButton>
-
-		<!-- TODO: Sort -->
-		<!-- $: sortedItems = items
-  .slice()
-  .sort((a, b) => a.id - b.id); -->
-		{#each topic.blocks as block, index (block.id)}
-			<BlockView
-				meetingId={id}
-				topicId={topic.id}
-				bind:block={topic.blocks[index]}
-			/>
-		{/each}
-	{/each}
+	<TopicsAgendaView meetingId={meeting.id} bind:topics={topics} />
+	<TopicsNoteView meetingId={meeting.id} bind:topics={topics} />
 {:else}
 	<Loading />
 {/if}
