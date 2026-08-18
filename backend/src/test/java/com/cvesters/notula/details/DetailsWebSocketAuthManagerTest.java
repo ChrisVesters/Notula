@@ -1,4 +1,4 @@
-package com.cvesters.notula.meeting;
+package com.cvesters.notula.details;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.mock;
@@ -14,15 +14,16 @@ import org.springframework.messaging.support.MessageBuilder;
 import org.springframework.security.messaging.access.intercept.MessageAuthorizationContext;
 
 import com.cvesters.notula.common.domain.Principal;
+import com.cvesters.notula.meeting.MeetingStorageGateway;
 import com.cvesters.notula.meeting.bdo.MeetingInfo;
 
-class MeetingWebSocketAuthManagerTest {
+class DetailsWebSocketAuthManagerTest {
 
 	private static final Principal PRINCIPAL = mock();
 	private static final long MEETING_ID = 4;
 
 	private final MeetingStorageGateway meetingStorage = mock();
-	private final MeetingWebSocketAuthManager authManager = new MeetingWebSocketAuthManager(
+	private final DetailsWebSocketAuthManager authManager = new DetailsWebSocketAuthManager(
 			meetingStorage);
 
 	@Nested

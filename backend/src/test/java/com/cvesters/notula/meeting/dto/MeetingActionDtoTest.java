@@ -30,7 +30,8 @@ class MeetingActionDtoTest {
 
 		@Test
 		void toBdo() {
-			final var dto = new MeetingActionDto.Update.Name(5, 2, "Updated");
+			final var dto = new MeetingActionDto.Update.Name(MEETING.getId(), 5,
+					2, "Updated");
 			final MeetingAction.Update bdo = dto.toBdo();
 
 			final var expected = new MeetingAction.UpdateName(5, 2, "Updated");
@@ -44,8 +45,8 @@ class MeetingActionDtoTest {
 
 		@Test
 		void toBdo() {
-			final var dto = new MeetingActionDto.Update.Description(10, 3,
-					"New description");
+			final var dto = new MeetingActionDto.Update.Description(
+					MEETING.getId(), 10, 3, "New description");
 			final MeetingAction.Update bdo = dto.toBdo();
 
 			final var expected = new MeetingAction.UpdateDescription(10, 3,

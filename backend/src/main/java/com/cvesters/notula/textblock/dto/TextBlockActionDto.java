@@ -1,8 +1,8 @@
 package com.cvesters.notula.textblock.dto;
 
-import jakarta.validation.constraints.NotNull;
-import jakarta.validation.constraints.PositiveOrZero;
+import jakarta.validation.Valid;
 
+import com.cvesters.notula.common.dto.TextUpdateDto;
 import com.cvesters.notula.textblock.bdo.TextBlockAction;
 import com.fasterxml.jackson.annotation.JsonSubTypes;
 import com.fasterxml.jackson.annotation.JsonSubTypes.Type;
@@ -16,15 +16,51 @@ public final class TextBlockActionDto {
 	@JsonTypeInfo(use = JsonTypeInfo.Id.NAME, include = JsonTypeInfo.As.PROPERTY, property = "action")
 	@JsonSubTypes({
 			@Type(value = Update.Content.class, name = "UPDATE_CONTENT") })
-	public sealed interface Update {
+	public abstract static sealed class Update {
 
-		TextBlockAction.Update toBdo();
+		private final long meetingId;
+		private final long topicId;
+		private final long blockId;
 
-		public static record Content(@PositiveOrZero int position,
-				@PositiveOrZero int length, @NotNull String value)
-				implements Update {
+		protected Update(final long meetingId, final long topicId,
+				final long blockId) {
+			this.meetingId = meetingId;
+			this.topicId = topicId;
+			this.blockId = blockId;
+		}
+
+		public long getMeetingId() {
+			return meetingId;
+		}
+
+		public long getTopicId() {
+			return topicId;
+		}
+
+		public long getBlockId() {
+			return blockId;
+		}
+
+		public abstract TextBlockAction.Update toBdo();
+
+		public static final class Content extends Update {
+
+			@Valid
+			private final TextUpdateDto update;
+
+			public Content(final long meetingId, final long topicId,
+					final long blockId, final int position, final int length,
+					final String value) {
+				super(meetingId, topicId, blockId);
+
+				this.update = new TextUpdateDto(position, length, value);
+			}
 
 			public TextBlockAction.Update toBdo() {
+				final int position = update.position();
+				final int length = update.length();
+				final String value = update.value();
+
 				return new TextBlockAction.UpdateContent(position, length,
 						value);
 			}

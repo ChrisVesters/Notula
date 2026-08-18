@@ -2,7 +2,6 @@ package com.cvesters.notula.block;
 
 import jakarta.validation.Valid;
 
-import org.springframework.messaging.handler.annotation.DestinationVariable;
 import org.springframework.messaging.handler.annotation.MessageMapping;
 import org.springframework.messaging.handler.annotation.Payload;
 import org.springframework.stereotype.Controller;
@@ -15,7 +14,7 @@ import com.cvesters.notula.common.domain.Principal;
 @Controller
 public class BlockWebSocket extends BaseController {
 
-	private static final String BASE_ENDPOINT = "/meetings/{meetingId}/topics/{topicId}/blocks";
+	private static final String ENDPOINT = "/blocks";
 
 	private BlockService blockService;
 
@@ -23,22 +22,23 @@ public class BlockWebSocket extends BaseController {
 		this.blockService = blockService;
 	}
 
-	@MessageMapping(BASE_ENDPOINT)
-	public void create(@DestinationVariable final long meetingId,
-			@DestinationVariable final long topicId,
-			@Valid @Payload final BlockActionDto.Create dto) {
+	@MessageMapping(ENDPOINT + "/create")
+	public void create(@Valid @Payload final BlockActionDto.Create dto) {
 		final Principal principal = getPrincipal();
 
+		final long meetingId = dto.getMeetingId();
+		final long topicId = dto.getTopicId();
 		final BlockAction.Create action = dto.toBdo();
 		blockService.create(principal, meetingId, topicId, action);
 	}
 
-	@MessageMapping(BASE_ENDPOINT + "/{blockId}/delete")
-	public void delete(@DestinationVariable final long meetingId,
-			@DestinationVariable final long topicId,
-			@DestinationVariable final long blockId) {
+	@MessageMapping(ENDPOINT + "/delete")
+	public void delete(@Valid @Payload final BlockActionDto.Delete dto) {
 		final Principal principal = getPrincipal();
 
+		final long meetingId = dto.getMeetingId();
+		final long topicId = dto.getTopicId();
+		final long blockId = dto.getBlockId();
 		blockService.delete(principal, meetingId, topicId, blockId);
 	}
 }

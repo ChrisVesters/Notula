@@ -1,4 +1,4 @@
-package com.cvesters.notula.meeting;
+package com.cvesters.notula.details;
 
 import java.util.Optional;
 
@@ -7,15 +7,16 @@ import org.springframework.stereotype.Component;
 
 import com.cvesters.notula.common.domain.Principal;
 import com.cvesters.notula.config.WebSocketAuthManager;
+import com.cvesters.notula.meeting.MeetingStorageGateway;
 
 @Component
-public class MeetingWebSocketAuthManager extends WebSocketAuthManager {
+public class DetailsWebSocketAuthManager extends WebSocketAuthManager {
 
 	private static final String MEETING_DESTINATION = "/topic/meetings/{id:\\d+}";
 
 	private final MeetingStorageGateway meetingStorage;
 
-	public MeetingWebSocketAuthManager(
+	public DetailsWebSocketAuthManager(
 			final MeetingStorageGateway meetingStorage) {
 		super(MEETING_DESTINATION);
 

@@ -2,7 +2,6 @@ package com.cvesters.notula.topic;
 
 import jakarta.validation.Valid;
 
-import org.springframework.messaging.handler.annotation.DestinationVariable;
 import org.springframework.messaging.handler.annotation.MessageMapping;
 import org.springframework.messaging.handler.annotation.Payload;
 import org.springframework.stereotype.Controller;
@@ -15,7 +14,7 @@ import com.cvesters.notula.topic.dto.TopicActionDto;
 @Controller
 public class TopicWebSocket extends BaseController {
 
-	private static final String BASE_ENDPOINT = "/meetings/{meetingId}/topics";
+	private static final String ENDPOINT = "/topics";
 
 	private TopicService topicService;
 
@@ -23,31 +22,31 @@ public class TopicWebSocket extends BaseController {
 		this.topicService = topicService;
 	}
 
-	@MessageMapping(BASE_ENDPOINT)
-	public void create(@DestinationVariable final long meetingId,
-			@Valid @Payload final TopicActionDto.Create dto) {
+	@MessageMapping(ENDPOINT + "/create")
+	public void create(@Valid @Payload final TopicActionDto.Create dto) {
 		final Principal principal = getPrincipal();
 
+		final long meetingId = dto.getMeetingId();
 		final TopicAction.Create action = dto.toBdo();
 		topicService.create(principal, meetingId, action);
 	}
 
-	@MessageMapping(BASE_ENDPOINT + "/{topicId}")
-	public void update(@DestinationVariable final long meetingId,
-			@DestinationVariable final long topicId,
-			@Valid @Payload final TopicActionDto.Update dto) {
+	@MessageMapping(ENDPOINT + "/update")
+	public void update(@Valid @Payload final TopicActionDto.Update dto) {
 		final Principal principal = getPrincipal();
 
+		final long meetingId = dto.getMeetingId();
+		final long topicId = dto.getTopicId();
 		final TopicAction.Update action = dto.toBdo();
 		topicService.update(principal, meetingId, topicId, action);
 	}
 
-	@MessageMapping(BASE_ENDPOINT + "/{topicId}/delete")
-	public void delete(@DestinationVariable final long meetingId,
-			@DestinationVariable final long topicId) {
+	@MessageMapping(ENDPOINT + "/delete")
+	public void delete(@Valid @Payload final TopicActionDto.Delete dto) {
 		final Principal principal = getPrincipal();
 
+		final long meetingId = dto.getMeetingId();
+		final long topicId = dto.getTopicId();
 		topicService.delete(principal, meetingId, topicId);
 	}
-
 }

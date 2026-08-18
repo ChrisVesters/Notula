@@ -2,11 +2,13 @@ package com.cvesters.notula.topic.dto;
 
 import java.util.Optional;
 
+import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Positive;
 import jakarta.validation.constraints.PositiveOrZero;
 
 import com.cvesters.notula.common.domain.Minutes;
+import com.cvesters.notula.common.dto.TextUpdateDto;
 import com.cvesters.notula.topic.bdo.TopicAction;
 import com.fasterxml.jackson.annotation.JsonSubTypes;
 import com.fasterxml.jackson.annotation.JsonSubTypes.Type;
@@ -17,8 +19,26 @@ public final class TopicActionDto {
 	private TopicActionDto() {
 	}
 
-	public static record Create(@PositiveOrZero int sequenceId,
-			@NotNull String name) {
+	public static final class Create {
+
+		private final long meetingId;
+
+		@PositiveOrZero
+		private final int sequenceId;
+
+		@NotNull
+		private final String name;
+
+		public Create(final long meetingId, final int sequenceId,
+				final String name) {
+			this.meetingId = meetingId;
+			this.sequenceId = sequenceId;
+			this.name = name;
+		}
+
+		public long getMeetingId() {
+			return meetingId;
+		}
 
 		public TopicAction.Create toBdo() {
 			return new TopicAction.Create(sequenceId, name);
@@ -29,31 +49,80 @@ public final class TopicActionDto {
 	@JsonSubTypes({ @Type(value = Update.Name.class, name = "UPDATE_NAME"),
 			@Type(value = Update.Description.class, name = "UPDATE_DESCRIPTION"),
 			@Type(value = Update.Duration.class, name = "UPDATE_DURATION") })
-	public sealed interface Update {
+	public abstract static sealed class Update {
 
-		TopicAction.Update toBdo();
+		private final long meetingId;
+		private final long topicId;
 
-		public static record Name(@PositiveOrZero int position,
-				@PositiveOrZero int length, @NotNull String value)
-				implements Update {
+		protected Update(final long meetingId, final long topicId) {
+			this.meetingId = meetingId;
+			this.topicId = topicId;
+		}
+
+		public long getMeetingId() {
+			return meetingId;
+		}
+
+		public long getTopicId() {
+			return topicId;
+		}
+
+		public abstract TopicAction.Update toBdo();
+
+		public static final class Name extends Update {
+
+			@Valid
+			private final TextUpdateDto update;
+
+			public Name(final long meetingId, final long topicId,
+					final int position, final int length, final String value) {
+				super(meetingId, topicId);
+
+				this.update = new TextUpdateDto(position, length, value);
+			}
 
 			public TopicAction.Update toBdo() {
+				final int position = update.position();
+				final int length = update.length();
+				final String value = update.value();
+
 				return new TopicAction.UpdateName(position, length, value);
 			}
 		}
 
-		public static record Description(@PositiveOrZero int position,
-				@PositiveOrZero int length, @NotNull String value)
-				implements Update {
+		public static final class Description extends Update {
+
+			@Valid
+			private final TextUpdateDto update;
+
+			public Description(final long meetingId, final long topicId,
+					final int position, final int length, final String value) {
+				super(meetingId, topicId);
+
+				this.update = new TextUpdateDto(position, length, value);
+			}
 
 			public TopicAction.Update toBdo() {
+				final int position = update.position();
+				final int length = update.length();
+				final String value = update.value();
+
 				return new TopicAction.UpdateDescription(position, length,
 						value);
 			}
 		}
 
-		public static record Duration(@Positive Integer duration)
-				implements Update {
+		public static final class Duration extends Update {
+
+			@Positive
+			private final Integer duration;
+
+			public Duration(final long meetingId, final long topicId,
+					final Integer duration) {
+				super(meetingId, topicId);
+
+				this.duration = duration;
+			}
 
 			public TopicAction.Update toBdo() {
 				final Minutes v = Optional.ofNullable(duration)
@@ -66,4 +135,22 @@ public final class TopicActionDto {
 
 	}
 
+	public static final class Delete {
+
+		private final long meetingId;
+		private final long topicId;
+
+		public Delete(final long meetingId, final long topicId) {
+			this.meetingId = meetingId;
+			this.topicId = topicId;
+		}
+
+		public long getMeetingId() {
+			return meetingId;
+		}
+
+		public long getTopicId() {
+			return topicId;
+		}
+	}
 }
