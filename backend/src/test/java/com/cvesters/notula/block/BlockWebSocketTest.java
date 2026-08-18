@@ -13,9 +13,13 @@ import static org.mockito.Mockito.when;
 
 import java.nio.charset.StandardCharsets;
 import java.util.concurrent.TimeUnit;
+import java.util.stream.Stream;
 
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.MethodSource;
 import org.springframework.messaging.simp.stomp.ConnectionLostException;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 
@@ -31,9 +35,7 @@ import com.cvesters.notula.topic.TestTopic;
 
 class BlockWebSocketTest extends WebSocketTest {
 
-	private static final String DESTINATION_PREFIX = "/app/meetings";
-	private static final String DESTINATION_TOPIC = "/topics";
-	private static final String DESTINATION_SUFFIX = "/blocks";
+	private static final String DESTINATION_PREFIX = "/app/blocks";
 
 	private static final TestSession SESSION = TestSession.EDUARDO_CHRISTIANSEN_SPORER;
 	private static final Principal PRINCIPAL = SESSION.principal();
@@ -47,12 +49,14 @@ class BlockWebSocketTest extends WebSocketTest {
 	@Nested
 	class Create {
 
+		private static final String ENDPOINT = DESTINATION_PREFIX + "/create";
+
 		@Test
 		void success() throws Exception {
 			final byte[] payload = getRequestPayload("TEXT", 0);
 
 			connect(SESSION);
-			send(getDestination(MEETING.getId(), TOPIC.getId()), payload);
+			send(ENDPOINT, payload);
 
 			final var action = new BlockAction.Create(BlockType.TEXT, 0);
 			final var matcher = new BlockActionMatcher.Create(action);
@@ -70,57 +74,8 @@ class BlockWebSocketTest extends WebSocketTest {
 
 			connect(SESSION);
 			final FrameHandler errorFrameHandler = subscribeToErrors();
-			send(getDestination(MEETING.getId(), TOPIC.getId()), payload);
+			send(ENDPOINT, payload);
 
-			assertThat(errorFrameHandler.getResponse())
-					.succeedsWithin(WAIT_TIMEOUT.toSeconds(), TimeUnit.SECONDS)
-					.isNotNull()
-					.satisfies(
-							message -> assertThat(message).startsWith("Error"));
-		}
-
-		@Test
-		void typeNull() throws Exception {
-			final byte[] payload = "{\"sequenceId\": 0}"
-					.getBytes(StandardCharsets.UTF_8);
-
-			connect(SESSION);
-			final FrameHandler errorFrameHandler = subscribeToErrors();
-			send(getDestination(MEETING.getId(), TOPIC.getId()), payload);
-
-			verifyNoInteractions(blockService);
-			assertThat(errorFrameHandler.getResponse())
-					.succeedsWithin(WAIT_TIMEOUT.toSeconds(), TimeUnit.SECONDS)
-					.isNotNull()
-					.satisfies(
-							message -> assertThat(message).startsWith("Error"));
-		}
-
-		@Test
-		void typeInvalid() throws Exception {
-			final byte[] payload = getRequestPayload("UNKNOWN", 0);
-
-			connect(SESSION);
-			final FrameHandler errorFrameHandler = subscribeToErrors();
-			send(getDestination(MEETING.getId(), TOPIC.getId()), payload);
-
-			verifyNoInteractions(blockService);
-			assertThat(errorFrameHandler.getResponse())
-					.succeedsWithin(WAIT_TIMEOUT.toSeconds(), TimeUnit.SECONDS)
-					.isNotNull()
-					.satisfies(
-							message -> assertThat(message).startsWith("Error"));
-		}
-
-		@Test
-		void sequenceIdInvalid() throws Exception {
-			final byte[] payload = getRequestPayload("TEXT", -1);
-
-			connect(SESSION);
-			final FrameHandler errorFrameHandler = subscribeToErrors();
-			send(getDestination(MEETING.getId(), TOPIC.getId()), payload);
-
-			verifyNoInteractions(blockService);
 			assertThat(errorFrameHandler.getResponse())
 					.succeedsWithin(WAIT_TIMEOUT.toSeconds(), TimeUnit.SECONDS)
 					.isNotNull()
@@ -133,27 +88,92 @@ class BlockWebSocketTest extends WebSocketTest {
 			final byte[] payload = getRequestPayload("TEXT", 0);
 
 			connect();
-			send(getDestination(MEETING.getId(), TOPIC.getId()), payload);
+			send(ENDPOINT, payload);
 
 			assertThat(stompSessionHandler.getError())
 					.succeedsWithin(WAIT_TIMEOUT.toSeconds(), TimeUnit.SECONDS)
 					.isInstanceOf(ConnectionLostException.class);
 		}
 
-		private String getDestination(final long meetingId,
-				final long topicId) {
-			return DESTINATION_PREFIX + "/" + meetingId + DESTINATION_TOPIC
-					+ "/" + topicId + DESTINATION_SUFFIX;
+		@ParameterizedTest(name = "[{index}] name = {0}")
+		@MethodSource("invalidPayloadCases")
+		void invalidPayload(final String name, final String body)
+				throws Exception {
+			final byte[] payload = body.getBytes(StandardCharsets.UTF_8);
+
+			connect(SESSION);
+			final FrameHandler errorFrameHandler = subscribeToErrors();
+			send(ENDPOINT, payload);
+
+			assertThat(errorFrameHandler.getResponse())
+					.succeedsWithin(WAIT_TIMEOUT.toSeconds(), TimeUnit.SECONDS)
+					.isNotNull()
+					.satisfies(
+							message -> assertThat(message).startsWith("Error"));
+
+			verifyNoInteractions(blockService);
+		}
+
+		private static Stream<Arguments> invalidPayloadCases() {
+			return Stream.of(Arguments.of("meetingId missing", """
+					{
+						"topicId": 2,
+						"type": "TEXT",
+						"sequenceId": 0
+					}
+					"""), Arguments.of("topicId missing", """
+					{
+						"meetingId": 1,
+						"type": "TEXT",
+						"sequenceId": 0
+					}
+					"""), Arguments.of("type missing", """
+					{
+						"meetingId": 1,
+						"topicId": 2,
+						"sequenceId": 0
+					}
+					"""), Arguments.of("type null", """
+					{
+						"meetingId": 1,
+						"topicId": 2,
+						"type": null,
+						"sequenceId": 0
+					}
+					"""), Arguments.of("type invalid", """
+					{
+						"meetingId": 1,
+						"topicId": 2,
+						"type": "UNKNOWN",
+						"sequenceId": 0
+					}
+					"""), Arguments.of("sequenceId missing", """
+					{
+						"meetingId": 1,
+						"topicId": 2,
+						"type": "TEXT"
+					}
+					"""), Arguments.of("sequenceId negative", """
+					{
+						"meetingId": 1,
+						"topicId": 2,
+						"type": "TEXT",
+						"sequenceId": -1
+					}
+					"""));
 		}
 
 		private byte[] getRequestPayload(final String type,
 				final int sequenceId) {
 			final String json = """
 					{
+						"meetingId": %d,
+						"topicId": %d,
 						"type": "%s",
 						"sequenceId": %d
 					}
-					""".formatted(type, sequenceId);
+					""".formatted(MEETING.getId(), TOPIC.getId(), type,
+					sequenceId);
 
 			return json.getBytes(StandardCharsets.UTF_8);
 		}
@@ -162,6 +182,8 @@ class BlockWebSocketTest extends WebSocketTest {
 	@Nested
 	class Delete {
 
+		private static final String ENDPOINT = DESTINATION_PREFIX + "/delete";
+
 		private static final TestBlock BLOCK = TestBlock.SPORER_PROJECT_BLOCKERS_FIRST;
 
 		@Test
@@ -169,8 +191,7 @@ class BlockWebSocketTest extends WebSocketTest {
 			final byte[] payload = getRequestPayload();
 
 			connect(SESSION);
-			send(getDestination(MEETING.getId(), TOPIC.getId(), BLOCK.getId()),
-					payload);
+			send(ENDPOINT, payload);
 
 			verify(blockService, timeout(WAIT_TIMEOUT.toMillis())).delete(
 					PRINCIPAL, MEETING.getId(), TOPIC.getId(), BLOCK.getId());
@@ -185,8 +206,7 @@ class BlockWebSocketTest extends WebSocketTest {
 
 			connect(SESSION);
 			final FrameHandler errorFrameHandler = subscribeToErrors();
-			send(getDestination(MEETING.getId(), TOPIC.getId(), BLOCK.getId()),
-					payload);
+			send(ENDPOINT, payload);
 
 			assertThat(errorFrameHandler.getResponse())
 					.succeedsWithin(WAIT_TIMEOUT.toSeconds(), TimeUnit.SECONDS)
@@ -200,23 +220,62 @@ class BlockWebSocketTest extends WebSocketTest {
 			final byte[] payload = getRequestPayload();
 
 			connect();
-			send(getDestination(MEETING.getId(), TOPIC.getId(), BLOCK.getId()),
-					payload);
+			send(ENDPOINT, payload);
 
 			assertThat(stompSessionHandler.getError())
 					.succeedsWithin(WAIT_TIMEOUT.toSeconds(), TimeUnit.SECONDS)
 					.isInstanceOf(ConnectionLostException.class);
 		}
 
-		private byte[] getRequestPayload() {
-			return new byte[0];
+		@ParameterizedTest(name = "[{index}] name = {0}")
+		@MethodSource("invalidPayloadCases")
+		void invalidPayload(final String name, final String body)
+				throws Exception {
+			final byte[] payload = body.getBytes(StandardCharsets.UTF_8);
+
+			connect(SESSION);
+			final FrameHandler errorFrameHandler = subscribeToErrors();
+			send(ENDPOINT, payload);
+
+			assertThat(errorFrameHandler.getResponse())
+					.succeedsWithin(WAIT_TIMEOUT.toSeconds(), TimeUnit.SECONDS)
+					.isNotNull()
+					.satisfies(
+							message -> assertThat(message).startsWith("Error"));
+
+			verifyNoInteractions(blockService);
 		}
 
-		private String getDestination(final long meetingId, final long topicId,
-				final long blockId) {
-			return DESTINATION_PREFIX + "/" + meetingId + DESTINATION_TOPIC
-					+ "/" + topicId + DESTINATION_SUFFIX + "/" + blockId
-					+ "/delete";
+		private static Stream<Arguments> invalidPayloadCases() {
+			return Stream.of(Arguments.of("meetingId missing", """
+					{
+						"topicId": 2,
+						"blockId": 3
+					}
+					"""), Arguments.of("topicId missing", """
+					{
+						"meetingId": 1,
+						"blockId": 3
+					}
+					"""), Arguments.of("blockId missing", """
+					{
+						"meetingId": 1,
+						"topicId": 2
+					}
+					"""));
+		}
+
+		private byte[] getRequestPayload() {
+			final String json = """
+					{
+						"meetingId": %d,
+						"topicId": %d,
+						"blockId": %d
+					}
+					""".formatted(MEETING.getId(), TOPIC.getId(),
+					BLOCK.getId());
+
+			return json.getBytes(StandardCharsets.UTF_8);
 		}
 	}
 
