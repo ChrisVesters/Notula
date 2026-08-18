@@ -1,4 +1,10 @@
+
+export type TextBlockUpdateAction = TextBlockUpdateContentAction;
+
 export type TextBlockUpdateContentAction = {
+	meetingId: number;
+	topicId: number;
+	blockId: number;
 	action: "UPDATE_CONTENT";
 	position: number;
 	length: number;

@@ -1,14 +1,17 @@
-export type TopicCreateRequest = {
+export type TopicCreateAction = {
+	meetingId: number;
 	sequenceId: number;
 	name: string;
 };
 
-export type TopicAction =
+export type TopicUpdateAction =
 	| TopicUpdateNameAction
 	| TopicUpdateDescriptionAction
 	| TopicUpdateDurationAction;
 
 export type TopicUpdateNameAction = {
+	meetingId: number;
+	topicId: number;
 	action: "UPDATE_NAME";
 	position: number;
 	length: number;
@@ -16,6 +19,8 @@ export type TopicUpdateNameAction = {
 };
 
 export type TopicUpdateDescriptionAction = {
+	meetingId: number;
+	topicId: number;
 	action: "UPDATE_DESCRIPTION";
 	position: number;
 	length: number;
@@ -23,8 +28,15 @@ export type TopicUpdateDescriptionAction = {
 };
 
 export type TopicUpdateDurationAction = {
+	meetingId: number;
+	topicId: number;
 	action: "UPDATE_DURATION";
 	duration: number | null;
+};
+
+export type TopicDeleteAction = {
+	meetingId: number;
+	topicId: number;
 };
 
 export type TopicEvent = {

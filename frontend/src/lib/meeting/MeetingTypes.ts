@@ -6,12 +6,18 @@ export type MeetingInfo = {
 	name: string;
 };
 
+// TODO: rename request to action
 export type MeetingCreateRequest = {
 	name: string;
 };
 
+export type MeetingUpdateAction =
+	| MeetingUpdateNameAction
+	| MeetingUpdateDescriptionAction;
+
 // TODO: classes?
 export type MeetingUpdateNameAction = {
+	meetingId: number;
 	action: "UPDATE_NAME";
 	position: number;
 	length: number;
@@ -19,6 +25,7 @@ export type MeetingUpdateNameAction = {
 };
 
 export type MeetingUpdateDescriptionAction = {
+	meetingId: number;
 	action: "UPDATE_DESCRIPTION";
 	position: number;
 	length: number;

@@ -5,7 +5,7 @@
 	import IconButton from "$lib/form/IconButton.svelte";
 	import TextBlockView from "$lib/textblock/TextBlockView.svelte";
 
-	import { BlockType } from "./BlockTypes";
+	import { BlockType, type BlockDeleteAction } from "./BlockTypes";
 	import BlockWebSocketClient from "./BlockWebSocketClient";
 
 	export type BlockViewProps = {
@@ -17,7 +17,13 @@
 	let { meetingId, topicId, block = $bindable() }: BlockViewProps = $props();
 
 	const handleDeleteBlock = (blockId: number) => {
-		BlockWebSocketClient.delete(meetingId, topicId, blockId);
+		const request: BlockDeleteAction = {
+			meetingId,
+			topicId,
+			blockId
+		};
+
+		BlockWebSocketClient.delete(request);
 	};
 </script>
 

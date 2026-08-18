@@ -6,7 +6,7 @@
 	import { t } from "$lib/assets/translations";
 
 	import IconPlus from "$lib/assets/icons/IconPlus.svelte";
-	import type { BlockMutation } from "$lib/block/BlockTypes";
+	import type { BlockCreateAction, BlockMutation } from "$lib/block/BlockTypes";
 	import { BlockType } from "$lib/block/BlockTypes";
 	import BlockView from "$lib/block/BlockView.svelte";
 	import BlockWebSocketClient from "$lib/block/BlockWebSocketClient";
@@ -128,23 +128,26 @@
 
 	const handleUpdateTopicName = (topicId: number, action: UpdateAction) => {
 		const request: TopicUpdateNameAction = {
+			meetingId: id,
+			topicId,
 			action: "UPDATE_NAME",
 			position: action.position,
 			length: action.length,
 			value: action.value
 		};
 
-		TopicWebSocketClient.update(id, topicId, request);
+		TopicWebSocketClient.update(request);
 	};
 
 	function addBlock(topic: TopicDetails): Promise<void> {
-		const request = {
+		const request: BlockCreateAction = {
+			meetingId: id,
+			topicId: topic.id,
 			type: BlockType.TEXT,
 			sequenceId: topic.blocks.length
 		};
 
-		const topicId = topic.id;
-		BlockWebSocketClient.create(id, topicId, request);
+		BlockWebSocketClient.create(request);
 
 		return Promise.resolve();
 	}

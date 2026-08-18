@@ -1,28 +1,16 @@
 import Session from "$lib/auth/Session";
 import type WebSocketClient from "$lib/common/WebSocketClient";
-
-import type { TextBlockUpdateContentAction } from "./TextBlockTypes";
+import type { TextBlockUpdateAction } from "./TextBlockTypes";
 
 export default class TextBlockWebSocketClient {
-	public static updateContent(
-		meetingId: number,
-		topicId: number,
-		blockId: number,
-		action: TextBlockUpdateContentAction
-	): void {
+	private static readonly ENDPOINT = "/app/text-blocks";
+
+	public static updateContent(action: TextBlockUpdateAction): void {
 		const client: WebSocketClient = Session.getWebSocketClient();
 
 		client.send(
-			this.getDestination(meetingId, topicId, blockId),
+			`${TextBlockWebSocketClient.ENDPOINT}/update`,
 			JSON.stringify(action)
 		);
-	}
-
-	private static getDestination(
-		meetingId: number,
-		topicId: number,
-		blockId: number
-	) {
-		return `/app/meetings/${meetingId}/topics/${topicId}/text-blocks/${blockId}`;
 	}
 }
