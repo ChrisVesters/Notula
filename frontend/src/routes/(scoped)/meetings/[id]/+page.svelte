@@ -85,7 +85,7 @@
 		} else if (event.target === "BLOCK") {
 			const mutation: BlockMutation = event.mutation;
 			if (mutation.action === "CREATE") {
-				const topic = meeting?.topics.find(t => t.id === event.topicId);
+				const topic = meeting?.topics.find(t => t.id === mutation.topicId);
 				// TODO: what if topic does not exist? Out of sync?
 				if (!topic) {
 					console.error("Topic does not exist");
@@ -103,17 +103,16 @@
 					console.error("Unhandled block type:", mutation.type);
 				}
 			} else if (mutation.action === "DELETE") {
-				const topic = meeting?.topics.find(t => t.id === event.topicId);
-				// TODO: what if topic does not exist? Out of sync?
+				const topic = meeting?.topics.find(t =>
+					t.blocks.some(b => b.id === event.blockId)
+				);
+				// TODO: what if block does not exist? Out of sync?
 				if (!topic) {
-					console.error("Topic does not exist");
+					console.error("Block does not exist");
 					return;
 				}
 
-				const index = topic.blocks.findIndex(b => b.id === event.blockId);
-				if (index !== undefined && index >= 0) {
-					topic.blocks.splice(index, 1);
-				}
+				topic.blocks = topic.blocks.filter(b => b.id !== event.blockId);
 			}
 		}
 	};

@@ -58,10 +58,11 @@ class BlockWebSocketTest extends WebSocketTest {
 			connect(SESSION);
 			send(ENDPOINT, payload);
 
-			final var action = new BlockAction.Create(BlockType.TEXT, 0);
+			final var action = new BlockAction.Create(TOPIC.getId(),
+					BlockType.TEXT, 0);
 			final var matcher = new BlockActionMatcher.Create(action);
 			verify(blockService, timeout(WAIT_TIMEOUT.toMillis())).create(
-					eq(PRINCIPAL), eq(MEETING.getId()), eq(TOPIC.getId()),
+					eq(PRINCIPAL), eq(MEETING.getId()),
 					argThat(matcher::matches));
 		}
 
@@ -69,7 +70,7 @@ class BlockWebSocketTest extends WebSocketTest {
 		void notFound() throws Exception {
 			final byte[] payload = getRequestPayload("TEXT", 0);
 
-			when(blockService.create(any(), anyLong(), anyLong(), any()))
+			when(blockService.create(any(), anyLong(), any()))
 					.thenThrow(new MissingEntityException());
 
 			connect(SESSION);

@@ -26,10 +26,12 @@ public sealed interface BlockMutationDto {
 	@Getter
 	final class Create implements BlockMutationDto {
 
+		private final long topicId;
 		private final BlockTypeDto type;
 		private final int sequenceId;
 
 		private Create(final BlockAction.Create create) {
+			this.topicId = create.getTopicId();
 			this.type = new BlockTypeDto(create.getType());
 			this.sequenceId = create.getSequenceId();
 		}

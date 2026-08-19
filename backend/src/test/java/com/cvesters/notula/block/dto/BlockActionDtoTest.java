@@ -26,6 +26,7 @@ class BlockActionDtoTest {
 					BLOCK.getSequenceId());
 			final BlockAction.Create bdo = dto.toBdo();
 
+			assertThat(bdo.getTopicId()).isEqualTo(TOPIC.getId());
 			assertThat(bdo.getType()).isEqualTo(BLOCK.getType());
 			assertThat(bdo.getSequenceId()).isEqualTo(BLOCK.getSequenceId());
 		}

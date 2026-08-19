@@ -16,20 +16,18 @@ class BlockEventTest {
 
 		@Test
 		void success() {
-			final var action = new BlockAction.Create(BlockType.TEXT, 0);
-			final var event = new BlockEvent(TOPIC_ID, BLOCK_ID,
-					action);
+			final var action = new BlockAction.Create(TOPIC_ID, BlockType.TEXT,
+					0);
+			final var event = new BlockEvent(BLOCK_ID, action);
 
-			assertThat(event.topicId()).isEqualTo(TOPIC_ID);
 			assertThat(event.blockId()).isEqualTo(BLOCK_ID);
 			assertThat(event.action()).isEqualTo(action);
 		}
 
 		@Test
 		void actionNull() {
-			assertThatThrownBy(
-					() -> new BlockEvent(TOPIC_ID, BLOCK_ID, null))
-							.isInstanceOf(NullPointerException.class);
+			assertThatThrownBy(() -> new BlockEvent(BLOCK_ID, null))
+					.isInstanceOf(NullPointerException.class);
 		}
 	}
 }

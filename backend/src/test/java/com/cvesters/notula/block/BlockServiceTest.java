@@ -131,19 +131,18 @@ class BlockServiceTest {
 				return true;
 			}))).thenReturn(created);
 
-			final var action = new BlockAction.Create(BLOCK.getType(),
-					BLOCK.getSequenceId());
+			final var action = new BlockAction.Create(TOPIC.getId(),
+					BLOCK.getType(), BLOCK.getSequenceId());
 
 			final BlockInfo result = blockService.create(PRINCIPAL, meetingId,
-					topicId, action);
+					action);
 
 			assertThat(result).isEqualTo(created);
 
-			final var expectedAction = new BlockAction.Create(BLOCK.getType(),
-					BLOCK.getSequenceId());
+			final var expectedAction = new BlockAction.Create(TOPIC.getId(),
+					BLOCK.getType(), BLOCK.getSequenceId());
 			final var matcher = new BlockActionMatcher.Create(expectedAction);
 			verify(blockPublisher).publish(eq(meetingId), argThat(event -> {
-				assertThat(event.topicId()).isEqualTo(TOPIC.getId());
 				assertThat(event.blockId()).isEqualTo(BLOCK.getId());
 				assertThat(event.action()).is(matcher.equal());
 				return true;
@@ -186,19 +185,18 @@ class BlockServiceTest {
 				return true;
 			}))).thenReturn(created);
 
-			final var action = new BlockAction.Create(BLOCK.getType(),
-					sequenceId);
+			final var action = new BlockAction.Create(TOPIC.getId(),
+					BLOCK.getType(), sequenceId);
 
 			final BlockInfo result = blockService.create(PRINCIPAL, meetingId,
-					topicId, action);
+					action);
 
 			assertThat(result).isEqualTo(created);
 
-			final var expectedAction = new BlockAction.Create(BLOCK.getType(),
-					sequenceId);
+			final var expectedAction = new BlockAction.Create(TOPIC.getId(),
+					BLOCK.getType(), sequenceId);
 			final var matcher = new BlockActionMatcher.Create(expectedAction);
 			verify(blockPublisher).publish(eq(meetingId), argThat(event -> {
-				assertThat(event.topicId()).isEqualTo(TOPIC.getId());
 				assertThat(event.blockId()).isEqualTo(BLOCK.getId());
 				assertThat(event.action()).is(matcher.equal());
 				return true;
@@ -241,19 +239,18 @@ class BlockServiceTest {
 				return true;
 			}))).thenReturn(created);
 
-			final var action = new BlockAction.Create(BLOCK.getType(),
-					sequenceId);
+			final var action = new BlockAction.Create(TOPIC.getId(),
+					BLOCK.getType(), sequenceId);
 
 			final BlockInfo result = blockService.create(PRINCIPAL, meetingId,
-					topicId, action);
+					action);
 
 			assertThat(result).isEqualTo(created);
 
-			final var expectedAction = new BlockAction.Create(BLOCK.getType(),
-					sequenceId);
+			final var expectedAction = new BlockAction.Create(TOPIC.getId(),
+					BLOCK.getType(), sequenceId);
 			final var matcher = new BlockActionMatcher.Create(expectedAction);
 			verify(blockPublisher).publish(eq(meetingId), argThat(event -> {
-				assertThat(event.topicId()).isEqualTo(TOPIC.getId());
 				assertThat(event.blockId()).isEqualTo(BLOCK.getId());
 				assertThat(event.action()).is(matcher.equal());
 				return true;
@@ -276,10 +273,11 @@ class BlockServiceTest {
 			when(blockStorageGateway.findAllByTopicId(topicId))
 					.thenReturn(Collections.emptyList());
 
-			final var action = new BlockAction.Create(BLOCK.getType(), 1);
+			final var action = new BlockAction.Create(TOPIC.getId(),
+					BLOCK.getType(), 1);
 
-			assertThatThrownBy(() -> blockService.create(PRINCIPAL, meetingId,
-					topicId, action))
+			assertThatThrownBy(
+					() -> blockService.create(PRINCIPAL, meetingId, action))
 							.isInstanceOf(IllegalArgumentException.class);
 
 			verifyNoInteractions(blockPublisher);
@@ -290,23 +288,22 @@ class BlockServiceTest {
 		@Test
 		void principalNull() {
 			final long meetingId = MEETING.getId();
-			final long topicId = TOPIC.getId();
 
-			final var block = new BlockAction.Create(BLOCK.getType(),
-					BLOCK.getSequenceId());
+			final var block = new BlockAction.Create(TOPIC.getId(),
+					BLOCK.getType(), BLOCK.getSequenceId());
 
 			assertThatThrownBy(
-					() -> blockService.create(null, meetingId, topicId, block))
+					() -> blockService.create(null, meetingId, block))
 							.isInstanceOf(NullPointerException.class);
 		}
 
 		@Test
 		void actionNull() {
 			final long meetingId = MEETING.getId();
-			final long topicId = TOPIC.getId();
 
-			assertThatThrownBy(() -> blockService.create(PRINCIPAL, meetingId,
-					topicId, null)).isInstanceOf(NullPointerException.class);
+			assertThatThrownBy(
+					() -> blockService.create(PRINCIPAL, meetingId, null))
+							.isInstanceOf(NullPointerException.class);
 		}
 
 	}
@@ -341,7 +338,6 @@ class BlockServiceTest {
 
 			verify(blockStorageGateway).delete(blockInfo);
 			verify(blockPublisher).publish(eq(meetingId), argThat(event -> {
-				assertThat(event.topicId()).isEqualTo(topicId);
 				assertThat(event.blockId()).isEqualTo(blockId);
 				assertThat(event.action())
 						.isInstanceOf(BlockAction.Delete.class);
@@ -383,7 +379,6 @@ class BlockServiceTest {
 
 			verify(blockStorageGateway).delete(blockInfo);
 			verify(blockPublisher).publish(eq(meetingId), argThat(event -> {
-				assertThat(event.topicId()).isEqualTo(topicId);
 				assertThat(event.blockId()).isEqualTo(blockId);
 				assertThat(event.action())
 						.isInstanceOf(BlockAction.Delete.class);
@@ -429,7 +424,6 @@ class BlockServiceTest {
 
 			verify(blockStorageGateway).delete(blockInfo);
 			verify(blockPublisher).publish(eq(meetingId), argThat(event -> {
-				assertThat(event.topicId()).isEqualTo(topicId);
 				assertThat(event.action())
 						.isInstanceOf(BlockAction.Delete.class);
 				return true;

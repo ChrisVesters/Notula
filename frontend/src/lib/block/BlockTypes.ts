@@ -26,7 +26,6 @@ export type BlockDeleteAction = {
 
 export type BlockEvent = {
 	target: "BLOCK";
-	topicId: number;
 	blockId: number;
 	mutation: BlockMutation;
 };
@@ -35,6 +34,7 @@ export type BlockMutation = BlockMutationCreate | BlockMutationDelete;
 
 export type BlockMutationCreate = {
 	action: "CREATE";
+	topicId: number;
 	type: BlockType;
 	sequenceId: number;
 };
