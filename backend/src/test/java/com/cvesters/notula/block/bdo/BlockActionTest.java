@@ -11,13 +11,17 @@ class BlockActionTest {
 	@Nested
 	class Create {
 
+		private static final long TOPIC_ID = 32L;
+
 		@Test
 		void success() {
 			final BlockType type = BlockType.TEXT;
 			final int sequenceId = 0;
 
-			final var action = new BlockAction.Create(type, sequenceId);
+			final var action = new BlockAction.Create(TOPIC_ID, type,
+					sequenceId);
 
+			assertThat(action.getTopicId()).isEqualTo(TOPIC_ID);
 			assertThat(action.getType()).isEqualTo(type);
 			assertThat(action.getSequenceId()).isEqualTo(sequenceId);
 		}
@@ -27,8 +31,9 @@ class BlockActionTest {
 			final BlockType type = null;
 			final int sequenceId = 0;
 
-			assertThatThrownBy(() -> new BlockAction.Create(type, sequenceId))
-					.isInstanceOf(NullPointerException.class);
+			assertThatThrownBy(
+					() -> new BlockAction.Create(TOPIC_ID, type, sequenceId))
+							.isInstanceOf(NullPointerException.class);
 		}
 
 		@Test
@@ -36,8 +41,9 @@ class BlockActionTest {
 			final BlockType type = BlockType.TEXT;
 			final int sequenceId = -1;
 
-			assertThatThrownBy(() -> new BlockAction.Create(type, sequenceId))
-					.isInstanceOf(IllegalArgumentException.class);
+			assertThatThrownBy(
+					() -> new BlockAction.Create(TOPIC_ID, type, sequenceId))
+							.isInstanceOf(IllegalArgumentException.class);
 		}
 	}
 

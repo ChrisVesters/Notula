@@ -41,12 +41,12 @@ public class BlockService {
 	}
 
 	public BlockInfo create(final Principal principal, final long meetingId,
-			final long topicId, final BlockAction.Create action) {
+			final BlockAction.Create action) {
 		Objects.requireNonNull(principal);
 		Objects.requireNonNull(action);
 
 		final TopicInfo topic = topicService.getById(principal, meetingId,
-				topicId);
+				action.getTopicId());
 
 		final List<BlockInfo> existingBlocks = blockStorage
 				.findAllByTopicId(topic.getId());
@@ -66,8 +66,7 @@ public class BlockService {
 
 		final BlockInfo created = blockStorage.create(block);
 
-		final var event = new BlockEvent(topic.getId(), created.getId(),
-				action);
+		final var event = new BlockEvent(created.getId(), action);
 		blockPublisher.publish(meetingId, event);
 
 		return created;
@@ -91,8 +90,7 @@ public class BlockService {
 		blockStorage.updateAll(toUpdateTopics);
 		// TODO: publish move action/event!!
 
-		final var event = new BlockEvent(topicId, blockId,
-				new BlockAction.Delete());
+		final var event = new BlockEvent(blockId, new BlockAction.Delete());
 		blockPublisher.publish(meetingId, event);
 	}
 }

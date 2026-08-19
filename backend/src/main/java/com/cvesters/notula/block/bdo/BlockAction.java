@@ -11,13 +11,16 @@ public sealed interface BlockAction {
 	@Getter
 	final class Create implements BlockAction {
 
+		private final long topicId;
 		private final BlockType type;
 		private final int sequenceId;
 
-		public Create(final BlockType type, final int sequenceId) {
+		public Create(final long topicId, final BlockType type,
+				final int sequenceId) {
 			Objects.requireNonNull(type);
 			Validate.isTrue(sequenceId >= 0);
 
+			this.topicId = topicId;
 			this.type = type;
 			this.sequenceId = sequenceId;
 		}

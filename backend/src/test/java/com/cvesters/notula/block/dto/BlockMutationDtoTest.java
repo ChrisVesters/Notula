@@ -8,24 +8,27 @@ import org.junit.jupiter.api.Test;
 
 import com.cvesters.notula.block.TestBlock;
 import com.cvesters.notula.block.bdo.BlockAction;
+import com.cvesters.notula.topic.TestTopic;
 
 class BlockMutationDtoTest {
 
 	private static final TestBlock BLOCK = TestBlock.SPORER_PROJECT_BLOCKERS_FIRST;
+	private static final TestTopic TOPIC = BLOCK.getTopic();
 
 	@Nested
 	class Of {
 
 		@Test
 		void create() {
-			final var action = new BlockAction.Create(BLOCK.getType(),
-					BLOCK.getSequenceId());
+			final var action = new BlockAction.Create(TOPIC.getId(),
+					BLOCK.getType(), BLOCK.getSequenceId());
 
 			final var dto = BlockMutationDto.of(action);
 
 			assertThat(dto).isInstanceOf(BlockMutationDto.Create.class);
 
 			final var createDto = (BlockMutationDto.Create) dto;
+			assertThat(createDto.getTopicId()).isEqualTo(TOPIC.getId());
 			assertThat(createDto.getType()).isEqualTo(BLOCK.getTypeDto());
 			assertThat(createDto.getSequenceId())
 					.isEqualTo(BLOCK.getSequenceId());

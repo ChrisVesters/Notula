@@ -18,6 +18,7 @@ public final class BlockActionMatcher {
 
 		@Override
 		public void assertEquals(final BlockAction.Create actual) {
+			assertThat(actual.getTopicId()).isEqualTo(expected.getTopicId());
 			assertThat(actual.getType()).isEqualTo(expected.getType());
 			assertThat(actual.getSequenceId()).isEqualTo(expected.getSequenceId());
 		}

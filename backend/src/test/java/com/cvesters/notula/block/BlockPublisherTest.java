@@ -42,15 +42,14 @@ class BlockPublisherTest {
 
 		@Test
 		void create() {
-			final var action = new BlockAction.Create(BLOCK.getType(),
+			final var action = new BlockAction.Create(TOPIC_ID, BLOCK.getType(),
 					BLOCK.getSequenceId());
-			final var event = new BlockEvent(TOPIC_ID, BLOCK_ID, action);
+			final var event = new BlockEvent(BLOCK_ID, action);
 
 			publisher.publish(MEETING_ID, event);
 
 			verify(messagingTemplate).convertAndSend(eq(DESTINATION),
 					argThat((BlockEventDto dto) -> {
-						assertThat(dto.getTopicId()).isEqualTo(TOPIC_ID);
 						assertThat(dto.getBlockId()).isEqualTo(BLOCK_ID);
 
 						assertThat(dto.getMutation())
@@ -58,6 +57,7 @@ class BlockPublisherTest {
 
 						final var mutation = (BlockMutationDto.Create) dto
 								.getMutation();
+						assertThat(mutation.getTopicId()).isEqualTo(TOPIC_ID);
 						assertThat(mutation.getType())
 								.isEqualTo(BLOCK.getTypeDto());
 						assertThat(mutation.getSequenceId())

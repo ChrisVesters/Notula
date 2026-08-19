@@ -22,19 +22,19 @@ class BlockEventDtoTest {
 
 		@Test
 		void success() {
-			final var action = new BlockAction.Create(BLOCK.getType(),
-					BLOCK.getSequenceId());
-			final var event = new BlockEvent(TOPIC_ID, BLOCK_ID, action);
+			final var action = new BlockAction.Create(TOPIC_ID,
+					BLOCK.getType(), BLOCK.getSequenceId());
+			final var event = new BlockEvent(BLOCK_ID, action);
 
 			final var dto = new BlockEventDto(event);
 
 			assertThat(dto.getTarget()).isEqualTo("BLOCK");
-			assertThat(dto.getTopicId()).isEqualTo(TOPIC_ID);
 			assertThat(dto.getBlockId()).isEqualTo(BLOCK_ID);
 			assertThat(dto.getMutation())
 					.isInstanceOf(BlockMutationDto.Create.class);
 
 			final var mutation = (BlockMutationDto.Create) dto.getMutation();
+			assertThat(mutation.getTopicId()).isEqualTo(TOPIC_ID);
 			assertThat(mutation.getType()).isEqualTo(BLOCK.getTypeDto());
 			assertThat(mutation.getSequenceId())
 					.isEqualTo(BLOCK.getSequenceId());

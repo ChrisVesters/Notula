@@ -34,13 +34,9 @@ public final class BlockActionDto {
 			return meetingId;
 		}
 
-		public long getTopicId() {
-			return topicId;
-		}
-
 		public BlockAction.Create toBdo() {
 			final BlockType blockType = type.toBdo();
-			return new BlockAction.Create(blockType, sequenceId);
+			return new BlockAction.Create(topicId, blockType, sequenceId);
 		}
 	}
 
