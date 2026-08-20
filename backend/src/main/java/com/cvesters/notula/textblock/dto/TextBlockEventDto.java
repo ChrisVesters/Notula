@@ -15,7 +15,7 @@ public class TextBlockEventDto {
 	public TextBlockEventDto(final TextBlockEvent event) {
 		Objects.requireNonNull(event);
 
-		this.blockId = event.blockId();
+		this.blockId = event.block().getId();
 		this.mutation = TextBlockMutationDto.of(event.action());
 	}
 

@@ -51,7 +51,7 @@ class BlockPublisherTest {
 		private static final String DESTINATION = DESTINATION_PREFIX + "/"
 				+ MEETING_ID;
 
-		private BlockInfo block = mock();
+		private final BlockInfo block = mock();
 
 		@BeforeEach
 		void block() {
