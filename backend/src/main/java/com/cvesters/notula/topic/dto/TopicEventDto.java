@@ -15,7 +15,7 @@ public class TopicEventDto {
 	public TopicEventDto(final TopicEvent event) {
 		Objects.requireNonNull(event);
 
-		this.topicId = event.topicId();
+		this.topicId = event.topic().getId();
 		this.mutation = TopicMutationDto.of(event.action());
 	}
 

@@ -34,18 +34,16 @@ public class TopicWebSocket extends BaseController {
 	public void update(@Valid @Payload final TopicActionDto.Update dto) {
 		final Principal principal = getPrincipal();
 
-		final long meetingId = dto.getMeetingId();
 		final long topicId = dto.getTopicId();
 		final TopicAction.Update action = dto.toBdo();
-		topicService.update(principal, meetingId, topicId, action);
+		topicService.update(principal, topicId, action);
 	}
 
 	@MessageMapping(ENDPOINT + "/delete")
 	public void delete(@Valid @Payload final TopicActionDto.Delete dto) {
 		final Principal principal = getPrincipal();
 
-		final long meetingId = dto.getMeetingId();
 		final long topicId = dto.getTopicId();
-		topicService.delete(principal, meetingId, topicId);
+		topicService.delete(principal, topicId);
 	}
 }
