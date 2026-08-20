@@ -26,17 +26,15 @@ public class BlockWebSocket extends BaseController {
 	public void create(@Valid @Payload final BlockActionDto.Create dto) {
 		final Principal principal = getPrincipal();
 
-		final long meetingId = dto.getMeetingId();
 		final BlockAction.Create action = dto.toBdo();
-		blockService.create(principal, meetingId, action);
+		blockService.create(principal, action);
 	}
 
 	@MessageMapping(ENDPOINT + "/delete")
 	public void delete(@Valid @Payload final BlockActionDto.Delete dto) {
 		final Principal principal = getPrincipal();
 
-		final long meetingId = dto.getMeetingId();
 		final long blockId = dto.getBlockId();
-		blockService.delete(principal, meetingId, blockId);
+		blockService.delete(principal, blockId);
 	}
 }
