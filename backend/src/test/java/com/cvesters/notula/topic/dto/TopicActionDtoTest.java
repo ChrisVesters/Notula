@@ -25,6 +25,7 @@ class TopicActionDtoTest {
 					TOPIC.getSequenceId(), TOPIC.getName());
 			final TopicAction.Create bdo = dto.toBdo();
 
+			assertThat(bdo.getMeetingId()).isEqualTo(MEETING.getId());
 			assertThat(bdo.getSequenceId()).isEqualTo(TOPIC.getSequenceId());
 			assertThat(bdo.getName()).isEqualTo(TOPIC.getName());
 		}

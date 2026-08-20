@@ -40,16 +40,16 @@ public class TopicService {
 				.orElseThrow(MissingEntityException::new);
 	}
 
-	public TopicInfo create(final Principal principal, final long meetingId,
+	public TopicInfo create(final Principal principal,
 			final TopicAction.Create action) {
 		Objects.requireNonNull(principal);
 		Objects.requireNonNull(action);
 
 		final MeetingInfo meeting = meetingService.getById(principal,
-				meetingId);
+				action.getMeetingId());
 
 		final List<TopicInfo> existingTopics = topicStorage
-				.findAllByMeetingId(meetingId);
+				.findAllByMeetingId(meeting.getId());
 		// TODO: move logic into action?
 		if (action.getSequenceId() > existingTopics.size()) {
 			throw new IllegalArgumentException();
@@ -68,7 +68,7 @@ public class TopicService {
 		final TopicInfo created = topicStorage.create(topic);
 
 		final var event = new TopicEvent(created.getId(), action);
-		topicPublisher.publish(meetingId, event);
+		topicPublisher.publish(meeting.getId(), event);
 
 		return created;
 	}

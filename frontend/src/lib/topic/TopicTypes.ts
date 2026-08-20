@@ -54,6 +54,7 @@ export type TopicMutation =
 
 export type TopicMutationCreate = {
 	action: "CREATE";
+	meetingId: number;
 	sequenceId: number;
 	name: string;
 };
