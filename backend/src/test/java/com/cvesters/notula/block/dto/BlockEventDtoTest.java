@@ -2,6 +2,8 @@ package com.cvesters.notula.block.dto;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -9,6 +11,7 @@ import org.junit.jupiter.api.Test;
 import com.cvesters.notula.block.TestBlock;
 import com.cvesters.notula.block.bdo.BlockAction;
 import com.cvesters.notula.block.bdo.BlockEvent;
+import com.cvesters.notula.block.bdo.BlockInfo;
 
 class BlockEventDtoTest {
 
@@ -22,9 +25,12 @@ class BlockEventDtoTest {
 
 		@Test
 		void success() {
+			final BlockInfo block = mock();
+			when(block.getId()).thenReturn(BLOCK_ID);
+
 			final var action = new BlockAction.Create(TOPIC_ID,
 					BLOCK.getType(), BLOCK.getSequenceId());
-			final var event = new BlockEvent(BLOCK_ID, action);
+			final var event = new BlockEvent(block, action);
 
 			final var dto = new BlockEventDto(event);
 

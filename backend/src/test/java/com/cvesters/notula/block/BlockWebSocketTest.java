@@ -61,16 +61,15 @@ class BlockWebSocketTest extends WebSocketTest {
 			final var action = new BlockAction.Create(TOPIC.getId(),
 					BlockType.TEXT, 0);
 			final var matcher = new BlockActionMatcher.Create(action);
-			verify(blockService, timeout(WAIT_TIMEOUT.toMillis())).create(
-					eq(PRINCIPAL), eq(MEETING.getId()),
-					argThat(matcher::matches));
+			verify(blockService, timeout(WAIT_TIMEOUT.toMillis()))
+					.create(eq(PRINCIPAL), argThat(matcher::matches));
 		}
 
 		@Test
 		void notFound() throws Exception {
 			final byte[] payload = getRequestPayload("TEXT", 0);
 
-			when(blockService.create(any(), anyLong(), any()))
+			when(blockService.create(any(), any()))
 					.thenThrow(new MissingEntityException());
 
 			connect(SESSION);
@@ -195,7 +194,7 @@ class BlockWebSocketTest extends WebSocketTest {
 			send(ENDPOINT, payload);
 
 			verify(blockService, timeout(WAIT_TIMEOUT.toMillis()))
-					.delete(PRINCIPAL, MEETING.getId(), BLOCK.getId());
+					.delete(PRINCIPAL, BLOCK.getId());
 		}
 
 		@Test
@@ -203,7 +202,7 @@ class BlockWebSocketTest extends WebSocketTest {
 			final byte[] payload = getRequestPayload();
 
 			doThrow(new MissingEntityException()).when(blockService)
-					.delete(any(), anyLong(), anyLong());
+					.delete(any(), anyLong());
 
 			connect(SESSION);
 			final FrameHandler errorFrameHandler = subscribeToErrors();

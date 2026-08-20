@@ -39,7 +39,7 @@ public class BlockService {
 				.orElseThrow(MissingEntityException::new);
 	}
 
-	public BlockInfo create(final Principal principal, final long meetingId,
+	public BlockInfo create(final Principal principal,
 			final BlockAction.Create action) {
 		Objects.requireNonNull(principal);
 		Objects.requireNonNull(action);
@@ -65,14 +65,13 @@ public class BlockService {
 
 		final BlockInfo created = blockStorage.create(block);
 
-		final var event = new BlockEvent(created.getId(), action);
-		blockPublisher.publish(meetingId, event);
+		final var event = new BlockEvent(created, action);
+		blockPublisher.publish(event);
 
 		return created;
 	}
 
-	public void delete(final Principal principal, final long meetingId,
-			final long blockId) {
+	public void delete(final Principal principal, final long blockId) {
 		Objects.requireNonNull(principal);
 
 		final BlockInfo blockInfo = getById(principal, blockId);
@@ -88,7 +87,7 @@ public class BlockService {
 		blockStorage.updateAll(toUpdateTopics);
 		// TODO: publish move action/event!!
 
-		final var event = new BlockEvent(blockId, new BlockAction.Delete());
-		blockPublisher.publish(meetingId, event);
+		final var event = new BlockEvent(blockInfo, new BlockAction.Delete());
+		blockPublisher.publish(event);
 	}
 }

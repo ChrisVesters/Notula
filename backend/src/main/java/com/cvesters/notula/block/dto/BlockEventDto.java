@@ -15,7 +15,7 @@ public class BlockEventDto {
 	public BlockEventDto(final BlockEvent event) {
 		Objects.requireNonNull(event);
 
-		this.blockId = event.blockId();
+		this.blockId = event.block().getId();
 		this.mutation = BlockMutationDto.of(event.action());
 	}
 
