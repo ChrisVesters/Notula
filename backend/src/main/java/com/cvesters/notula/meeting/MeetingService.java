@@ -2,7 +2,6 @@ package com.cvesters.notula.meeting;
 
 import java.util.List;
 import java.util.Objects;
-import java.util.Optional;
 
 import org.springframework.stereotype.Service;
 
@@ -25,15 +24,13 @@ public class MeetingService {
 	}
 
 	public MeetingInfo getById(final Principal principal, final long id) {
-		return findById(principal, id).orElseThrow(MissingEntityException::new);
-	}
-
-	private Optional<MeetingInfo> findById(final Principal principal,
-			final long id) {
 		Objects.requireNonNull(principal);
 
-		return meetingStorage
-				.findByOrganisationIdAndId(principal.organisationId(), id);
+		final long organisationId = principal.organisationId();
+
+		return meetingStorage.find(id)
+				.filter(m -> m.getOrganisationId() == organisationId)
+				.orElseThrow(MissingEntityException::new);
 	}
 
 	public List<MeetingInfo> getAll(final Principal principal) {

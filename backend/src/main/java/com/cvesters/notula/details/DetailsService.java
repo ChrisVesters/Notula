@@ -45,8 +45,8 @@ public class DetailsService {
 
 		final long organisationId = principal.organisationId();
 
-		final MeetingInfo info = meetingStorage
-				.findByOrganisationIdAndId(organisationId, id)
+		final MeetingInfo info = meetingStorage.find(id)
+				.filter(m -> m.getOrganisationId() == organisationId)
 				.orElseThrow(MissingEntityException::new);
 
 		final var topicDetails = new ArrayList<TopicDetails>();

@@ -19,10 +19,8 @@ public class MeetingStorageGateway {
 		this.meetingRepository = meetingRepository;
 	}
 
-	public Optional<MeetingInfo> findByOrganisationIdAndId(
-			final long organisationid, final long id) {
-		return meetingRepository.findByOrganisationIdAndId(organisationid, id)
-				.map(MeetingDao::toBdo);
+	public Optional<MeetingInfo> find(final long id) {
+		return meetingRepository.findById(id).map(MeetingDao::toBdo);
 	}
 
 	public List<MeetingInfo> findAllByOrganisationId(
@@ -44,9 +42,7 @@ public class MeetingStorageGateway {
 	public MeetingInfo update(final MeetingInfo meeting) {
 		Objects.requireNonNull(meeting);
 
-		final var dao = meetingRepository
-				.findByOrganisationIdAndId(meeting.getOrganisationId(),
-						meeting.getId())
+		final var dao = meetingRepository.findById(meeting.getId())
 				.orElseThrow(MissingEntityException::new);
 		dao.update(meeting);
 		final var saved = meetingRepository.save(dao);
@@ -56,9 +52,7 @@ public class MeetingStorageGateway {
 	public void delete(final MeetingInfo meeting) {
 		Objects.requireNonNull(meeting);
 
-		final var dao = meetingRepository
-				.findByOrganisationIdAndId(meeting.getOrganisationId(),
-						meeting.getId())
+		final var dao = meetingRepository.findById(meeting.getId())
 				.orElseThrow(MissingEntityException::new);
 		meetingRepository.delete(dao);
 	}
