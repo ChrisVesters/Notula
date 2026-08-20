@@ -24,7 +24,6 @@ import com.cvesters.notula.common.domain.Principal;
 import com.cvesters.notula.common.exception.MissingEntityException;
 import com.cvesters.notula.meeting.MeetingService;
 import com.cvesters.notula.meeting.TestMeeting;
-import com.cvesters.notula.meeting.bdo.MeetingInfo;
 import com.cvesters.notula.organisation.TestOrganisation;
 import com.cvesters.notula.session.TestSession;
 import com.cvesters.notula.topic.bdo.TopicAction;
@@ -46,51 +45,50 @@ class TopicServiceTest {
 		private static final TestSession SESSION = TestSession.EDUARDO_CHRISTIANSEN_SPORER;
 		private static final Principal PRINCIPAL = SESSION.principal();
 		private static final TestTopic TOPIC = TestTopic.SPORER_PROJECT_TIMELINE;
-		private static final TestMeeting MEETING = TOPIC.getMeeting();
 
 		@Test
 		void success() {
-			final MeetingInfo meetingInfo = MEETING.info();
-			when(meetingService.getById(PRINCIPAL, MEETING.getId()))
-					.thenReturn(meetingInfo);
-			when(meetingService.getById(PRINCIPAL, MEETING.getId()))
-					.thenReturn(meetingInfo);
-
 			final TopicInfo topicInfo = TOPIC.info();
-			when(topicStorageGateway.find(MEETING.getId(), TOPIC.getId()))
+			when(topicStorageGateway.find(TOPIC.getId()))
 					.thenReturn(Optional.of(topicInfo));
 
 			final TopicInfo result = topicService.getById(PRINCIPAL,
-					MEETING.getId(), TOPIC.getId());
+					TOPIC.getId());
 
 			assertThat(result).isEqualTo(topicInfo);
 		}
 
 		@Test
 		void notFound() {
-			final long meetingId = MEETING.getId();
 			final long topicId = TOPIC.getId();
 
-			final MeetingInfo meetingInfo = MEETING.info();
-			when(meetingService.getById(PRINCIPAL, meetingId))
-					.thenReturn(meetingInfo);
-
-			when(topicStorageGateway.find(meetingId, topicId))
+			when(topicStorageGateway.find(topicId))
 					.thenReturn(Optional.empty());
 
-			assertThatThrownBy(
-					() -> topicService.getById(PRINCIPAL, meetingId, topicId))
-							.isInstanceOf(MissingEntityException.class);
+			assertThatThrownBy(() -> topicService.getById(PRINCIPAL, topicId))
+					.isInstanceOf(MissingEntityException.class);
+		}
+
+		@Test
+		void otherOrganisation() {
+			final Principal principal = TestSession.ALISON_DACH_GLOVER
+					.principal();
+			final long topicId = TOPIC.getId();
+
+			final TopicInfo topicInfo = TOPIC.info();
+			when(topicStorageGateway.find(topicId))
+					.thenReturn(Optional.of(topicInfo));
+
+			assertThatThrownBy(() -> topicService.getById(principal, topicId))
+					.isInstanceOf(MissingEntityException.class);
 		}
 
 		@Test
 		void principalNull() {
-			final long meetingId = MEETING.getId();
 			final long topicId = TOPIC.getId();
 
-			assertThatThrownBy(
-					() -> topicService.getById(null, meetingId, topicId))
-							.isInstanceOf(NullPointerException.class);
+			assertThatThrownBy(() -> topicService.getById(null, topicId))
+					.isInstanceOf(NullPointerException.class);
 		}
 	}
 
@@ -302,12 +300,8 @@ class TopicServiceTest {
 			final long meetingId = MEETING.getId();
 			final long topicId = TOPIC.getId();
 
-			final MeetingInfo meetingInfo = MEETING.info();
-			when(meetingService.getById(principal, meetingId))
-					.thenReturn(meetingInfo);
-
 			final TopicInfo topicInfo = TOPIC.info();
-			when(topicStorageGateway.find(meetingId, topicId))
+			when(topicStorageGateway.find(topicId))
 					.thenReturn(Optional.of(topicInfo));
 
 			final TopicInfo updated = mock();
@@ -344,11 +338,7 @@ class TopicServiceTest {
 			final long meetingId = MEETING.getId();
 			final long topicId = TOPIC.getId();
 
-			final MeetingInfo meetingInfo = MEETING.info();
-			when(meetingService.getById(principal, meetingId))
-					.thenReturn(meetingInfo);
-
-			when(topicStorageGateway.find(meetingId, topicId))
+			when(topicStorageGateway.find(topicId))
 					.thenReturn(Optional.empty());
 
 			final TopicAction.Update action = new TopicAction.UpdateName(0, 0,
@@ -399,12 +389,8 @@ class TopicServiceTest {
 			final long meetingId = MEETING.getId();
 			final long topicId = TOPIC.getId();
 
-			final MeetingInfo meetingInfo = MEETING.info();
-			when(meetingService.getById(principal, meetingId))
-					.thenReturn(meetingInfo);
-
 			final TopicInfo topicInfo = TOPIC.info();
-			when(topicStorageGateway.find(meetingId, topicId))
+			when(topicStorageGateway.find(topicId))
 					.thenReturn(Optional.of(topicInfo));
 
 			when(topicStorageGateway.findAllByMeetingId(meetingId))
@@ -433,12 +419,8 @@ class TopicServiceTest {
 			final long meetingId = meeting.getId();
 			final long topicId = deleted.getId();
 
-			final MeetingInfo meetingInfo = MEETING.info();
-			when(meetingService.getById(principal, meetingId))
-					.thenReturn(meetingInfo);
-
 			final TopicInfo topicInfo = deleted.info();
-			when(topicStorageGateway.find(meetingId, topicId))
+			when(topicStorageGateway.find(topicId))
 					.thenReturn(Optional.of(topicInfo));
 
 			final List<TopicInfo> existingTopics = topics.stream()
@@ -474,12 +456,8 @@ class TopicServiceTest {
 			final long meetingId = meeting.getId();
 			final long topicId = deleted.getId();
 
-			final MeetingInfo meetingInfo = MEETING.info();
-			when(meetingService.getById(principal, meetingId))
-					.thenReturn(meetingInfo);
-
 			final TopicInfo topicInfo = deleted.info();
-			when(topicStorageGateway.find(meetingId, topicId))
+			when(topicStorageGateway.find(topicId))
 					.thenReturn(Optional.of(topicInfo));
 
 			final List<TopicInfo> existingTopics = topics.stream()
@@ -507,11 +485,7 @@ class TopicServiceTest {
 			final long meetingId = MEETING.getId();
 			final long topicId = TOPIC.getId();
 
-			final MeetingInfo meetingInfo = MEETING.info();
-			when(meetingService.getById(principal, meetingId))
-					.thenReturn(meetingInfo);
-
-			when(topicStorageGateway.find(meetingId, topicId))
+			when(topicStorageGateway.find(topicId))
 					.thenReturn(Optional.empty());
 
 			assertThatThrownBy(

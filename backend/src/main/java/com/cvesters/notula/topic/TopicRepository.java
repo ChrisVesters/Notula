@@ -11,7 +11,7 @@ public interface TopicRepository extends Repository<TopicDao, Long> {
 
 	List<TopicDao> findAllByMeetingId(long meetingId);
 
-	Optional<TopicDao> findByMeetingIdAndId(long meetingId, long id);
+	Optional<TopicDao> findById(long id);
 
 	TopicDao save(TopicDao topic);
 

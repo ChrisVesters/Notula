@@ -69,36 +69,21 @@ class TopicRepositoryTest extends RepositoryTest {
 	}
 
 	@Nested
-	class FindByMeetingIdAndId {
+	class FindById {
 
 		@Test
 		void found() {
 			final TestTopic topic = TestTopic.GLOVER_KICKOFF_2026_LOOKBACK;
 
-			final var result = topicRepository.findByMeetingIdAndId(
-					topic.getMeeting().getId(), topic.getId());
+			final var result = topicRepository.findById(topic.getId());
 
 			assertThat(result)
 					.hasValueSatisfying(dao -> assertEquals(dao, topic));
 		}
 
 		@Test
-		void topicNotFound() {
-			final TestTopic topic = TestTopic.GLOVER_KICKOFF_2026_LOOKBACK;
-			final TestMeeting meeting = topic.getMeeting();
-
-			final var result = topicRepository
-					.findByMeetingIdAndId(meeting.getId(), Long.MAX_VALUE);
-
-			assertThat(result).isEmpty();
-		}
-
-		@Test
-		void meetingNotFound() {
-			final TestTopic topic = TestTopic.GLOVER_KICKOFF_2026_LOOKBACK;
-
-			final var result = topicRepository
-					.findByMeetingIdAndId(Long.MAX_VALUE, topic.getId());
+		void notFound() {
+			final var result = topicRepository.findById(Long.MAX_VALUE);
 
 			assertThat(result).isEmpty();
 		}

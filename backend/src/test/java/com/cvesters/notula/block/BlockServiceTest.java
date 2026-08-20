@@ -109,7 +109,7 @@ class BlockServiceTest {
 			final long meetingId = MEETING.getId();
 			final long topicId = TOPIC.getId();
 
-			when(topicService.getById(PRINCIPAL, meetingId, topicId))
+			when(topicService.getById(PRINCIPAL, topicId))
 					.thenReturn(TOPIC.info());
 
 			when(blockStorageGateway.findAllByTopicId(topicId))
@@ -158,7 +158,7 @@ class BlockServiceTest {
 			final long meetingId = MEETING.getId();
 			final long topicId = TOPIC.getId();
 
-			when(topicService.getById(PRINCIPAL, meetingId, topicId))
+			when(topicService.getById(PRINCIPAL, topicId))
 					.thenReturn(TOPIC.info());
 
 			final List<BlockInfo> existingBlocks = TestBlock.ofTopic(TOPIC)
@@ -212,7 +212,7 @@ class BlockServiceTest {
 			final long meetingId = MEETING.getId();
 			final long topicId = TOPIC.getId();
 
-			when(topicService.getById(PRINCIPAL, meetingId, topicId))
+			when(topicService.getById(PRINCIPAL, topicId))
 					.thenReturn(TOPIC.info());
 
 			final List<BlockInfo> existingBlocks = TestBlock.ofTopic(TOPIC)
@@ -266,7 +266,7 @@ class BlockServiceTest {
 			final long meetingId = MEETING.getId();
 			final long topicId = TOPIC.getId();
 
-			when(topicService.getById(PRINCIPAL, meetingId, topicId))
+			when(topicService.getById(PRINCIPAL, topicId))
 					.thenReturn(TOPIC.info());
 
 			when(blockStorageGateway.findAllByTopicId(topicId))
