@@ -18,23 +18,10 @@ public final class TextBlockActionDto {
 			@Type(value = Update.Content.class, name = "UPDATE_CONTENT") })
 	public abstract static sealed class Update {
 
-		private final long meetingId;
-		private final long topicId;
 		private final long blockId;
 
-		protected Update(final long meetingId, final long topicId,
-				final long blockId) {
-			this.meetingId = meetingId;
-			this.topicId = topicId;
+		protected Update(final long blockId) {
 			this.blockId = blockId;
-		}
-
-		public long getMeetingId() {
-			return meetingId;
-		}
-
-		public long getTopicId() {
-			return topicId;
 		}
 
 		public long getBlockId() {
@@ -48,10 +35,9 @@ public final class TextBlockActionDto {
 			@Valid
 			private final TextUpdateDto update;
 
-			public Content(final long meetingId, final long topicId,
-					final long blockId, final int position, final int length,
-					final String value) {
-				super(meetingId, topicId, blockId);
+			public Content(final long blockId, final int position,
+					final int length, final String value) {
+				super(blockId);
 
 				this.update = new TextUpdateDto(position, length, value);
 			}

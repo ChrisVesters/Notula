@@ -29,12 +29,7 @@
 
 <div class="block">
 	{#if block.type === BlockType.TEXT}
-		<TextBlockView
-			{meetingId}
-			{topicId}
-			blockId={block.id}
-			bind:content={block}
-		/>
+		<TextBlockView blockId={block.id} bind:content={block} />
 	{/if}
 
 	<div class="actions">

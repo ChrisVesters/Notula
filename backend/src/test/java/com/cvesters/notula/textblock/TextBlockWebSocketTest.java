@@ -26,12 +26,10 @@ import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import com.cvesters.notula.block.TestBlock;
 import com.cvesters.notula.common.domain.Principal;
 import com.cvesters.notula.common.exception.MissingEntityException;
-import com.cvesters.notula.meeting.TestMeeting;
 import com.cvesters.notula.session.TestSession;
 import com.cvesters.notula.test.FrameHandler;
 import com.cvesters.notula.test.WebSocketTest;
 import com.cvesters.notula.textblock.bdo.TextBlockAction;
-import com.cvesters.notula.topic.TestTopic;
 
 class TextBlockWebSocketTest extends WebSocketTest {
 
@@ -41,8 +39,6 @@ class TextBlockWebSocketTest extends WebSocketTest {
 	private static final Principal PRINCIPAL = SESSION.principal();
 
 	private static final TestBlock BLOCK = TestBlock.SPORER_PROJECT_BLOCKERS_FIRST;
-	private static final TestTopic TOPIC = BLOCK.getTopic();
-	private static final TestMeeting MEETING = TOPIC.getMeeting();
 	private static final TestTextBlock TEXT_BLOCK = TestTextBlock.ofBlock(BLOCK);
 
 	@MockitoBean
@@ -121,28 +117,8 @@ class TextBlockWebSocketTest extends WebSocketTest {
 		}
 
 		private static Stream<Arguments> invalidPayloadCases() {
-			return Stream.of(Arguments.of("meetingId missing", """
+			return Stream.of(Arguments.of("blockId missing", """
 					{
-						"topicId": 2,
-						"blockId": 3,
-						"action": "UPDATE_CONTENT",
-						"position": 5,
-						"length": 2,
-						"value": "content"
-					}
-					"""), Arguments.of("topicId missing", """
-					{
-						"meetingId": 1,
-						"blockId": 3,
-						"action": "UPDATE_CONTENT",
-						"position": 5,
-						"length": 2,
-						"value": "content"
-					}
-					"""), Arguments.of("blockId missing", """
-					{
-						"meetingId": 1,
-						"topicId": 2,
 						"action": "UPDATE_CONTENT",
 						"position": 5,
 						"length": 2,
@@ -150,8 +126,6 @@ class TextBlockWebSocketTest extends WebSocketTest {
 					}
 					"""), Arguments.of("position missing", """
 					{
-						"meetingId": 1,
-						"topicId": 2,
 						"blockId": 3,
 						"action": "UPDATE_CONTENT",
 						"length": 2,
@@ -159,8 +133,6 @@ class TextBlockWebSocketTest extends WebSocketTest {
 					}
 					"""), Arguments.of("length missing", """
 					{
-						"meetingId": 1,
-						"topicId": 2,
 						"blockId": 3,
 						"action": "UPDATE_CONTENT",
 						"position": 5,
@@ -168,8 +140,6 @@ class TextBlockWebSocketTest extends WebSocketTest {
 					}
 					"""), Arguments.of("value missing", """
 					{
-						"meetingId": 1,
-						"topicId": 2,
 						"blockId": 3,
 						"action": "UPDATE_CONTENT",
 						"position": 5,
@@ -177,8 +147,6 @@ class TextBlockWebSocketTest extends WebSocketTest {
 					}
 					"""), Arguments.of("position negative", """
 					{
-						"meetingId": 1,
-						"topicId": 2,
 						"blockId": 3,
 						"action": "UPDATE_CONTENT",
 						"position": -5,
@@ -187,8 +155,6 @@ class TextBlockWebSocketTest extends WebSocketTest {
 					}
 					"""), Arguments.of("length negative", """
 					{
-						"meetingId": 1,
-						"topicId": 2,
 						"blockId": 3,
 						"action": "UPDATE_CONTENT",
 						"position": 5,
@@ -197,8 +163,6 @@ class TextBlockWebSocketTest extends WebSocketTest {
 					}
 					"""), Arguments.of("value null", """
 					{
-						"meetingId": 1,
-						"topicId": 2,
 						"blockId": 3,
 						"action": "UPDATE_CONTENT",
 						"position": 5,
@@ -211,16 +175,13 @@ class TextBlockWebSocketTest extends WebSocketTest {
 		private byte[] getRequestPayload(final String content) {
 			final String json = """
 					{
-						"meetingId": %d,
-						"topicId": %d,
 						"blockId": %d,
 						"action": "UPDATE_CONTENT",
 						"position": 5,
 						"length": 2,
 						"value": "%s"
 					}
-					""".formatted(MEETING.getId(), TOPIC.getId(), BLOCK.getId(),
-					content);
+					""".formatted(BLOCK.getId(), content);
 
 			return json.getBytes(StandardCharsets.UTF_8);
 		}
