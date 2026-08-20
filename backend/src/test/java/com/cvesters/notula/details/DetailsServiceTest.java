@@ -48,9 +48,8 @@ class DetailsServiceTest {
 		@Test
 		void success() {
 			final MeetingInfo info = MEETING.info();
-			when(meetingStorage.findByOrganisationIdAndId(
-					PRINCIPAL.organisationId(), MEETING.getId()))
-							.thenReturn(Optional.of(info));
+			when(meetingStorage.find(MEETING.getId()))
+					.thenReturn(Optional.of(info));
 
 			final List<TopicInfo> topicsInfo = TOPICS.stream()
 					.map(TestTopic::info)
@@ -97,12 +96,25 @@ class DetailsServiceTest {
 		@Test
 		void notFound() {
 			final long meetingId = MEETING.getId();
-			when(meetingStorage.findByOrganisationIdAndId(
-					PRINCIPAL.organisationId(), MEETING.getId()))
-							.thenReturn(Optional.empty());
+			when(meetingStorage.find(MEETING.getId()))
+					.thenReturn(Optional.empty());
 
 			assertThatThrownBy(
 					() -> meetingActionService.get(PRINCIPAL, meetingId))
+							.isInstanceOf(MissingEntityException.class);
+		}
+
+		@Test
+		void otherOrganisation() {
+			final long meetingId = MEETING.getId();
+			final Principal principal = TestSession.ALISON_DACH_GLOVER
+					.principal();
+
+			when(meetingStorage.find(meetingId))
+					.thenReturn(Optional.of(MEETING.info()));
+
+			assertThatThrownBy(
+					() -> meetingActionService.get(principal, meetingId))
 							.isInstanceOf(MissingEntityException.class);
 		}
 

@@ -26,15 +26,14 @@ class MeetingRepositoryTest extends RepositoryTest {
 	private MeetingRepository meetingRepository;
 
 	@Nested
-	class FindByOrganisationIdAndId {
+	class FindById {
 
 		private static final TestMeeting MEETING = TestMeeting.GLOVER_KICKOFF_2026;
 
 		@Test
-		void single() {
+		void found() {
 			final Optional<MeetingDao> dao = meetingRepository
-					.findByOrganisationIdAndId(
-							MEETING.getOrganisation().getId(), MEETING.getId());
+					.findById(MEETING.getId());
 
 			assertThat(dao).hasValueSatisfying(meeting -> {
 				assertThat(meeting.getId()).isEqualTo(MEETING.getId());
@@ -51,29 +50,9 @@ class MeetingRepositoryTest extends RepositoryTest {
 		}
 
 		@Test
-		void meetingIdNonExisting() {
+		void notFound() {
 			final Optional<MeetingDao> dao = meetingRepository
-					.findByOrganisationIdAndId(
-							MEETING.getOrganisation().getId(), Long.MAX_VALUE);
-
-			assertThat(dao).isEmpty();
-		}
-
-		@Test
-		void organisatioIdNonExisting() {
-			final Optional<MeetingDao> dao = meetingRepository
-					.findByOrganisationIdAndId(Long.MAX_VALUE, MEETING.getId());
-
-			assertThat(dao).isEmpty();
-		}
-
-		@Test
-		void meetingBelongsToOtherOrganisation() {
-			final long organisationId = TestOrganisation.SPORER.getId();
-			final long meetingId = TestMeeting.GLOVER_KICKOFF_2026.getId();
-
-			final Optional<MeetingDao> dao = meetingRepository
-					.findByOrganisationIdAndId(organisationId, meetingId);
+					.findById(Long.MAX_VALUE);
 
 			assertThat(dao).isEmpty();
 		}

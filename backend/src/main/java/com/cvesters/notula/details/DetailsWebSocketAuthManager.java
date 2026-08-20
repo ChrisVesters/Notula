@@ -28,8 +28,9 @@ public class DetailsWebSocketAuthManager extends WebSocketAuthManager {
 			final MessageAuthorizationContext<?> context) {
 		return Optional.ofNullable(context.getVariables().get("id"))
 				.map(Long::parseLong)
-				.flatMap(id -> meetingStorage.findByOrganisationIdAndId(
-						principal.organisationId(), id))
+				.flatMap(meetingStorage::find)
+				.filter(info -> info.getOrganisationId() == principal
+						.organisationId())
 				.isPresent();
 	}
 

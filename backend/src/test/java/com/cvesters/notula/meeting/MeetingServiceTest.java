@@ -41,9 +41,8 @@ class MeetingServiceTest {
 		@Test
 		void success() {
 			final MeetingInfo meetingInfo = MEETING.info();
-			when(meetingStorageGateway.findByOrganisationIdAndId(
-					SESSION.getOrganisation().getId(), MEETING.getId()))
-							.thenReturn(Optional.of(meetingInfo));
+			when(meetingStorageGateway.find(MEETING.getId()))
+					.thenReturn(Optional.of(meetingInfo));
 
 			final MeetingInfo result = meetingService.getById(PRINCIPAL,
 					MEETING.getId());
@@ -54,12 +53,24 @@ class MeetingServiceTest {
 		@Test
 		void notFound() {
 			final long meetingId = MEETING.getId();
-			when(meetingStorageGateway.findByOrganisationIdAndId(
-					SESSION.getOrganisation().getId(), meetingId))
-							.thenReturn(Optional.empty());
+			when(meetingStorageGateway.find(meetingId))
+					.thenReturn(Optional.empty());
 
 			assertThatThrownBy(
 					() -> meetingService.getById(PRINCIPAL, meetingId))
+							.isInstanceOf(MissingEntityException.class);
+		}
+
+		@Test
+		void otherOrganisation() {
+			final var principal = TestSession.ALISON_DACH_GLOVER.principal();
+			final long meetingId = MEETING.getId();
+
+			when(meetingStorageGateway.find(meetingId))
+					.thenReturn(Optional.of(MEETING.info()));
+
+			assertThatThrownBy(
+					() -> meetingService.getById(principal, meetingId))
 							.isInstanceOf(MissingEntityException.class);
 		}
 
@@ -181,9 +192,8 @@ class MeetingServiceTest {
 			final MeetingAction.Update action = new MeetingAction.UpdateName(8,
 					0, "Status ");
 
-			when(meetingStorageGateway.findByOrganisationIdAndId(
-					principal.organisationId(), meetingId))
-							.thenReturn(Optional.of(meetingInfo));
+			when(meetingStorageGateway.find(meetingId))
+					.thenReturn(Optional.of(meetingInfo));
 
 			final MeetingInfo updated = mock();
 			when(meetingStorageGateway.update(argThat(info -> {
@@ -213,9 +223,8 @@ class MeetingServiceTest {
 			final MeetingAction.Update action = new MeetingAction.UpdateName(2,
 					4, "27");
 
-			when(meetingStorageGateway.findByOrganisationIdAndId(
-					principal.organisationId(), meetingId))
-							.thenReturn(Optional.empty());
+			when(meetingStorageGateway.find(meetingId))
+					.thenReturn(Optional.empty());
 
 			assertThatThrownBy(
 					() -> meetingService.update(principal, meetingId, action))
@@ -255,9 +264,8 @@ class MeetingServiceTest {
 			final long meetingId = MEETING.getId();
 			final MeetingInfo meetingInfo = MEETING.info();
 
-			when(meetingStorageGateway.findByOrganisationIdAndId(
-					principal.organisationId(), meetingId))
-							.thenReturn(Optional.of(meetingInfo));
+			when(meetingStorageGateway.find(meetingId))
+					.thenReturn(Optional.of(meetingInfo));
 
 			meetingService.delete(SESSION.principal(), meetingId);
 
@@ -275,9 +283,8 @@ class MeetingServiceTest {
 			final Principal principal = SESSION.principal();
 			final long meetingId = MEETING.getId();
 
-			when(meetingStorageGateway.findByOrganisationIdAndId(
-					principal.organisationId(), meetingId))
-							.thenReturn(Optional.empty());
+			when(meetingStorageGateway.find(meetingId))
+					.thenReturn(Optional.empty());
 
 			assertThatThrownBy(
 					() -> meetingService.delete(principal, meetingId))

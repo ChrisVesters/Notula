@@ -21,6 +21,7 @@ class DetailsWebSocketAuthManagerTest {
 
 	private static final Principal PRINCIPAL = mock();
 	private static final long MEETING_ID = 4;
+	private static final long ORGANISATION_ID = 7;
 
 	private final MeetingStorageGateway meetingStorage = mock();
 	private final DetailsWebSocketAuthManager authManager = new DetailsWebSocketAuthManager(
@@ -38,12 +39,33 @@ class DetailsWebSocketAuthManagerTest {
 			final var context = new MessageAuthorizationContext<>(message,
 					Map.of("id", String.valueOf(MEETING_ID)));
 
-			final MeetingInfo meetingInfo = mock();
-			when(meetingStorage.findByOrganisationIdAndId(
-					PRINCIPAL.organisationId(), MEETING_ID))
-							.thenReturn(Optional.of(meetingInfo));
+			final Principal principal = mock();
+			when(principal.organisationId()).thenReturn(ORGANISATION_ID);
 
-			assertThat(authManager.hasAccess(PRINCIPAL, context)).isTrue();
+			final MeetingInfo meetingInfo = mock();
+			when(meetingInfo.getOrganisationId())
+					.thenReturn(ORGANISATION_ID);
+			when(meetingStorage.find(MEETING_ID))
+					.thenReturn(Optional.of(meetingInfo));
+
+			assertThat(authManager.hasAccess(principal, context)).isTrue();
+		}
+
+		@Test
+		void otherOrganisation() {
+			final var context = new MessageAuthorizationContext<>(message,
+					Map.of("id", String.valueOf(MEETING_ID)));
+
+			final Principal principal = mock();
+			when(principal.organisationId()).thenReturn(ORGANISATION_ID);
+
+			final MeetingInfo meetingInfo = mock();
+			when(meetingInfo.getOrganisationId())
+					.thenReturn(ORGANISATION_ID + 1);
+			when(meetingStorage.find(MEETING_ID))
+					.thenReturn(Optional.of(meetingInfo));
+
+			assertThat(authManager.hasAccess(principal, context)).isFalse();
 		}
 
 		@Test
@@ -51,9 +73,8 @@ class DetailsWebSocketAuthManagerTest {
 			final var context = new MessageAuthorizationContext<>(message,
 					Map.of("id", String.valueOf(MEETING_ID)));
 
-			when(meetingStorage.findByOrganisationIdAndId(
-					PRINCIPAL.organisationId(), MEETING_ID))
-							.thenReturn(Optional.empty());
+			when(meetingStorage.find(MEETING_ID))
+					.thenReturn(Optional.empty());
 
 			assertThat(authManager.hasAccess(PRINCIPAL, context)).isFalse();
 		}
