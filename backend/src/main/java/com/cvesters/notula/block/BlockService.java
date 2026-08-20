@@ -44,7 +44,7 @@ public class BlockService {
 		Objects.requireNonNull(principal);
 		Objects.requireNonNull(action);
 
-		final TopicInfo topic = topicService.getById(principal, meetingId,
+		final TopicInfo topic = topicService.getById(principal,
 				action.getTopicId());
 
 		final List<BlockInfo> existingBlocks = blockStorage

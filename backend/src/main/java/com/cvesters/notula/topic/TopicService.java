@@ -29,14 +29,13 @@ public class TopicService {
 		this.topicPublisher = topicPublisher;
 	}
 
-	public TopicInfo getById(final Principal principal, final long meetingId,
-			final long topicId) {
+	public TopicInfo getById(final Principal principal, final long topicId) {
 		Objects.requireNonNull(principal);
 
-		final MeetingInfo meeting = meetingService.getById(principal,
-				meetingId);
+		final long organisationId = principal.organisationId();
 
-		return topicStorage.find(meeting.getId(), topicId)
+		return topicStorage.find(topicId)
+				.filter(t -> t.getOrganisationId() == organisationId)
 				.orElseThrow(MissingEntityException::new);
 	}
 
@@ -77,7 +76,7 @@ public class TopicService {
 			final long topicId, final TopicAction.Update action) {
 		Objects.requireNonNull(action);
 
-		final TopicInfo topicInfo = getById(principal, meetingId, topicId);
+		final TopicInfo topicInfo = getById(principal, topicId);
 		action.apply(topicInfo);
 		final TopicInfo updated = topicStorage.update(topicInfo);
 
@@ -91,11 +90,11 @@ public class TopicService {
 			final long topicId) {
 		Objects.requireNonNull(principal);
 
-		final TopicInfo topicInfo = getById(principal, meetingId, topicId);
+		final TopicInfo topicInfo = getById(principal, topicId);
 		topicStorage.delete(topicInfo);
 
 		final List<TopicInfo> existingTopics = topicStorage
-				.findAllByMeetingId(meetingId);
+				.findAllByMeetingId(topicInfo.getMeetingId());
 		// TODO: move logic into action?
 		final List<TopicInfo> toUpdateTopics = existingTopics.stream()
 				.filter(t -> t.getSequenceId() > topicInfo.getSequenceId())

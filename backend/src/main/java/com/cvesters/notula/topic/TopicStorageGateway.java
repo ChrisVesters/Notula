@@ -28,9 +28,8 @@ public class TopicStorageGateway {
 		return saved.toBdo();
 	}
 
-	public Optional<TopicInfo> find(final long meetingId, final long topicId) {
-		return topicRepository.findByMeetingIdAndId(meetingId, topicId)
-				.map(TopicDao::toBdo);
+	public Optional<TopicInfo> find(final long id) {
+		return topicRepository.findById(id).map(TopicDao::toBdo);
 	}
 
 	public List<TopicInfo> findAllByMeetingId(final long meetingId) {
@@ -45,8 +44,7 @@ public class TopicStorageGateway {
 
 		final var updated = new ArrayList<TopicDao>();
 		for (final TopicInfo topic : topics) {
-			final TopicDao dao = topicRepository
-					.findByMeetingIdAndId(topic.getMeetingId(), topic.getId())
+			final TopicDao dao = topicRepository.findById(topic.getId())
 					.orElseThrow(MissingEntityException::new);
 			dao.update(topic);
 			updated.add(dao);
@@ -61,8 +59,7 @@ public class TopicStorageGateway {
 	public TopicInfo update(final TopicInfo topic) {
 		Objects.requireNonNull(topic);
 
-		final TopicDao dao = topicRepository
-				.findByMeetingIdAndId(topic.getMeetingId(), topic.getId())
+		final TopicDao dao = topicRepository.findById(topic.getId())
 				.orElseThrow(MissingEntityException::new);
 		dao.update(topic);
 		final TopicDao saved = topicRepository.save(dao);
@@ -72,8 +69,7 @@ public class TopicStorageGateway {
 	public void delete(final TopicInfo topic) {
 		Objects.requireNonNull(topic);
 
-		final TopicDao dao = topicRepository
-				.findByMeetingIdAndId(topic.getMeetingId(), topic.getId())
+		final TopicDao dao = topicRepository.findById(topic.getId())
 				.orElseThrow(MissingEntityException::new);
 
 		topicRepository.delete(dao);

@@ -63,37 +63,34 @@ class TopicStorageGatewayTest {
 	}
 
 	@Nested
-	class Find {
+	class FindById {
 
 		private static final TestTopic TOPIC = TestTopic.GLOVER_KICKOFF_2026_LOOKBACK;
-		private static final TestMeeting MEETING = TOPIC.getMeeting();
 
 		@Test
 		void success() {
-			final long meetingId = MEETING.getId();
 			final long topicId = TOPIC.getId();
 
 			final TopicDao topicDao = mock();
 			final TopicInfo topicInfo = TOPIC.info();
 			when(topicDao.toBdo()).thenReturn(topicInfo);
 
-			when(topicRepository.findByMeetingIdAndId(meetingId, topicId))
+			when(topicRepository.findById(topicId))
 					.thenReturn(Optional.of(topicDao));
 
-			final Optional<TopicInfo> result = gateway.find(meetingId, topicId);
+			final Optional<TopicInfo> result = gateway.find(topicId);
 
 			assertThat(result).contains(topicInfo);
 		}
 
 		@Test
 		void notFound() {
-			final long meetingId = MEETING.getId();
 			final long topicId = TOPIC.getId();
 
-			when(topicRepository.findByMeetingIdAndId(meetingId, topicId))
+			when(topicRepository.findById(topicId))
 					.thenReturn(Optional.empty());
 
-			final Optional<TopicInfo> result = gateway.find(meetingId, topicId);
+			final Optional<TopicInfo> result = gateway.find(topicId);
 
 			assertThat(result).isEmpty();
 		}
@@ -166,8 +163,6 @@ class TopicStorageGatewayTest {
 	@Nested
 	class UpdateAll {
 
-		private static final TestMeeting MEETING = TestMeeting.SPORER_PROJECT;
-
 		@Test
 		void single() {
 			final TestTopic topic = TestTopic.SPORER_PROJECT_DELIVERABLES;
@@ -175,8 +170,8 @@ class TopicStorageGatewayTest {
 			final List<TopicInfo> topics = List.of(updateBdo);
 
 			final TopicDao found = mock();
-			when(topicRepository.findByMeetingIdAndId(MEETING.getId(),
-					topic.getId())).thenReturn(Optional.of(found));
+			when(topicRepository.findById(topic.getId()))
+					.thenReturn(Optional.of(found));
 
 			final TopicDao updatedDao = mock();
 			final TopicInfo updatedBdo = mock();
@@ -210,9 +205,8 @@ class TopicStorageGatewayTest {
 				updateBdos.add(updateBdo);
 
 				final TopicDao found = mock();
-				when(topicRepository.findByMeetingIdAndId(
-						topic.getMeeting().getId(), topic.getId()))
-								.thenReturn(Optional.of(found));
+				when(topicRepository.findById(topic.getId()))
+						.thenReturn(Optional.of(found));
 				foundDaos.add(found);
 
 				final TopicDao updatedDao = mock();
@@ -251,9 +245,8 @@ class TopicStorageGatewayTest {
 			final TestTopic topic = TestTopic.SPORER_PROJECT_DELIVERABLES;
 			final List<TopicInfo> topics = List.of(topic.info());
 
-			when(topicRepository.findByMeetingIdAndId(
-					topic.getMeeting().getId(), topic.getId()))
-							.thenReturn(Optional.empty());
+			when(topicRepository.findById(topic.getId()))
+					.thenReturn(Optional.empty());
 
 			assertThatThrownBy(() -> gateway.updateAll(topics))
 					.isInstanceOf(MissingEntityException.class);
@@ -274,16 +267,14 @@ class TopicStorageGatewayTest {
 	class Update {
 
 		private static final TestTopic TOPIC = TestTopic.GLOVER_KICKOFF_2026_LOOKBACK;
-		private static final TestMeeting MEETING = TOPIC.getMeeting();
 
 		@Test
 		void success() {
-			final long meetingId = MEETING.getId();
 			final long topicId = TOPIC.getId();
 
 			final TopicDao topicDao = mock();
 
-			when(topicRepository.findByMeetingIdAndId(meetingId, topicId))
+			when(topicRepository.findById(topicId))
 					.thenReturn(Optional.of(topicDao));
 
 			final TopicDao updatedDao = mock();
@@ -305,10 +296,9 @@ class TopicStorageGatewayTest {
 
 		@Test
 		void notFound() {
-			final long meetingId = MEETING.getId();
 			final long topicId = TOPIC.getId();
 
-			when(topicRepository.findByMeetingIdAndId(meetingId, topicId))
+			when(topicRepository.findById(topicId))
 					.thenReturn(Optional.empty());
 
 			final TopicInfo update = TOPIC.info();
@@ -328,13 +318,12 @@ class TopicStorageGatewayTest {
 	class Delete {
 
 		private static final TestTopic TOPIC = TestTopic.GLOVER_KICKOFF_2026_LOOKBACK;
-		private static final TestMeeting MEETING = TOPIC.getMeeting();
 
 		@Test
 		void success() {
 			final TopicDao topicDao = mock();
-			when(topicRepository.findByMeetingIdAndId(MEETING.getId(),
-					TOPIC.getId())).thenReturn(Optional.of(topicDao));
+			when(topicRepository.findById(TOPIC.getId()))
+					.thenReturn(Optional.of(topicDao));
 
 			final TopicInfo update = TOPIC.info();
 			gateway.delete(update);
@@ -345,8 +334,8 @@ class TopicStorageGatewayTest {
 
 		@Test
 		void notFound() {
-			when(topicRepository.findByMeetingIdAndId(MEETING.getId(),
-					TOPIC.getId())).thenReturn(Optional.empty());
+			when(topicRepository.findById(TOPIC.getId()))
+					.thenReturn(Optional.empty());
 
 			final TopicInfo update = TOPIC.info();
 			assertThatThrownBy(() -> gateway.delete(update))
