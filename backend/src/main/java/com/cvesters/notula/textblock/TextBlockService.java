@@ -29,8 +29,8 @@ public class TextBlockService {
 		this.textBlockPublisher = textBlockPublisher;
 	}
 
-	public TextBlockInfo update(final Principal principal, final long meetingId,
-			final long blockId, final TextBlockAction.Update action) {
+	public TextBlockInfo update(final Principal principal, final long blockId,
+			final TextBlockAction.Update action) {
 		Objects.requireNonNull(action);
 
 		final BlockInfo blockInfo = blockService.getById(principal, blockId);
@@ -44,8 +44,8 @@ public class TextBlockService {
 		action.apply(textBlockInfo);
 		final TextBlockInfo updated = textBlockStorage.update(textBlockInfo);
 
-		final var event = new TextBlockEvent(blockId, action);
-		textBlockPublisher.publish(meetingId, event);
+		final var event = new TextBlockEvent(blockInfo, action);
+		textBlockPublisher.publish(event);
 
 		return updated;
 	}

@@ -2,10 +2,13 @@ package com.cvesters.notula.textblock.dto;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 
+import com.cvesters.notula.block.bdo.BlockInfo;
 import com.cvesters.notula.textblock.bdo.TextBlockAction;
 import com.cvesters.notula.textblock.dao.TextBlockEvent;
 
@@ -19,7 +22,10 @@ class TextBlockEventDtoTest {
 		@Test
 		void success() {
 			final var action = new TextBlockAction.UpdateContent(3, 1, "New");
-			final var event = new TextBlockEvent(BLOCK_ID, action);
+			final BlockInfo block = mock();
+			when(block.getId()).thenReturn(BLOCK_ID);
+
+			final var event = new TextBlockEvent(block, action);
 
 			final var dto = new TextBlockEventDto(event);
 

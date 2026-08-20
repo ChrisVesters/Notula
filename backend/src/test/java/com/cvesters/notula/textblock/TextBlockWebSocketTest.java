@@ -67,7 +67,7 @@ class TextBlockWebSocketTest extends WebSocketTest {
 			final var matcher = new TextBlockActionMatcher.UpdateContent(
 					expected);
 			verify(textBlockService, timeout(WAIT_TIMEOUT.toMillis())).update(
-					eq(PRINCIPAL), eq(MEETING.getId()), eq(BLOCK.getId()),
+					eq(PRINCIPAL), eq(BLOCK.getId()),
 					argThat(matcher::matches));
 		}
 
@@ -75,7 +75,7 @@ class TextBlockWebSocketTest extends WebSocketTest {
 		void notFound() throws Exception {
 			final byte[] payload = getRequestPayload(TEXT_BLOCK.getContent());
 
-			when(textBlockService.update(any(), anyLong(), anyLong(), any()))
+			when(textBlockService.update(any(), anyLong(), any()))
 					.thenThrow(new MissingEntityException());
 
 			connect(SESSION);
