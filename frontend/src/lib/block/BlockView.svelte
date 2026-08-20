@@ -9,17 +9,13 @@
 	import BlockWebSocketClient from "./BlockWebSocketClient";
 
 	export type BlockViewProps = {
-		meetingId: number;
-		topicId: number;
 		block: BlockDetails;
 	};
 
-	let { meetingId, topicId, block = $bindable() }: BlockViewProps = $props();
+	let { block = $bindable() }: BlockViewProps = $props();
 
 	const handleDeleteBlock = (blockId: number) => {
 		const request: BlockDeleteAction = {
-			meetingId,
-			topicId,
 			blockId
 		};
 

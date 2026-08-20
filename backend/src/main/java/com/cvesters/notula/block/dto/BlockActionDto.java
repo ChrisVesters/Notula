@@ -13,7 +13,6 @@ public final class BlockActionDto {
 
 	public static final class Create {
 
-		private final long meetingId;
 		private final long topicId;
 
 		@NotNull
@@ -22,16 +21,11 @@ public final class BlockActionDto {
 		@PositiveOrZero
 		private final int sequenceId;
 
-		public Create(final long meetingId, final long topicId,
-				final BlockTypeDto type, final int sequenceId) {
-			this.meetingId = meetingId;
+		public Create(final long topicId, final BlockTypeDto type,
+				final int sequenceId) {
 			this.topicId = topicId;
 			this.type = type;
 			this.sequenceId = sequenceId;
-		}
-
-		public long getMeetingId() {
-			return meetingId;
 		}
 
 		public BlockAction.Create toBdo() {
@@ -42,23 +36,10 @@ public final class BlockActionDto {
 
 	public static final class Delete {
 
-		private final long meetingId;
-		private final long topicId;
 		private final long blockId;
 
-		public Delete(final long meetingId, final long topicId,
-				final long blockId) {
-			this.meetingId = meetingId;
-			this.topicId = topicId;
+		public Delete(final long blockId) {
 			this.blockId = blockId;
-		}
-
-		public long getMeetingId() {
-			return meetingId;
-		}
-
-		public long getTopicId() {
-			return topicId;
 		}
 
 		public long getBlockId() {

@@ -27,7 +27,6 @@ import com.cvesters.notula.block.bdo.BlockAction;
 import com.cvesters.notula.block.bdo.BlockType;
 import com.cvesters.notula.common.domain.Principal;
 import com.cvesters.notula.common.exception.MissingEntityException;
-import com.cvesters.notula.meeting.TestMeeting;
 import com.cvesters.notula.session.TestSession;
 import com.cvesters.notula.test.FrameHandler;
 import com.cvesters.notula.test.WebSocketTest;
@@ -41,7 +40,6 @@ class BlockWebSocketTest extends WebSocketTest {
 	private static final Principal PRINCIPAL = SESSION.principal();
 
 	private static final TestTopic TOPIC = TestTopic.SPORER_PROJECT_BLOCKERS;
-	private static final TestMeeting MEETING = TOPIC.getMeeting();
 
 	@MockitoBean
 	private BlockService blockService;
@@ -115,47 +113,35 @@ class BlockWebSocketTest extends WebSocketTest {
 		}
 
 		private static Stream<Arguments> invalidPayloadCases() {
-			return Stream.of(Arguments.of("meetingId missing", """
+			return Stream.of(Arguments.of("topicId missing", """
 					{
-						"topicId": 2,
-						"type": "TEXT",
-						"sequenceId": 0
-					}
-					"""), Arguments.of("topicId missing", """
-					{
-						"meetingId": 1,
 						"type": "TEXT",
 						"sequenceId": 0
 					}
 					"""), Arguments.of("type missing", """
 					{
-						"meetingId": 1,
 						"topicId": 2,
 						"sequenceId": 0
 					}
 					"""), Arguments.of("type null", """
 					{
-						"meetingId": 1,
 						"topicId": 2,
 						"type": null,
 						"sequenceId": 0
 					}
 					"""), Arguments.of("type invalid", """
 					{
-						"meetingId": 1,
 						"topicId": 2,
 						"type": "UNKNOWN",
 						"sequenceId": 0
 					}
 					"""), Arguments.of("sequenceId missing", """
 					{
-						"meetingId": 1,
 						"topicId": 2,
 						"type": "TEXT"
 					}
 					"""), Arguments.of("sequenceId negative", """
 					{
-						"meetingId": 1,
 						"topicId": 2,
 						"type": "TEXT",
 						"sequenceId": -1
@@ -167,13 +153,11 @@ class BlockWebSocketTest extends WebSocketTest {
 				final int sequenceId) {
 			final String json = """
 					{
-						"meetingId": %d,
 						"topicId": %d,
 						"type": "%s",
 						"sequenceId": %d
 					}
-					""".formatted(MEETING.getId(), TOPIC.getId(), type,
-					sequenceId);
+					""".formatted(TOPIC.getId(), type, sequenceId);
 
 			return json.getBytes(StandardCharsets.UTF_8);
 		}
@@ -247,20 +231,8 @@ class BlockWebSocketTest extends WebSocketTest {
 		}
 
 		private static Stream<Arguments> invalidPayloadCases() {
-			return Stream.of(Arguments.of("meetingId missing", """
+			return Stream.of(Arguments.of("blockId missing", """
 					{
-						"topicId": 2,
-						"blockId": 3
-					}
-					"""), Arguments.of("topicId missing", """
-					{
-						"meetingId": 1,
-						"blockId": 3
-					}
-					"""), Arguments.of("blockId missing", """
-					{
-						"meetingId": 1,
-						"topicId": 2
 					}
 					"""));
 		}
@@ -268,12 +240,9 @@ class BlockWebSocketTest extends WebSocketTest {
 		private byte[] getRequestPayload() {
 			final String json = """
 					{
-						"meetingId": %d,
-						"topicId": %d,
 						"blockId": %d
 					}
-					""".formatted(MEETING.getId(), TOPIC.getId(),
-					BLOCK.getId());
+					""".formatted(BLOCK.getId());
 
 			return json.getBytes(StandardCharsets.UTF_8);
 		}
