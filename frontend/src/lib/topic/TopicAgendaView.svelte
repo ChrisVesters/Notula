@@ -18,15 +18,13 @@
 	import TopicWebSocketClient from "./TopicWebSocketClient";
 
 	export type TopicAgendaViewProps = {
-		meetingId: Readonly<number>;
 		topic: Readonly<TopicDetails>;
 	};
 
-	let { meetingId, topic = $bindable() }: TopicAgendaViewProps = $props();
+	let { topic = $bindable() }: TopicAgendaViewProps = $props();
 
 	const handleUpdateTopicName = (action: UpdateAction) => {
 		const request: TopicUpdateNameAction = {
-			meetingId,
 			topicId: topic.id,
 			action: "UPDATE_NAME",
 			position: action.position,
@@ -39,7 +37,6 @@
 
 	const handleUpdateTopicDescription = (action: UpdateAction) => {
 		const request: TopicUpdateDescriptionAction = {
-			meetingId,
 			topicId: topic.id,
 			action: "UPDATE_DESCRIPTION",
 			position: action.position,
@@ -52,7 +49,6 @@
 
 	const handleUpdateTopicDuration = () => {
 		const request: TopicUpdateDurationAction = {
-			meetingId,
 			topicId: topic.id,
 			action: "UPDATE_DURATION",
 			duration: topic.duration
@@ -63,7 +59,6 @@
 
 	const handleDeleteTopic = () => {
 		const request: TopicDeleteAction = {
-			meetingId,
 			topicId: topic.id
 		};
 

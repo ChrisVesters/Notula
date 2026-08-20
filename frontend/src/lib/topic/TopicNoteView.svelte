@@ -15,15 +15,13 @@
 	import TopicWebSocketClient from "./TopicWebSocketClient";
 
 	export type TopicNoteViewProps = {
-		meetingId: Readonly<number>;
 		topic: Readonly<TopicDetails>;
 	};
 
-	let { meetingId, topic = $bindable() }: TopicNoteViewProps = $props();
+	let { topic = $bindable() }: TopicNoteViewProps = $props();
 
 	const handleUpdateTopicName = (action: UpdateAction) => {
 		const request: TopicUpdateNameAction = {
-			meetingId,
 			topicId: topic.id,
 			action: "UPDATE_NAME",
 			position: action.position,

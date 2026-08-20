@@ -36,8 +36,8 @@ class TopicActionDtoTest {
 
 		@Test
 		void toBdo() {
-			final var dto = new TopicActionDto.Update.Name(MEETING.getId(),
-					TOPIC.getId(), 5, 2, "Updated");
+			final var dto = new TopicActionDto.Update.Name(TOPIC.getId(), 5, 2,
+					"Updated");
 			final TopicAction.Update bdo = dto.toBdo();
 
 			final var expected = new TopicAction.UpdateName(5, 2, "Updated");
@@ -52,7 +52,7 @@ class TopicActionDtoTest {
 		@Test
 		void toBdo() {
 			final var dto = new TopicActionDto.Update.Description(
-					MEETING.getId(), TOPIC.getId(), 5, 2, "Updated");
+					TOPIC.getId(), 5, 2, "Updated");
 			final TopicAction.Update bdo = dto.toBdo();
 
 			final var expected = new TopicAction.UpdateDescription(5, 2,
@@ -68,8 +68,8 @@ class TopicActionDtoTest {
 
 		@Test
 		void toBdo() {
-			final var dto = new TopicActionDto.Update.Duration(MEETING.getId(),
-					TOPIC.getId(), 45);
+			final var dto = new TopicActionDto.Update.Duration(TOPIC.getId(),
+					45);
 			final TopicAction.Update bdo = dto.toBdo();
 
 			final var duration = new Minutes(45);
@@ -80,8 +80,8 @@ class TopicActionDtoTest {
 
 		@Test
 		void toBdoWithoutDuration() {
-			final var dto = new TopicActionDto.Update.Duration(MEETING.getId(),
-					TOPIC.getId(), null);
+			final var dto = new TopicActionDto.Update.Duration(TOPIC.getId(),
+					null);
 			final TopicAction.Update bdo = dto.toBdo();
 
 			final var expected = new TopicAction.UpdateDuration(null);

@@ -247,17 +247,8 @@ public class TopicWebSocketTest extends WebSocketTest {
 		}
 
 		private static Stream<Arguments> invalidPayloadCases() {
-			return Stream.of(Arguments.of("meetingId missing", """
+			return Stream.of(Arguments.of("topicId missing", """
 					{
-						"topicId": 2,
-						"action": "UPDATE_NAME",
-						"position": 5,
-						"length": 2,
-						"value": "topic"
-					}
-					"""), Arguments.of("topicId missing", """
-					{
-						"meetingId": 1,
 						"action": "UPDATE_NAME",
 						"position": 5,
 						"length": 2,
@@ -265,7 +256,6 @@ public class TopicWebSocketTest extends WebSocketTest {
 					}
 					"""), Arguments.of("position missing", """
 					{
-						"meetingId": 1,
 						"topicId": 2,
 						"action": "UPDATE_NAME",
 						"length": 2,
@@ -273,7 +263,6 @@ public class TopicWebSocketTest extends WebSocketTest {
 					}
 					"""), Arguments.of("length missing", """
 					{
-						"meetingId": 1,
 						"topicId": 2,
 						"action": "UPDATE_NAME",
 						"position": 5,
@@ -281,7 +270,6 @@ public class TopicWebSocketTest extends WebSocketTest {
 					}
 					"""), Arguments.of("value missing", """
 					{
-						"meetingId": 1,
 						"topicId": 2,
 						"action": "UPDATE_NAME",
 						"position": 5,
@@ -289,7 +277,6 @@ public class TopicWebSocketTest extends WebSocketTest {
 					}
 					"""), Arguments.of("position negative", """
 					{
-						"meetingId": 1,
 						"topicId": 2,
 						"action": "UPDATE_NAME",
 						"position": -5,
@@ -298,7 +285,6 @@ public class TopicWebSocketTest extends WebSocketTest {
 					}
 					"""), Arguments.of("length negative", """
 					{
-						"meetingId": 1,
 						"topicId": 2,
 						"action": "UPDATE_NAME",
 						"position": 5,
@@ -307,7 +293,6 @@ public class TopicWebSocketTest extends WebSocketTest {
 					}
 					"""), Arguments.of("value null", """
 					{
-						"meetingId": 1,
 						"topicId": 2,
 						"action": "UPDATE_NAME",
 						"position": 5,
@@ -320,14 +305,13 @@ public class TopicWebSocketTest extends WebSocketTest {
 		private byte[] getRequestPayload(final String name) {
 			final String json = """
 					{
-						"meetingId": %d,
 						"topicId": %d,
 						"action": "UPDATE_NAME",
 						"position": 5,
 						"length": 2,
 						"value": "%s"
 					}
-					""".formatted(MEETING.getId(), TOPIC.getId(), name);
+					""".formatted(TOPIC.getId(), name);
 
 			return json.getBytes(StandardCharsets.UTF_8);
 		}
@@ -408,17 +392,8 @@ public class TopicWebSocketTest extends WebSocketTest {
 		}
 
 		private static Stream<Arguments> invalidPayloadCases() {
-			return Stream.of(Arguments.of("meetingId missing", """
+			return Stream.of(Arguments.of("topicId missing", """
 					{
-						"topicId": 2,
-						"action": "UPDATE_DESCRIPTION",
-						"position": 5,
-						"length": 2,
-						"value": "topic"
-					}
-					"""), Arguments.of("topicId missing", """
-					{
-						"meetingId": 1,
 						"action": "UPDATE_DESCRIPTION",
 						"position": 5,
 						"length": 2,
@@ -426,7 +401,6 @@ public class TopicWebSocketTest extends WebSocketTest {
 					}
 					"""), Arguments.of("position missing", """
 					{
-						"meetingId": 1,
 						"topicId": 2,
 						"action": "UPDATE_DESCRIPTION",
 						"length": 2,
@@ -434,7 +408,6 @@ public class TopicWebSocketTest extends WebSocketTest {
 					}
 					"""), Arguments.of("length missing", """
 					{
-						"meetingId": 1,
 						"topicId": 2,
 						"action": "UPDATE_DESCRIPTION",
 						"position": 5,
@@ -442,7 +415,6 @@ public class TopicWebSocketTest extends WebSocketTest {
 					}
 					"""), Arguments.of("value missing", """
 					{
-						"meetingId": 1,
 						"topicId": 2,
 						"action": "UPDATE_DESCRIPTION",
 						"position": 5,
@@ -450,7 +422,6 @@ public class TopicWebSocketTest extends WebSocketTest {
 					}
 					"""), Arguments.of("position negative", """
 					{
-						"meetingId": 1,
 						"topicId": 2,
 						"action": "UPDATE_DESCRIPTION",
 						"position": -5,
@@ -459,7 +430,6 @@ public class TopicWebSocketTest extends WebSocketTest {
 					}
 					"""), Arguments.of("length negative", """
 					{
-						"meetingId": 1,
 						"topicId": 2,
 						"action": "UPDATE_DESCRIPTION",
 						"position": 5,
@@ -468,7 +438,6 @@ public class TopicWebSocketTest extends WebSocketTest {
 					}
 					"""), Arguments.of("value null", """
 					{
-						"meetingId": 1,
 						"topicId": 2,
 						"action": "UPDATE_DESCRIPTION",
 						"position": 5,
@@ -481,14 +450,13 @@ public class TopicWebSocketTest extends WebSocketTest {
 		private byte[] getRequestPayload(final String description) {
 			final String json = """
 					{
-						"meetingId": %d,
 						"topicId": %d,
 						"action": "UPDATE_DESCRIPTION",
 						"position": 5,
 						"length": 2,
 						"value": "%s"
 					}
-					""".formatted(MEETING.getId(), TOPIC.getId(), description);
+					""".formatted(TOPIC.getId(), description);
 
 			return json.getBytes(StandardCharsets.UTF_8);
 		}
@@ -581,35 +549,25 @@ public class TopicWebSocketTest extends WebSocketTest {
 		}
 
 		private static Stream<Arguments> invalidPayloadCases() {
-			return Stream.of(Arguments.of("meetingId missing", """
+			return Stream.of(Arguments.of("topicId missing", """
 					{
-						"topicId": 2,
-						"action": "UPDATE_DURATION",
-						"duration": 45
-					}
-					"""), Arguments.of("topicId missing", """
-					{
-						"meetingId": 1,
 						"action": "UPDATE_DURATION",
 						"duration": 45
 					}
 					"""), Arguments.of("duration zero", """
 					{
-						"meetingId": 1,
 						"topicId": 2,
 						"action": "UPDATE_DURATION",
 						"duration": 0
 					}
 					"""), Arguments.of("duration negative", """
 					{
-						"meetingId": 1,
 						"topicId": 2,
 						"action": "UPDATE_DURATION",
 						"duration": -45
 					}
 					"""), Arguments.of("duration non-integer", """
 					{
-						"meetingId": 1,
 						"topicId": 2,
 						"action": "UPDATE_DURATION",
 						"duration": ten
@@ -620,12 +578,11 @@ public class TopicWebSocketTest extends WebSocketTest {
 		private byte[] getRequestPayload(final Integer duration) {
 			final String json = """
 					{
-						"meetingId": %d,
 						"topicId": %d,
 						"action": "UPDATE_DURATION",
 						"duration": %s
 					}
-					""".formatted(MEETING.getId(), TOPIC.getId(), duration);
+					""".formatted(TOPIC.getId(), duration);
 
 			return json.getBytes(StandardCharsets.UTF_8);
 		}
@@ -682,10 +639,9 @@ public class TopicWebSocketTest extends WebSocketTest {
 		private byte[] getRequestPayload() {
 			final String json = """
 					{
-						"meetingId": %d,
 						"topicId": %d
 					}
-					""".formatted(MEETING.getId(), TOPIC.getId());
+					""".formatted(TOPIC.getId());
 
 			return json.getBytes(StandardCharsets.UTF_8);
 		}
