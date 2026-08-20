@@ -14,18 +14,16 @@ class TextBlockEventDtoTest {
 	@Nested
 	class Constructor {
 
-		private static final long TOPIC_ID = 4L;
 		private static final long BLOCK_ID = 32L;
 
 		@Test
 		void success() {
 			final var action = new TextBlockAction.UpdateContent(3, 1, "New");
-			final var event = new TextBlockEvent(TOPIC_ID, BLOCK_ID, action);
+			final var event = new TextBlockEvent(BLOCK_ID, action);
 
 			final var dto = new TextBlockEventDto(event);
 
 			assertThat(dto.getTarget()).isEqualTo("TEXT_BLOCK");
-			assertThat(dto.getTopicId()).isEqualTo(TOPIC_ID);
 			assertThat(dto.getBlockId()).isEqualTo(BLOCK_ID);
 			assertThat(dto.getMutation())
 					.isInstanceOf(TextBlockMutationDto.UpdateContent.class);

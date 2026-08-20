@@ -46,7 +46,7 @@ public class TextBlockService {
 		action.apply(textBlockInfo);
 		final TextBlockInfo updated = textBlockStorage.update(textBlockInfo);
 
-		final var event = new TextBlockEvent(topicId, blockId, action);
+		final var event = new TextBlockEvent(blockId, action);
 		textBlockPublisher.publish(meetingId, event);
 
 		return updated;

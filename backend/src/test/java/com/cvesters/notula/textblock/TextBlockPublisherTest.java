@@ -28,7 +28,6 @@ class TextBlockPublisherTest {
 	class Publish {
 
 		private static final long MEETING_ID = 1L;
-		private static final long TOPIC_ID = 32L;
 		private static final long BLOCK_ID = 61L;
 
 		private static final String DESTINATION = DESTINATION_PREFIX + "/"
@@ -37,14 +36,12 @@ class TextBlockPublisherTest {
 		@Test
 		void updateContent() {
 			final var action = new TextBlockAction.UpdateContent(2, 3, "New");
-			final var event = new TextBlockEvent(TOPIC_ID, BLOCK_ID,
-					action);
+			final var event = new TextBlockEvent(BLOCK_ID, action);
 
 			publisher.publish(MEETING_ID, event);
 
 			verify(messagingTemplate).convertAndSend(eq(DESTINATION),
 					argThat((TextBlockEventDto dto) -> {
-						assertThat(dto.getTopicId()).isEqualTo(TOPIC_ID);
 						assertThat(dto.getBlockId()).isEqualTo(BLOCK_ID);
 						assertThat(dto.getMutation()).isInstanceOf(
 								TextBlockMutationDto.UpdateContent.class);
