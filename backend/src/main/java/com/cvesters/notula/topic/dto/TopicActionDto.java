@@ -47,16 +47,10 @@ public final class TopicActionDto {
 			@Type(value = Update.Duration.class, name = "UPDATE_DURATION") })
 	public abstract static sealed class Update {
 
-		private final long meetingId;
 		private final long topicId;
 
-		protected Update(final long meetingId, final long topicId) {
-			this.meetingId = meetingId;
+		protected Update(final long topicId) {
 			this.topicId = topicId;
-		}
-
-		public long getMeetingId() {
-			return meetingId;
 		}
 
 		public long getTopicId() {
@@ -70,9 +64,9 @@ public final class TopicActionDto {
 			@Valid
 			private final TextUpdateDto update;
 
-			public Name(final long meetingId, final long topicId,
-					final int position, final int length, final String value) {
-				super(meetingId, topicId);
+			public Name(final long topicId, final int position,
+					final int length, final String value) {
+				super(topicId);
 
 				this.update = new TextUpdateDto(position, length, value);
 			}
@@ -91,9 +85,9 @@ public final class TopicActionDto {
 			@Valid
 			private final TextUpdateDto update;
 
-			public Description(final long meetingId, final long topicId,
-					final int position, final int length, final String value) {
-				super(meetingId, topicId);
+			public Description(final long topicId, final int position,
+					final int length, final String value) {
+				super(topicId);
 
 				this.update = new TextUpdateDto(position, length, value);
 			}
@@ -113,9 +107,8 @@ public final class TopicActionDto {
 			@Positive
 			private final Integer duration;
 
-			public Duration(final long meetingId, final long topicId,
-					final Integer duration) {
-				super(meetingId, topicId);
+			public Duration(final long topicId, final Integer duration) {
+				super(topicId);
 
 				this.duration = duration;
 			}
@@ -133,16 +126,10 @@ public final class TopicActionDto {
 
 	public static final class Delete {
 
-		private final long meetingId;
 		private final long topicId;
 
-		public Delete(final long meetingId, final long topicId) {
-			this.meetingId = meetingId;
+		public Delete(final long topicId) {
 			this.topicId = topicId;
-		}
-
-		public long getMeetingId() {
-			return meetingId;
 		}
 
 		public long getTopicId() {

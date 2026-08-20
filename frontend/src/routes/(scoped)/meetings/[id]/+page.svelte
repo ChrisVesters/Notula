@@ -125,7 +125,7 @@
 	<MeetingInfoView bind:meeting />
 
 	<TopicsAgendaView meetingId={meeting.id} bind:topics={topics} />
-	<TopicsNoteView meetingId={meeting.id} bind:topics={topics} />
+	<TopicsNoteView bind:topics={topics} />
 {:else}
 	<Loading />
 {/if}

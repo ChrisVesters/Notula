@@ -41,5 +41,5 @@
 </FeedbackButton>
 
 {#each topics as topic, index (topic.id)}
-	<TopicAgendaView meetingId={meetingId} bind:topic={topics[index]} />
+	<TopicAgendaView bind:topic={topics[index]} />
 {/each}

@@ -10,7 +10,6 @@ export type TopicUpdateAction =
 	| TopicUpdateDurationAction;
 
 export type TopicUpdateNameAction = {
-	meetingId: number;
 	topicId: number;
 	action: "UPDATE_NAME";
 	position: number;
@@ -19,7 +18,6 @@ export type TopicUpdateNameAction = {
 };
 
 export type TopicUpdateDescriptionAction = {
-	meetingId: number;
 	topicId: number;
 	action: "UPDATE_DESCRIPTION";
 	position: number;
@@ -28,14 +26,12 @@ export type TopicUpdateDescriptionAction = {
 };
 
 export type TopicUpdateDurationAction = {
-	meetingId: number;
 	topicId: number;
 	action: "UPDATE_DURATION";
 	duration: number | null;
 };
 
 export type TopicDeleteAction = {
-	meetingId: number;
 	topicId: number;
 };
 
