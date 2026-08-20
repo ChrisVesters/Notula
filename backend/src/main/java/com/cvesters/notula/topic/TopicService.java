@@ -63,31 +63,29 @@ public class TopicService {
 
 		final var topic = new TopicInfo(meeting.getOrganisationId(),
 				meeting.getId(), action.getSequenceId(), action.getName());
-
 		final TopicInfo created = topicStorage.create(topic);
 
-		final var event = new TopicEvent(created.getId(), action);
-		topicPublisher.publish(meeting.getId(), event);
+		final var event = new TopicEvent(created, action);
+		topicPublisher.publish(event);
 
 		return created;
 	}
 
-	public TopicInfo update(final Principal principal, final long meetingId,
-			final long topicId, final TopicAction.Update action) {
+	public TopicInfo update(final Principal principal, final long topicId,
+			final TopicAction.Update action) {
 		Objects.requireNonNull(action);
 
 		final TopicInfo topicInfo = getById(principal, topicId);
 		action.apply(topicInfo);
 		final TopicInfo updated = topicStorage.update(topicInfo);
 
-		final var event = new TopicEvent(topicId, action);
-		topicPublisher.publish(meetingId, event);
+		final var event = new TopicEvent(updated, action);
+		topicPublisher.publish(event);
 
 		return updated;
 	}
 
-	public void delete(final Principal principal, final long meetingId,
-			final long topicId) {
+	public void delete(final Principal principal, final long topicId) {
 		Objects.requireNonNull(principal);
 
 		final TopicInfo topicInfo = getById(principal, topicId);
@@ -103,8 +101,9 @@ public class TopicService {
 		topicStorage.updateAll(toUpdateTopics);
 		// TODO: publish move action/event!!
 
-		final var event = new TopicEvent(topicId, new TopicAction.Delete());
-		topicPublisher.publish(meetingId, event);
+		final var action = new TopicAction.Delete();
+		final var event = new TopicEvent(topicInfo, action);
+		topicPublisher.publish(event);
 	}
 
 }

@@ -193,7 +193,7 @@ public class TopicWebSocketTest extends WebSocketTest {
 			final var expected = new TopicAction.UpdateName(5, 2, name);
 			final var matcher = new TopicActionMatcher.UpdateName(expected);
 			verify(topicService, timeout(WAIT_TIMEOUT.toMillis())).update(
-					eq(PRINCIPAL), eq(MEETING.getId()), eq(TOPIC.getId()),
+					eq(PRINCIPAL), eq(TOPIC.getId()),
 					argThat(matcher::matches));
 		}
 
@@ -201,7 +201,7 @@ public class TopicWebSocketTest extends WebSocketTest {
 		void notFound() throws Exception {
 			final byte[] payload = getRequestPayload(TOPIC.getName());
 
-			when(topicService.update(any(), anyLong(), anyLong(), any()))
+			when(topicService.update(any(), anyLong(), any()))
 					.thenThrow(new MissingEntityException());
 
 			connect(SESSION);
@@ -354,7 +354,7 @@ public class TopicWebSocketTest extends WebSocketTest {
 			final var matcher = new TopicActionMatcher.UpdateDescription(
 					expected);
 			verify(topicService, timeout(WAIT_TIMEOUT.toMillis())).update(
-					eq(PRINCIPAL), eq(MEETING.getId()), eq(TOPIC.getId()),
+					eq(PRINCIPAL), eq(TOPIC.getId()),
 					argThat(matcher::matches));
 		}
 
@@ -362,7 +362,7 @@ public class TopicWebSocketTest extends WebSocketTest {
 		void notFound() throws Exception {
 			final byte[] payload = getRequestPayload(TOPIC.getDescription());
 
-			when(topicService.update(any(), anyLong(), anyLong(), any()))
+			when(topicService.update(any(), anyLong(), any()))
 					.thenThrow(new MissingEntityException());
 
 			connect(SESSION);
@@ -513,7 +513,7 @@ public class TopicWebSocketTest extends WebSocketTest {
 					new Minutes(duration));
 			final var matcher = new TopicActionMatcher.UpdateDuration(expected);
 			verify(topicService, timeout(WAIT_TIMEOUT.toMillis())).update(
-					eq(PRINCIPAL), eq(MEETING.getId()), eq(TOPIC.getId()),
+					eq(PRINCIPAL), eq(TOPIC.getId()),
 					argThat(matcher::matches));
 		}
 
@@ -527,7 +527,7 @@ public class TopicWebSocketTest extends WebSocketTest {
 			final var expected = new TopicAction.UpdateDuration(null);
 			final var matcher = new TopicActionMatcher.UpdateDuration(expected);
 			verify(topicService, timeout(WAIT_TIMEOUT.toMillis())).update(
-					eq(PRINCIPAL), eq(MEETING.getId()), eq(TOPIC.getId()),
+					eq(PRINCIPAL), eq(TOPIC.getId()),
 					argThat(matcher::matches));
 		}
 
@@ -535,7 +535,7 @@ public class TopicWebSocketTest extends WebSocketTest {
 		void notFound() throws Exception {
 			final byte[] payload = getRequestPayload(45);
 
-			when(topicService.update(any(), anyLong(), anyLong(), any()))
+			when(topicService.update(any(), anyLong(), any()))
 					.thenThrow(new MissingEntityException());
 
 			connect(SESSION);
@@ -646,7 +646,7 @@ public class TopicWebSocketTest extends WebSocketTest {
 			send(ENDPOINT, payload);
 
 			verify(topicService, timeout(WAIT_TIMEOUT.toMillis()))
-					.delete(PRINCIPAL, MEETING.getId(), TOPIC.getId());
+					.delete(PRINCIPAL, TOPIC.getId());
 		}
 
 		@Test
@@ -654,7 +654,7 @@ public class TopicWebSocketTest extends WebSocketTest {
 			final byte[] payload = getRequestPayload();
 
 			doThrow(new MissingEntityException()).when(topicService)
-					.delete(any(), anyLong(), anyLong());
+					.delete(any(), anyLong());
 
 			connect(SESSION);
 			final FrameHandler errorFrameHandler = subscribeToErrors();

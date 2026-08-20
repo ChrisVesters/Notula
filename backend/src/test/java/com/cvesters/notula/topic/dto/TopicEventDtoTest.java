@@ -2,12 +2,15 @@ package com.cvesters.notula.topic.dto;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 
 import com.cvesters.notula.topic.bdo.TopicAction;
 import com.cvesters.notula.topic.bdo.TopicEvent;
+import com.cvesters.notula.topic.bdo.TopicInfo;
 
 class TopicEventDtoTest {
 
@@ -19,8 +22,11 @@ class TopicEventDtoTest {
 
 		@Test
 		void success() {
+			final TopicInfo topic = mock();
+			when(topic.getId()).thenReturn(TOPIC_ID);
+
 			final var action = new TopicAction.Create(MEETING_ID, 3, "New");
-			final var event = new TopicEvent(TOPIC_ID, action);
+			final var event = new TopicEvent(topic, action);
 
 			final var dto = new TopicEventDto(event);
 

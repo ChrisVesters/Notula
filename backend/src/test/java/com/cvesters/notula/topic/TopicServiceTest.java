@@ -4,7 +4,6 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.argThat;
-import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.inOrder;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
@@ -141,8 +140,8 @@ class TopicServiceTest {
 			final var expectedAction = new TopicAction.Create(MEETING.getId(),
 					TOPIC_SEQUENCE_ID, TOPIC_NAME);
 			final var matcher = new TopicActionMatcher.Create(expectedAction);
-			verify(topicPublisher).publish(eq(MEETING_ID), argThat(event -> {
-				assertThat(event.topicId()).isEqualTo(TOPIC_ID);
+			verify(topicPublisher).publish(argThat(event -> {
+				assertThat(event.topic()).isEqualTo(created);
 				assertThat(event.action()).is(matcher.equal());
 				return true;
 			}));
@@ -188,8 +187,8 @@ class TopicServiceTest {
 			final var expectedAction = new TopicAction.Create(MEETING.getId(),
 					sequenceId, TOPIC_NAME);
 			final var matcher = new TopicActionMatcher.Create(expectedAction);
-			verify(topicPublisher).publish(eq(MEETING_ID), argThat(event -> {
-				assertThat(event.topicId()).isEqualTo(TOPIC_ID);
+			verify(topicPublisher).publish(argThat(event -> {
+				assertThat(event.topic()).isEqualTo(created);
 				assertThat(event.action()).is(matcher.equal());
 				return true;
 			}));
@@ -240,8 +239,8 @@ class TopicServiceTest {
 			final var expectedAction = new TopicAction.Create(MEETING_ID,
 					TOPIC_SEQUENCE_ID, TOPIC_NAME);
 			final var matcher = new TopicActionMatcher.Create(expectedAction);
-			verify(topicPublisher).publish(eq(MEETING_ID), argThat(event -> {
-				assertThat(event.topicId()).isEqualTo(TOPIC_ID);
+			verify(topicPublisher).publish(argThat(event -> {
+				assertThat(event.topic()).isEqualTo(created);
 				assertThat(event.action()).is(matcher.equal());
 				return true;
 			}));
@@ -320,13 +319,13 @@ class TopicServiceTest {
 
 			final TopicAction.Update action = new TopicAction.UpdateName(0, 0,
 					"Project ");
-			final TopicInfo result = topicService.update(principal, meetingId,
-					topicId, action);
+			final TopicInfo result = topicService.update(principal, topicId,
+					action);
 
 			assertThat(result).isEqualTo(updated);
 
-			verify(topicPublisher).publish(eq(meetingId), argThat(event -> {
-				assertThat(event.topicId()).isEqualTo(topicId);
+			verify(topicPublisher).publish(argThat(event -> {
+				assertThat(event.topic()).isEqualTo(updated);
 				assertThat(event.action()).isEqualTo(action);
 				return true;
 			}));
@@ -335,7 +334,6 @@ class TopicServiceTest {
 		@Test
 		void notFound() {
 			final Principal principal = SESSION.principal();
-			final long meetingId = MEETING.getId();
 			final long topicId = TOPIC.getId();
 
 			when(topicStorageGateway.find(topicId))
@@ -344,8 +342,8 @@ class TopicServiceTest {
 			final TopicAction.Update action = new TopicAction.UpdateName(0, 0,
 					"Project ");
 
-			assertThatThrownBy(() -> topicService.update(principal, meetingId,
-					topicId, action))
+			assertThatThrownBy(
+					() -> topicService.update(principal, topicId, action))
 							.isInstanceOf(MissingEntityException.class);
 
 			verify(topicStorageGateway, never()).update(any());
@@ -354,25 +352,24 @@ class TopicServiceTest {
 
 		@Test
 		void principalNull() {
-			final long meetingId = MEETING.getId();
 			final long topicId = TOPIC.getId();
 
 			final TopicAction.Update action = new TopicAction.UpdateName(0, 0,
 					"Project ");
 
 			assertThatThrownBy(
-					() -> topicService.update(null, meetingId, topicId, action))
+					() -> topicService.update(null, topicId, action))
 							.isInstanceOf(NullPointerException.class);
 		}
 
 		@Test
 		void actionNull() {
 			final Principal principal = SESSION.principal();
-			final long meetingId = MEETING.getId();
 			final long topicId = TOPIC.getId();
 
-			assertThatThrownBy(() -> topicService.update(principal, meetingId,
-					topicId, null)).isInstanceOf(NullPointerException.class);
+			assertThatThrownBy(
+					() -> topicService.update(principal, topicId, null))
+							.isInstanceOf(NullPointerException.class);
 		}
 	}
 
@@ -396,11 +393,11 @@ class TopicServiceTest {
 			when(topicStorageGateway.findAllByMeetingId(meetingId))
 					.thenReturn(List.of(topicInfo));
 
-			topicService.delete(principal, meetingId, topicId);
+			topicService.delete(principal, topicId);
 
 			verify(topicStorageGateway).delete(topicInfo);
-			verify(topicPublisher).publish(eq(meetingId), argThat(event -> {
-				assertThat(event.topicId()).isEqualTo(topicId);
+			verify(topicPublisher).publish(argThat(event -> {
+				assertThat(event.topic()).isEqualTo(topicInfo);
 				assertThat(event.action())
 						.isInstanceOf(TopicAction.Delete.class);
 				return true;
@@ -429,11 +426,11 @@ class TopicServiceTest {
 			when(topicStorageGateway.findAllByMeetingId(meetingId))
 					.thenReturn(existingTopics);
 
-			topicService.delete(principal, meetingId, topicId);
+			topicService.delete(principal, topicId);
 
 			verify(topicStorageGateway).delete(topicInfo);
-			verify(topicPublisher).publish(eq(meetingId), argThat(event -> {
-				assertThat(event.topicId()).isEqualTo(topicId);
+			verify(topicPublisher).publish(argThat(event -> {
+				assertThat(event.topic()).isEqualTo(topicInfo);
 				assertThat(event.action())
 						.isInstanceOf(TopicAction.Delete.class);
 				return true;
@@ -466,11 +463,11 @@ class TopicServiceTest {
 			when(topicStorageGateway.findAllByMeetingId(meetingId))
 					.thenReturn(existingTopics);
 
-			topicService.delete(principal, meetingId, topicId);
+			topicService.delete(principal, topicId);
 
 			verify(topicStorageGateway).delete(topicInfo);
-			verify(topicPublisher).publish(eq(meetingId), argThat(event -> {
-				assertThat(event.topicId()).isEqualTo(topicId);
+			verify(topicPublisher).publish(argThat(event -> {
+				assertThat(event.topic()).isEqualTo(topicInfo);
 				assertThat(event.action())
 						.isInstanceOf(TopicAction.Delete.class);
 				return true;
@@ -482,14 +479,13 @@ class TopicServiceTest {
 		@Test
 		void notFound() {
 			final Principal principal = SESSION.principal();
-			final long meetingId = MEETING.getId();
 			final long topicId = TOPIC.getId();
 
 			when(topicStorageGateway.find(topicId))
 					.thenReturn(Optional.empty());
 
 			assertThatThrownBy(
-					() -> topicService.delete(principal, meetingId, topicId))
+					() -> topicService.delete(principal, topicId))
 							.isInstanceOf(MissingEntityException.class);
 
 			verify(topicStorageGateway, never()).delete(any());
@@ -498,11 +494,10 @@ class TopicServiceTest {
 
 		@Test
 		void principalNull() {
-			final long meetingId = MEETING.getId();
 			final long topicId = TOPIC.getId();
 
 			assertThatThrownBy(
-					() -> topicService.delete(null, meetingId, topicId))
+					() -> topicService.delete(null, topicId))
 							.isInstanceOf(NullPointerException.class);
 		}
 	}

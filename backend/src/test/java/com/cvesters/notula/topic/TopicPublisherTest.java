@@ -6,13 +6,16 @@ import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
 
 import com.cvesters.notula.topic.bdo.TopicAction;
 import com.cvesters.notula.topic.bdo.TopicEvent;
+import com.cvesters.notula.topic.bdo.TopicInfo;
 import com.cvesters.notula.topic.dto.TopicEventDto;
 import com.cvesters.notula.topic.dto.TopicMutationDto;
 
@@ -33,12 +36,20 @@ class TopicPublisherTest {
 		private static final String DESTINATION = DESTINATION_PREFIX + "/"
 				+ MEETING_ID;
 
+		private final TopicInfo topic = mock();
+
+		@BeforeEach
+		void topic() {
+			when(topic.getId()).thenReturn(TOPIC_ID);
+			when(topic.getMeetingId()).thenReturn(MEETING_ID);
+		}
+
 		@Test
 		void create() {
 			final var action = new TopicAction.Create(MEETING_ID, 3, "New");
-			final var event = new TopicEvent(TOPIC_ID, action);
+			final var event = new TopicEvent(topic, action);
 
-			publisher.publish(MEETING_ID, event);
+			publisher.publish(event);
 
 			verify(messagingTemplate).convertAndSend(eq(DESTINATION),
 					argThat((TopicEventDto dto) -> {
@@ -57,9 +68,9 @@ class TopicPublisherTest {
 		@Test
 		void updateName() {
 			final var action = new TopicAction.UpdateName(4, 12, "Updated");
-			final var event = new TopicEvent(TOPIC_ID, action);
+			final var event = new TopicEvent(topic, action);
 
-			publisher.publish(MEETING_ID, event);
+			publisher.publish(event);
 
 			verify(messagingTemplate).convertAndSend(eq(DESTINATION),
 					argThat((TopicEventDto dto) -> {
@@ -80,9 +91,9 @@ class TopicPublisherTest {
 		void updateDescription() {
 			final var action = new TopicAction.UpdateDescription(4, 12,
 					"Updated");
-			final var event = new TopicEvent(TOPIC_ID, action);
+			final var event = new TopicEvent(topic, action);
 
-			publisher.publish(MEETING_ID, event);
+			publisher.publish(event);
 
 			verify(messagingTemplate).convertAndSend(eq(DESTINATION),
 					argThat((TopicEventDto dto) -> {
@@ -100,8 +111,25 @@ class TopicPublisherTest {
 		}
 
 		@Test
+		void delete() {
+			final var action = new TopicAction.Delete();
+			final var event = new TopicEvent(topic, action);
+
+			publisher.publish(event);
+
+			verify(messagingTemplate).convertAndSend(eq(DESTINATION),
+					argThat((TopicEventDto dto) -> {
+						assertThat(dto.getTopicId()).isEqualTo(TOPIC_ID);
+						assertThat(dto.getMutation())
+								.isInstanceOf(TopicMutationDto.Delete.class);
+						return true;
+					}));
+
+		}
+
+		@Test
 		void eventNull() {
-			assertThatThrownBy(() -> publisher.publish(MEETING_ID, null))
+			assertThatThrownBy(() -> publisher.publish(null))
 					.isInstanceOf(NullPointerException.class);
 		}
 	}
