@@ -8,24 +8,16 @@
 	import type { TextBlockUpdateContentAction } from "./TextBlockTypes";
 	import TextBlockWebSocketClient from "./TextBlockWebSocketClient";
 
+	// TODO: Why not blockDetails?
 	export type TextBlockViewProps = {
-		meetingId: number;
-		topicId: number;
 		blockId: number;
 		content: TextBlockContent;
 	};
 
-	const {
-		meetingId,
-		topicId,
-		blockId,
-		content = $bindable()
-	}: TextBlockViewProps = $props();
+	const { blockId, content = $bindable() }: TextBlockViewProps = $props();
 
 	const handleUpdateContent = (action: UpdateAction) => {
 		const request: TextBlockUpdateContentAction = {
-			meetingId,
-			topicId,
 			blockId,
 			action: "UPDATE_CONTENT",
 			position: action.position,
