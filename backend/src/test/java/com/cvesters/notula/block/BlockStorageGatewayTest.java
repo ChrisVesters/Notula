@@ -73,7 +73,6 @@ class BlockStorageGatewayTest {
 	class FindById {
 
 		private static final TestBlock BLOCK = TestBlock.SPORER_PROJECT_BLOCKERS_FIRST;
-		private static final TestTopic TOPIC = BLOCK.getTopic();
 
 		@Test
 		void success() {
@@ -81,21 +80,20 @@ class BlockStorageGatewayTest {
 			final BlockInfo bdo = mock();
 			when(dao.toBdo()).thenReturn(bdo);
 
-			when(blockRepository.findByTopicIdAndId(TOPIC.getId(),
-					BLOCK.getId())).thenReturn(Optional.of(dao));
+			when(blockRepository.findById(BLOCK.getId()))
+					.thenReturn(Optional.of(dao));
 
-			final Optional<BlockInfo> result = gateway.find(TOPIC.getId(),
-					BLOCK.getId());
+			final Optional<BlockInfo> result = gateway.find(BLOCK.getId());
 
 			assertThat(result).contains(bdo);
 		}
 
 		@Test
 		void notFound() {
-			when(blockRepository.findByTopicIdAndId(TOPIC.getId(),
-					BLOCK.getId())).thenReturn(Optional.empty());
+			when(blockRepository.findById(BLOCK.getId()))
+					.thenReturn(Optional.empty());
 
-			assertThat(gateway.find(TOPIC.getId(), BLOCK.getId())).isEmpty();
+			assertThat(gateway.find(BLOCK.getId())).isEmpty();
 		}
 
 	}
@@ -156,8 +154,8 @@ class BlockStorageGatewayTest {
 			final List<BlockInfo> blocks = List.of(updateBdo);
 
 			final BlockDao found = mock();
-			when(blockRepository.findByTopicIdAndId(block.getTopic().getId(),
-					block.getId())).thenReturn(Optional.of(found));
+			when(blockRepository.findById(block.getId()))
+					.thenReturn(Optional.of(found));
 
 			final BlockDao updatedDao = mock();
 			final BlockInfo updatedBdo = mock();
@@ -191,9 +189,8 @@ class BlockStorageGatewayTest {
 				updateBdos.add(updateBdo);
 
 				final BlockDao found = mock();
-				when(blockRepository.findByTopicIdAndId(
-						block.getTopic().getId(), block.getId()))
-								.thenReturn(Optional.of(found));
+				when(blockRepository.findById(block.getId()))
+						.thenReturn(Optional.of(found));
 				foundDaos.add(found);
 
 				final BlockDao updatedDao = mock();
@@ -232,8 +229,8 @@ class BlockStorageGatewayTest {
 			final TestBlock block = TestBlock.SPORER_PROJECT_BLOCKERS_FIRST;
 			final List<BlockInfo> blocks = List.of(block.info());
 
-			when(blockRepository.findByTopicIdAndId(block.getTopic().getId(),
-					block.getId())).thenReturn(Optional.empty());
+			when(blockRepository.findById(block.getId()))
+					.thenReturn(Optional.empty());
 
 			assertThatThrownBy(() -> gateway.updateAll(blocks))
 					.isInstanceOf(MissingEntityException.class);
@@ -258,8 +255,8 @@ class BlockStorageGatewayTest {
 		@Test
 		void success() {
 			final BlockDao found = mock();
-			when(blockRepository.findByTopicIdAndId(BLOCK.getTopic().getId(),
-					BLOCK.getId())).thenReturn(Optional.of(found));
+			when(blockRepository.findById(BLOCK.getId()))
+					.thenReturn(Optional.of(found));
 
 			final BlockInfo update = BLOCK.info();
 			gateway.delete(update);
@@ -270,8 +267,8 @@ class BlockStorageGatewayTest {
 
 		@Test
 		void notFound() {
-			when(blockRepository.findByTopicIdAndId(BLOCK.getTopic().getId(),
-					BLOCK.getId())).thenReturn(Optional.empty());
+			when(blockRepository.findById(BLOCK.getId()))
+					.thenReturn(Optional.empty());
 
 			final BlockInfo update = BLOCK.info();
 			assertThatThrownBy(() -> gateway.delete(update))

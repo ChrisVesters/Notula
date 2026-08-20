@@ -27,9 +27,8 @@ public class TextBlockWebSocket extends BaseController {
 		final Principal principal = getPrincipal();
 
 		final long meetingId = dto.getMeetingId();
-		final long topicId = dto.getTopicId();
 		final long blockId = dto.getBlockId();
 		final TextBlockAction.Update action = dto.toBdo();
-		textBlockService.update(principal, meetingId, topicId, blockId, action);
+		textBlockService.update(principal, meetingId, blockId, action);
 	}
 }
