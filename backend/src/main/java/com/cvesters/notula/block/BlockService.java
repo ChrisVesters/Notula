@@ -29,14 +29,13 @@ public class BlockService {
 		this.blockPublisher = blockPublisher;
 	}
 
-	public BlockInfo getById(final Principal principal, final long meetingId,
-			final long topicId, final long blockId) {
+	public BlockInfo getById(final Principal principal, final long blockId) {
 		Objects.requireNonNull(principal);
 
-		final TopicInfo topic = topicService.getById(principal, meetingId,
-				topicId);
+		final long organisationId = principal.organisationId();
 
-		return blockStorage.find(topic.getId(), blockId)
+		return blockStorage.find(blockId)
+				.filter(b -> b.getOrganisationId() == organisationId)
 				.orElseThrow(MissingEntityException::new);
 	}
 
@@ -73,15 +72,14 @@ public class BlockService {
 	}
 
 	public void delete(final Principal principal, final long meetingId,
-			final long topicId, final long blockId) {
+			final long blockId) {
 		Objects.requireNonNull(principal);
 
-		final BlockInfo blockInfo = getById(principal, meetingId, topicId,
-				blockId);
+		final BlockInfo blockInfo = getById(principal, blockId);
 		blockStorage.delete(blockInfo);
 
 		final List<BlockInfo> existingBlocks = blockStorage
-				.findAllByTopicId(topicId);
+				.findAllByTopicId(blockInfo.getTopicId());
 		// TODO: move logic into action?
 		final List<BlockInfo> toUpdateTopics = existingBlocks.stream()
 				.filter(t -> t.getSequenceId() > blockInfo.getSequenceId())

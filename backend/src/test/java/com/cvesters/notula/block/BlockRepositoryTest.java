@@ -69,36 +69,21 @@ public class BlockRepositoryTest extends RepositoryTest {
 	}
 
 	@Nested
-	class FindByTopicIdAndId {
+	class FindById {
 
 		@Test
 		void found() {
 			final TestBlock block = TestBlock.SPORER_PROJECT_BLOCKERS_FIRST;
 
-			final var result = blockRepository.findByTopicIdAndId(
-					block.getTopic().getId(), block.getId());
+			final var result = blockRepository.findById(block.getId());
 
 			assertThat(result)
 					.hasValueSatisfying(dao -> assertEquals(dao, block));
 		}
 
 		@Test
-		void blockNotFound() {
-			final TestBlock block = TestBlock.SPORER_PROJECT_BLOCKERS_FIRST;
-			final TestTopic topic = block.getTopic();
-
-			final var result = blockRepository.findByTopicIdAndId(topic.getId(),
-					Long.MAX_VALUE);
-
-			assertThat(result).isEmpty();
-		}
-
-		@Test
-		void topicNotFound() {
-			final TestBlock block = TestBlock.SPORER_PROJECT_BLOCKERS_FIRST;
-
-			final var result = blockRepository
-					.findByTopicIdAndId(Long.MAX_VALUE, block.getId());
+		void notFound() {
+			final var result = blockRepository.findById(Long.MAX_VALUE);
 
 			assertThat(result).isEmpty();
 		}

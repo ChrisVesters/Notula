@@ -36,8 +36,7 @@ public class BlockWebSocket extends BaseController {
 		final Principal principal = getPrincipal();
 
 		final long meetingId = dto.getMeetingId();
-		final long topicId = dto.getTopicId();
 		final long blockId = dto.getBlockId();
-		blockService.delete(principal, meetingId, topicId, blockId);
+		blockService.delete(principal, meetingId, blockId);
 	}
 }

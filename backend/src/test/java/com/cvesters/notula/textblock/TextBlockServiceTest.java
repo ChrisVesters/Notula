@@ -48,11 +48,10 @@ class TextBlockServiceTest {
 		void success() {
 			final Principal principal = SESSION.principal();
 			final long meetingId = MEETING.getId();
-			final long topicId = TOPIC.getId();
 			final long blockId = BLOCK.getId();
 
 			final BlockInfo blockInfo = BLOCK.info();
-			when(blockService.getById(principal, meetingId, topicId, blockId))
+			when(blockService.getById(principal, blockId))
 					.thenReturn(blockInfo);
 
 			final TextBlockInfo textBlockInfo = TEXT_BLOCK.info();
@@ -69,7 +68,7 @@ class TextBlockServiceTest {
 			final var action = new TextBlockAction.UpdateContent(0, 0,
 					"Project ");
 			final TextBlockInfo result = textBlockService.update(principal,
-					meetingId, topicId, blockId, action);
+					meetingId, blockId, action);
 
 			assertThat(result).isEqualTo(updated);
 
@@ -84,11 +83,10 @@ class TextBlockServiceTest {
 		void uninitialized() {
 			final Principal principal = SESSION.principal();
 			final long meetingId = MEETING.getId();
-			final long topicId = TOPIC.getId();
 			final long blockId = BLOCK.getId();
 
 			final BlockInfo blockInfo = BLOCK.info();
-			when(blockService.getById(principal, meetingId, topicId, blockId))
+			when(blockService.getById(principal, blockId))
 					.thenReturn(blockInfo);
 
 			when(textBlockStorageGateway.find(blockId))
@@ -104,7 +102,7 @@ class TextBlockServiceTest {
 			final var action = new TextBlockAction.UpdateContent(0, 0,
 					"Project");
 			final TextBlockInfo result = textBlockService.update(principal,
-					meetingId, topicId, blockId, action);
+					meetingId, blockId, action);
 
 			assertThat(result).isEqualTo(updated);
 
@@ -119,18 +117,17 @@ class TextBlockServiceTest {
 		void invalidType() {
 			final Principal principal = SESSION.principal();
 			final long meetingId = MEETING.getId();
-			final long topicId = TOPIC.getId();
 			final long blockId = BLOCK.getId();
 
 			final BlockInfo blockInfo = mock();
 			when(blockInfo.getType()).thenReturn(null);
-			when(blockService.getById(principal, meetingId, topicId, blockId))
+			when(blockService.getById(principal, blockId))
 					.thenReturn(blockInfo);
 
 			final var action = new TextBlockAction.UpdateContent(0, 0,
 					"Project ");
 			assertThatThrownBy(() -> textBlockService.update(principal,
-					meetingId, topicId, blockId, action))
+					meetingId, blockId, action))
 							.isInstanceOf(InvalidActionException.class);
 
 			verifyNoInteractions(textBlockStorageGateway);
@@ -140,14 +137,13 @@ class TextBlockServiceTest {
 		@Test
 		void principalNull() {
 			final long meetingId = MEETING.getId();
-			final long topicId = TOPIC.getId();
 			final long blockId = BLOCK.getId();
 
 			final var action = new TextBlockAction.UpdateContent(0, 0,
 					"Project ");
 
 			assertThatThrownBy(() -> textBlockService.update(null, meetingId,
-					topicId, blockId, action))
+					blockId, action))
 							.isInstanceOf(NullPointerException.class);
 		}
 
@@ -155,11 +151,10 @@ class TextBlockServiceTest {
 		void actionNull() {
 			final Principal principal = SESSION.principal();
 			final long meetingId = MEETING.getId();
-			final long topicId = TOPIC.getId();
 			final long blockId = BLOCK.getId();
 
 			assertThatThrownBy(() -> textBlockService.update(principal,
-					meetingId, topicId, blockId, null))
+					meetingId, blockId, null))
 							.isInstanceOf(NullPointerException.class);
 		}
 	}

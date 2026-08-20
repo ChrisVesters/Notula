@@ -28,9 +28,8 @@ public class BlockStorageGateway {
 		return saved.toBdo();
 	}
 
-	public Optional<BlockInfo> find(final long topicId, final long id) {
-		return blockRepository.findByTopicIdAndId(topicId, id)
-				.map(BlockDao::toBdo);
+	public Optional<BlockInfo> find(final long id) {
+		return blockRepository.findById(id).map(BlockDao::toBdo);
 	}
 
 	public List<BlockInfo> findAllByTopicId(final long topicId) {
@@ -45,8 +44,7 @@ public class BlockStorageGateway {
 
 		final var updated = new ArrayList<BlockDao>();
 		for (final BlockInfo block : blocks) {
-			final BlockDao dao = blockRepository
-					.findByTopicIdAndId(block.getTopicId(), block.getId())
+			final BlockDao dao = blockRepository.findById(block.getId())
 					.orElseThrow(MissingEntityException::new);
 			dao.update(block);
 			updated.add(dao);
@@ -61,8 +59,7 @@ public class BlockStorageGateway {
 	public void delete(final BlockInfo block) {
 		Objects.requireNonNull(block);
 
-		final BlockDao dao = blockRepository
-				.findByTopicIdAndId(block.getTopicId(), block.getId())
+		final BlockDao dao = blockRepository.findById(block.getId())
 				.orElseThrow(MissingEntityException::new);
 
 		blockRepository.delete(dao);

@@ -194,8 +194,8 @@ class BlockWebSocketTest extends WebSocketTest {
 			connect(SESSION);
 			send(ENDPOINT, payload);
 
-			verify(blockService, timeout(WAIT_TIMEOUT.toMillis())).delete(
-					PRINCIPAL, MEETING.getId(), TOPIC.getId(), BLOCK.getId());
+			verify(blockService, timeout(WAIT_TIMEOUT.toMillis()))
+					.delete(PRINCIPAL, MEETING.getId(), BLOCK.getId());
 		}
 
 		@Test
@@ -203,7 +203,7 @@ class BlockWebSocketTest extends WebSocketTest {
 			final byte[] payload = getRequestPayload();
 
 			doThrow(new MissingEntityException()).when(blockService)
-					.delete(any(), anyLong(), anyLong(), anyLong());
+					.delete(any(), anyLong(), anyLong());
 
 			connect(SESSION);
 			final FrameHandler errorFrameHandler = subscribeToErrors();

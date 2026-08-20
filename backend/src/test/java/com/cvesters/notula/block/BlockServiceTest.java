@@ -29,7 +29,6 @@ import com.cvesters.notula.organisation.TestOrganisation;
 import com.cvesters.notula.session.TestSession;
 import com.cvesters.notula.topic.TestTopic;
 import com.cvesters.notula.topic.TopicService;
-import com.cvesters.notula.topic.bdo.TopicInfo;
 
 class BlockServiceTest {
 
@@ -48,51 +47,51 @@ class BlockServiceTest {
 	class GetById {
 
 		private static final TestBlock BLOCK = TestBlock.SPORER_PROJECT_BLOCKERS_FIRST;
-		private static final TestTopic TOPIC = BLOCK.getTopic();
-		private static final TestMeeting MEETING = TOPIC.getMeeting();
 
 		@Test
 		void success() {
-			final TopicInfo topicInfo = TOPIC.info();
-			when(topicService.getById(PRINCIPAL, MEETING.getId(),
-					TOPIC.getId())).thenReturn(topicInfo);
-
 			final BlockInfo blockInfo = BLOCK.info();
-			when(blockStorageGateway.find(TOPIC.getId(), BLOCK.getId()))
+			when(blockStorageGateway.find(BLOCK.getId()))
 					.thenReturn(Optional.of(blockInfo));
 
 			final BlockInfo result = blockService.getById(PRINCIPAL,
-					MEETING.getId(), TOPIC.getId(), BLOCK.getId());
+					BLOCK.getId());
 
 			assertThat(result).isEqualTo(blockInfo);
 		}
 
 		@Test
 		void notFound() {
-			final TopicInfo topicInfo = TOPIC.info();
-			when(topicService.getById(PRINCIPAL, MEETING.getId(),
-					TOPIC.getId())).thenReturn(topicInfo);
-
-			when(blockStorageGateway.find(TOPIC.getId(), BLOCK.getId()))
+			when(blockStorageGateway.find(BLOCK.getId()))
 					.thenReturn(Optional.empty());
 
-			final long meetingId = MEETING.getId();
-			final long topicId = TOPIC.getId();
 			final long blockId = BLOCK.getId();
 
-			assertThatThrownBy(() -> blockService.getById(PRINCIPAL, meetingId,
-					topicId, blockId))
-							.isInstanceOf(MissingEntityException.class);
+			assertThatThrownBy(() -> blockService.getById(PRINCIPAL, blockId))
+					.isInstanceOf(MissingEntityException.class);
+		}
+
+		@Test
+		void otherOrganisation() {
+			final Principal principal = TestSession.ALISON_DACH_GLOVER
+					.principal();
+
+			final BlockInfo blockInfo = BLOCK.info();
+			when(blockStorageGateway.find(BLOCK.getId()))
+					.thenReturn(Optional.of(blockInfo));
+
+			final long blockId = BLOCK.getId();
+
+			assertThatThrownBy(() -> blockService.getById(principal, blockId))
+					.isInstanceOf(MissingEntityException.class);
 		}
 
 		@Test
 		void principalNull() {
-			final long meetingId = MEETING.getId();
-			final long topicId = TOPIC.getId();
 			final long blockId = BLOCK.getId();
 
-			assertThatThrownBy(() -> blockService.getById(null, meetingId,
-					topicId, blockId)).isInstanceOf(NullPointerException.class);
+			assertThatThrownBy(() -> blockService.getById(null, blockId))
+					.isInstanceOf(NullPointerException.class);
 		}
 	}
 
@@ -323,18 +322,14 @@ class BlockServiceTest {
 			final long topicId = TOPIC.getId();
 			final long meetingId = MEETING.getId();
 
-			final TopicInfo topicInfo = TOPIC.info();
-			when(topicService.getById(principal, meetingId, topicId))
-					.thenReturn(topicInfo);
-
 			final BlockInfo blockInfo = BLOCK.info();
-			when(blockStorageGateway.find(topicId, blockId))
+			when(blockStorageGateway.find(blockId))
 					.thenReturn(Optional.of(blockInfo));
 
 			when(blockStorageGateway.findAllByTopicId(topicId))
 					.thenReturn(List.of(blockInfo));
 
-			blockService.delete(principal, meetingId, topicId, blockId);
+			blockService.delete(principal, meetingId, blockId);
 
 			verify(blockStorageGateway).delete(blockInfo);
 			verify(blockPublisher).publish(eq(meetingId), argThat(event -> {
@@ -359,12 +354,8 @@ class BlockServiceTest {
 			final long topicId = topic.getId();
 			final long meetingId = meeting.getId();
 
-			final TopicInfo topicInfo = topic.info();
-			when(topicService.getById(principal, meetingId, topicId))
-					.thenReturn(topicInfo);
-
 			final BlockInfo blockInfo = deleted.info();
-			when(blockStorageGateway.find(topicId, blockId))
+			when(blockStorageGateway.find(blockId))
 					.thenReturn(Optional.of(blockInfo));
 
 			when(blockStorageGateway.findAllByTopicId(topicId))
@@ -375,7 +366,7 @@ class BlockServiceTest {
 			when(blockStorageGateway.findAllByTopicId(topicId))
 					.thenReturn(existingBlocks);
 
-			blockService.delete(principal, meetingId, topicId, blockId);
+			blockService.delete(principal, meetingId, blockId);
 
 			verify(blockStorageGateway).delete(blockInfo);
 			verify(blockPublisher).publish(eq(meetingId), argThat(event -> {
@@ -404,12 +395,8 @@ class BlockServiceTest {
 			final long topicId = topic.getId();
 			final long meetingId = meeting.getId();
 
-			final TopicInfo topicInfo = topic.info();
-			when(topicService.getById(principal, meetingId, topicId))
-					.thenReturn(topicInfo);
-
 			final BlockInfo blockInfo = deleted.info();
-			when(blockStorageGateway.find(topicId, blockId))
+			when(blockStorageGateway.find(blockId))
 					.thenReturn(Optional.of(blockInfo));
 
 			when(blockStorageGateway.findAllByTopicId(topicId))
@@ -420,7 +407,7 @@ class BlockServiceTest {
 			when(blockStorageGateway.findAllByTopicId(topicId))
 					.thenReturn(existingBlocks);
 
-			blockService.delete(principal, meetingId, topicId, blockId);
+			blockService.delete(principal, meetingId, blockId);
 
 			verify(blockStorageGateway).delete(blockInfo);
 			verify(blockPublisher).publish(eq(meetingId), argThat(event -> {
@@ -444,15 +431,11 @@ class BlockServiceTest {
 			final long topicId = topic.getId();
 			final long meetingId = meeting.getId();
 
-			final TopicInfo topicInfo = topic.info();
-			when(topicService.getById(principal, meetingId, topicId))
-					.thenReturn(topicInfo);
-
-			when(blockStorageGateway.find(topicId, blockId))
+			when(blockStorageGateway.find(blockId))
 					.thenReturn(Optional.empty());
 
-			assertThatThrownBy(() -> blockService.delete(principal, meetingId,
-					topicId, blockId))
+			assertThatThrownBy(
+					() -> blockService.delete(principal, meetingId, blockId))
 							.isInstanceOf(MissingEntityException.class);
 
 			verify(blockStorageGateway, never()).delete(any());
@@ -462,11 +445,11 @@ class BlockServiceTest {
 		@Test
 		void principalNull() {
 			final long meetingId = MEETING.getId();
-			final long topicId = TOPIC.getId();
 			final long blockId = BLOCK.getId();
 
-			assertThatThrownBy(() -> blockService.delete(null, meetingId,
-					topicId, blockId)).isInstanceOf(NullPointerException.class);
+			assertThatThrownBy(
+					() -> blockService.delete(null, meetingId, blockId))
+							.isInstanceOf(NullPointerException.class);
 		}
 	}
 

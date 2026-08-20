@@ -30,12 +30,10 @@ public class TextBlockService {
 	}
 
 	public TextBlockInfo update(final Principal principal, final long meetingId,
-			final long topicId, final long blockId,
-			final TextBlockAction.Update action) {
+			final long blockId, final TextBlockAction.Update action) {
 		Objects.requireNonNull(action);
 
-		final BlockInfo blockInfo = blockService.getById(principal, meetingId,
-				topicId, blockId);
+		final BlockInfo blockInfo = blockService.getById(principal, blockId);
 		if (blockInfo.getType() != BlockType.TEXT) {
 			throw new InvalidActionException();
 		}

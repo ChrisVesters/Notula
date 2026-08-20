@@ -11,7 +11,7 @@ public interface BlockRepository extends Repository<BlockDao, Long> {
 
 	List<BlockDao> findAllByTopicId(long topicId);
 
-	Optional<BlockDao> findByTopicIdAndId(long topicId, long id);
+	Optional<BlockDao> findById(long id);
 
 	BlockDao save(BlockDao block);
 
