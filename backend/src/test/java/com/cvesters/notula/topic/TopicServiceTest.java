@@ -96,26 +96,24 @@ class TopicServiceTest {
 
 	@Nested
 	class Create {
-
-		private static final long TOPIC_ID = Long.MAX_VALUE;
-		private static final int TOPIC_SEQUENCE_ID = 0;
-		private static final String TOPIC_NAME = "Topic";
-		private static final String TOPIC_DESCRIPTION = "Description";
-
 		private static final TestSession SESSION = TestSession.EDUARDO_CHRISTIANSEN_SPORER;
 		private static final Principal PRINCIPAL = SESSION.principal();
 		private static final TestMeeting MEETING = TestMeeting.SPORER_PROJECT;
 		private static final TestOrganisation ORGANISATION = MEETING
 				.getOrganisation();
 
+		private static final long MEETING_ID = MEETING.getId();
+		private static final long TOPIC_ID = Long.MAX_VALUE;
+		private static final int TOPIC_SEQUENCE_ID = 0;
+		private static final String TOPIC_NAME = "Topic";
+		private static final String TOPIC_DESCRIPTION = "Description";
+
 		@Test
 		void firstTopic() {
-			final long meetingId = MEETING.getId();
-
-			when(meetingService.getById(PRINCIPAL, meetingId))
+			when(meetingService.getById(PRINCIPAL, MEETING_ID))
 					.thenReturn(MEETING.info());
 
-			when(topicStorageGateway.findAllByMeetingId(meetingId))
+			when(topicStorageGateway.findAllByMeetingId(MEETING_ID))
 					.thenReturn(Collections.emptyList());
 
 			final var created = new TopicInfo(TOPIC_ID, ORGANISATION.getId(),
@@ -127,7 +125,7 @@ class TopicServiceTest {
 						.isInstanceOf(IllegalStateException.class);
 				assertThat(t.getOrganisationId())
 						.isEqualTo(ORGANISATION.getId());
-				assertThat(t.getMeetingId()).isEqualTo(meetingId);
+				assertThat(t.getMeetingId()).isEqualTo(MEETING_ID);
 				assertThat(t.getSequenceId()).isEqualTo(TOPIC_SEQUENCE_ID);
 				assertThat(t.getName()).isEqualTo(TOPIC_NAME);
 				assertThat(t.getDescription()).isEmpty();
@@ -135,18 +133,17 @@ class TopicServiceTest {
 				return true;
 			}))).thenReturn(created);
 
-			final var action = new TopicAction.Create(TOPIC_SEQUENCE_ID,
-					TOPIC_NAME);
+			final var action = new TopicAction.Create(MEETING.getId(),
+					TOPIC_SEQUENCE_ID, TOPIC_NAME);
 
-			final TopicInfo result = topicService.create(PRINCIPAL, meetingId,
-					action);
+			final TopicInfo result = topicService.create(PRINCIPAL, action);
 
 			assertThat(result).isEqualTo(created);
 
-			final var expectedAction = new TopicAction.Create(TOPIC_SEQUENCE_ID,
-					TOPIC_NAME);
+			final var expectedAction = new TopicAction.Create(MEETING.getId(),
+					TOPIC_SEQUENCE_ID, TOPIC_NAME);
 			final var matcher = new TopicActionMatcher.Create(expectedAction);
-			verify(topicPublisher).publish(eq(meetingId), argThat(event -> {
+			verify(topicPublisher).publish(eq(MEETING_ID), argThat(event -> {
 				assertThat(event.topicId()).isEqualTo(TOPIC_ID);
 				assertThat(event.action()).is(matcher.equal());
 				return true;
@@ -155,29 +152,27 @@ class TopicServiceTest {
 
 		@Test
 		void topicAtEnd() {
-			final long meetingId = MEETING.getId();
-
-			when(meetingService.getById(PRINCIPAL, meetingId))
+			when(meetingService.getById(PRINCIPAL, MEETING_ID))
 					.thenReturn(MEETING.info());
 
 			final List<TopicInfo> existingTopics = TestTopic.ofMeeting(MEETING)
 					.stream()
 					.map(TestTopic::info)
 					.toList();
-			when(topicStorageGateway.findAllByMeetingId(meetingId))
+			when(topicStorageGateway.findAllByMeetingId(MEETING_ID))
 					.thenReturn(existingTopics);
 
 			final int sequenceId = existingTopics.size();
 			final var created = new TopicInfo(TOPIC_ID, ORGANISATION.getId(),
-					MEETING.getId(), sequenceId, TOPIC_NAME,
-					TOPIC_DESCRIPTION, null);
+					MEETING.getId(), sequenceId, TOPIC_NAME, TOPIC_DESCRIPTION,
+					null);
 
 			when(topicStorageGateway.create(argThat(t -> {
 				assertThatThrownBy(t::getId)
 						.isInstanceOf(IllegalStateException.class);
 				assertThat(t.getOrganisationId())
 						.isEqualTo(ORGANISATION.getId());
-				assertThat(t.getMeetingId()).isEqualTo(meetingId);
+				assertThat(t.getMeetingId()).isEqualTo(MEETING_ID);
 				assertThat(t.getSequenceId()).isEqualTo(sequenceId);
 				assertThat(t.getName()).isEqualTo(TOPIC_NAME);
 				assertThat(t.getDescription()).isEmpty();
@@ -185,17 +180,17 @@ class TopicServiceTest {
 				return true;
 			}))).thenReturn(created);
 
-			final var action = new TopicAction.Create(sequenceId, TOPIC_NAME);
+			final var action = new TopicAction.Create(MEETING.getId(),
+					sequenceId, TOPIC_NAME);
 
-			final TopicInfo result = topicService.create(PRINCIPAL, meetingId,
-					action);
+			final TopicInfo result = topicService.create(PRINCIPAL, action);
 
 			assertThat(result).isEqualTo(created);
 
-			final var expectedAction = new TopicAction.Create(sequenceId,
-					TOPIC_NAME);
+			final var expectedAction = new TopicAction.Create(MEETING.getId(),
+					sequenceId, TOPIC_NAME);
 			final var matcher = new TopicActionMatcher.Create(expectedAction);
-			verify(topicPublisher).publish(eq(meetingId), argThat(event -> {
+			verify(topicPublisher).publish(eq(MEETING_ID), argThat(event -> {
 				assertThat(event.topicId()).isEqualTo(TOPIC_ID);
 				assertThat(event.action()).is(matcher.equal());
 				return true;
@@ -209,29 +204,27 @@ class TopicServiceTest {
 
 		@Test
 		void topicAtStart() {
-			final long meetingId = MEETING.getId();
-
-			when(meetingService.getById(PRINCIPAL, meetingId))
+			when(meetingService.getById(PRINCIPAL, MEETING_ID))
 					.thenReturn(MEETING.info());
 
 			final List<TopicInfo> existingTopics = TestTopic.ofMeeting(MEETING)
 					.stream()
 					.map(TestTopic::info)
 					.toList();
-			when(topicStorageGateway.findAllByMeetingId(meetingId))
+			when(topicStorageGateway.findAllByMeetingId(MEETING_ID))
 					.thenReturn(existingTopics);
 
 			final int sequenceId = 0;
 			final var created = new TopicInfo(TOPIC_ID, ORGANISATION.getId(),
-					MEETING.getId(), sequenceId, TOPIC_NAME,
-					TOPIC_DESCRIPTION, null);
+					MEETING.getId(), sequenceId, TOPIC_NAME, TOPIC_DESCRIPTION,
+					null);
 
 			when(topicStorageGateway.create(argThat(t -> {
 				assertThatThrownBy(t::getId)
 						.isInstanceOf(IllegalStateException.class);
 				assertThat(t.getOrganisationId())
 						.isEqualTo(ORGANISATION.getId());
-				assertThat(t.getMeetingId()).isEqualTo(meetingId);
+				assertThat(t.getMeetingId()).isEqualTo(MEETING_ID);
 				assertThat(t.getSequenceId()).isZero();
 				assertThat(t.getName()).isEqualTo(TOPIC_NAME);
 				assertThat(t.getDescription()).isEmpty();
@@ -239,18 +232,17 @@ class TopicServiceTest {
 				return true;
 			}))).thenReturn(created);
 
-			final var action = new TopicAction.Create(TOPIC_SEQUENCE_ID,
-					TOPIC_NAME);
+			final var action = new TopicAction.Create(MEETING.getId(),
+					TOPIC_SEQUENCE_ID, TOPIC_NAME);
 
-			final TopicInfo result = topicService.create(PRINCIPAL, meetingId,
-					action);
+			final TopicInfo result = topicService.create(PRINCIPAL, action);
 
 			assertThat(result).isEqualTo(created);
 
-			final var expectedAction = new TopicAction.Create(TOPIC_SEQUENCE_ID,
-					TOPIC_NAME);
+			final var expectedAction = new TopicAction.Create(MEETING_ID,
+					TOPIC_SEQUENCE_ID, TOPIC_NAME);
 			final var matcher = new TopicActionMatcher.Create(expectedAction);
-			verify(topicPublisher).publish(eq(meetingId), argThat(event -> {
+			verify(topicPublisher).publish(eq(MEETING_ID), argThat(event -> {
 				assertThat(event.topicId()).isEqualTo(TOPIC_ID);
 				assertThat(event.action()).is(matcher.equal());
 				return true;
@@ -264,19 +256,16 @@ class TopicServiceTest {
 
 		@Test
 		void invalidSequenceId() {
-			final long meetingId = MEETING.getId();
-
-			when(meetingService.getById(PRINCIPAL, meetingId))
+			when(meetingService.getById(PRINCIPAL, MEETING_ID))
 					.thenReturn(MEETING.info());
 
-			when(topicStorageGateway.findAllByMeetingId(meetingId))
+			when(topicStorageGateway.findAllByMeetingId(MEETING_ID))
 					.thenReturn(Collections.emptyList());
 
-			final var action = new TopicAction.Create(1, TOPIC_NAME);
+			final var action = new TopicAction.Create(MEETING_ID, 1, TOPIC_NAME);
 
-			assertThatThrownBy(
-					() -> topicService.create(PRINCIPAL, meetingId, action))
-							.isInstanceOf(IllegalArgumentException.class);
+			assertThatThrownBy(() -> topicService.create(PRINCIPAL, action))
+					.isInstanceOf(IllegalArgumentException.class);
 
 			verifyNoInteractions(topicPublisher);
 			verify(topicStorageGateway, never()).updateAll(any());
@@ -285,22 +274,17 @@ class TopicServiceTest {
 
 		@Test
 		void principalNull() {
-			final long meetingId = MEETING.getId();
-			final TopicAction.Create topic = new TopicAction.Create(
+			final TopicAction.Create topic = new TopicAction.Create(MEETING_ID,
 					TOPIC_SEQUENCE_ID, TOPIC_NAME);
 
-			assertThatThrownBy(
-					() -> topicService.create(null, meetingId, topic))
-							.isInstanceOf(NullPointerException.class);
+			assertThatThrownBy(() -> topicService.create(null, topic))
+					.isInstanceOf(NullPointerException.class);
 		}
 
 		@Test
 		void actionNull() {
-			final long meetingId = MEETING.getId();
-
-			assertThatThrownBy(
-					() -> topicService.create(PRINCIPAL, meetingId, null))
-							.isInstanceOf(NullPointerException.class);
+			assertThatThrownBy(() -> topicService.create(PRINCIPAL, null))
+					.isInstanceOf(NullPointerException.class);
 		}
 
 	}

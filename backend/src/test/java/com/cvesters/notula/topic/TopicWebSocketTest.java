@@ -59,11 +59,11 @@ public class TopicWebSocketTest extends WebSocketTest {
 			connect(SESSION);
 			send(ENDPOINT, payload);
 
-			final var action = new TopicAction.Create(sequenceId, name);
+			final var action = new TopicAction.Create(MEETING.getId(),
+					sequenceId, name);
 			final var matcher = new TopicActionMatcher.Create(action);
-			verify(topicService, timeout(WAIT_TIMEOUT.toMillis())).create(
-					eq(PRINCIPAL), eq(MEETING.getId()),
-					argThat(matcher::matches));
+			verify(topicService, timeout(WAIT_TIMEOUT.toMillis()))
+					.create(eq(PRINCIPAL), argThat(matcher::matches));
 		}
 
 		@Test
@@ -72,7 +72,7 @@ public class TopicWebSocketTest extends WebSocketTest {
 			final byte[] payload = getRequestPayload(topic.getSequenceId(),
 					topic.getName());
 
-			when(topicService.create(any(), anyLong(), any()))
+			when(topicService.create(any(), any()))
 					.thenThrow(new MissingEntityException());
 
 			connect(SESSION);

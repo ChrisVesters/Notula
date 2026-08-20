@@ -36,12 +36,8 @@ public final class TopicActionDto {
 			this.name = name;
 		}
 
-		public long getMeetingId() {
-			return meetingId;
-		}
-
 		public TopicAction.Create toBdo() {
-			return new TopicAction.Create(sequenceId, name);
+			return new TopicAction.Create(meetingId, sequenceId, name);
 		}
 	}
 

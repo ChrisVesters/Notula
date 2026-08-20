@@ -26,9 +26,8 @@ public class TopicWebSocket extends BaseController {
 	public void create(@Valid @Payload final TopicActionDto.Create dto) {
 		final Principal principal = getPrincipal();
 
-		final long meetingId = dto.getMeetingId();
 		final TopicAction.Create action = dto.toBdo();
-		topicService.create(principal, meetingId, action);
+		topicService.create(principal, action);
 	}
 
 	@MessageMapping(ENDPOINT + "/update")
