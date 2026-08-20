@@ -36,7 +36,6 @@
 
 	function addBlock(): Promise<void> {
 		const request: BlockCreateAction = {
-			meetingId,
 			topicId: topic.id,
 			type: BlockType.TEXT,
 			sequenceId: topic.blocks.length
@@ -67,9 +66,5 @@
   .slice()
   .sort((a, b) => a.id - b.id); -->
 {#each topic.blocks as block, index (block.id)}
-	<BlockView
-		{meetingId}
-		topicId={topic.id}
-		bind:block={topic.blocks[index]}
-	/>
+	<BlockView bind:block={topic.blocks[index]} />
 {/each}

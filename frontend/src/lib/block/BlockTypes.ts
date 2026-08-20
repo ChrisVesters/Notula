@@ -12,15 +12,12 @@ export type BlockInfo = {
 };
 
 export type BlockCreateAction = {
-	meetingId: number;
 	topicId: number;
 	type: BlockType;
 	sequenceId: number;
 };
 
 export type BlockDeleteAction = {
-	meetingId: number;
-	topicId: number;
 	blockId: number;
 };
 
