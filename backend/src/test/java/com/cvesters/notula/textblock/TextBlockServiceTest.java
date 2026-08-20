@@ -74,7 +74,6 @@ class TextBlockServiceTest {
 			assertThat(result).isEqualTo(updated);
 
 			verify(textBlockPublisher).publish(eq(meetingId), argThat(event -> {
-				assertThat(event.topicId()).isEqualTo(topicId);
 				assertThat(event.blockId()).isEqualTo(blockId);
 				assertThat(event.action()).isEqualTo(action);
 				return true;
@@ -110,7 +109,6 @@ class TextBlockServiceTest {
 			assertThat(result).isEqualTo(updated);
 
 			verify(textBlockPublisher).publish(eq(meetingId), argThat(event -> {
-				assertThat(event.topicId()).isEqualTo(topicId);
 				assertThat(event.blockId()).isEqualTo(blockId);
 				assertThat(event.action()).isEqualTo(action);
 				return true;

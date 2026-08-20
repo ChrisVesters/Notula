@@ -4,7 +4,7 @@ import java.util.Objects;
 
 import com.cvesters.notula.textblock.bdo.TextBlockAction;
 
-public record TextBlockEvent(long topicId, long blockId, TextBlockAction action) {
+public record TextBlockEvent(long blockId, TextBlockAction action) {
 
 	public TextBlockEvent {
 		Objects.requireNonNull(action);
