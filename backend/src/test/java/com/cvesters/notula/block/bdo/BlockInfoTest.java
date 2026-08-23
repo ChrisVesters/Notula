@@ -77,6 +77,28 @@ class BlockInfoTest {
 	}
 
 	@Nested
+	class SetSequenceId {
+
+		@Test
+		void success() {
+			final var blockInfo = BLOCK.info();
+			final int sequenceId = BLOCK.getSequenceId() + 5;
+
+			blockInfo.setSequenceId(sequenceId);
+
+			assertThat(blockInfo.getSequenceId()).isEqualTo(sequenceId);
+		}
+
+		@Test
+		void sequenceIdNegative() {
+			final var blockInfo = BLOCK.info();
+
+			assertThatThrownBy(() -> blockInfo.setSequenceId(-1))
+					.isInstanceOf(IllegalArgumentException.class);
+		}
+	}
+
+	@Nested
 	class MoveUp {
 
 		@Test

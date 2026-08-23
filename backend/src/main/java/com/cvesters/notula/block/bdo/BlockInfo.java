@@ -38,6 +38,13 @@ public class BlockInfo {
 		return id;
 	}
 
+	public void setSequenceId(final int sequenceId) {
+		Validate.isTrue(sequenceId >= 0);
+
+		this.sequenceId = sequenceId;
+	}
+
+	// TODO: deprecated? Or rewrite with moveTo
 	public void moveUp() {
 		Validate.validState(sequenceId > 0);
 

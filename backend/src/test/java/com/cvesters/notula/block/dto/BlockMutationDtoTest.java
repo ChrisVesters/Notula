@@ -35,6 +35,19 @@ class BlockMutationDtoTest {
 		}
 
 		@Test
+		void move() {
+			final int sequenceId = 2;
+			final var action = new BlockAction.Move(sequenceId);
+
+			final var dto = BlockMutationDto.of(action);
+
+			assertThat(dto).isInstanceOf(BlockMutationDto.Move.class);
+
+			final var moveDto = (BlockMutationDto.Move) dto;
+			assertThat(moveDto.getSequenceId()).isEqualTo(sequenceId);
+		}
+
+		@Test
 		void delete() {
 			final var action = new BlockAction.Delete();
 

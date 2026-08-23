@@ -2,6 +2,8 @@ package com.cvesters.notula.block.bdo;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verify;
 
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -44,6 +46,47 @@ class BlockActionTest {
 			assertThatThrownBy(
 					() -> new BlockAction.Create(TOPIC_ID, type, sequenceId))
 							.isInstanceOf(IllegalArgumentException.class);
+		}
+	}
+
+	@Nested
+	class Move {
+
+		@Test
+		void constructor() {
+			final int sequenceId = 2;
+
+			final var action = new BlockAction.Move(sequenceId);
+
+			assertThat(action.getSequenceId()).isEqualTo(sequenceId);
+		}
+
+		@Test
+		void sequenceIdNegative() {
+			final int sequenceId = -1;
+
+			assertThatThrownBy(() -> new BlockAction.Move(sequenceId))
+					.isInstanceOf(IllegalArgumentException.class);
+		}
+
+		@Test
+		void apply() {
+			final int sequenceId = 2;
+			final BlockInfo block = mock();
+
+			final var action = new BlockAction.Move(sequenceId);
+
+			action.apply(block);
+
+			verify(block).setSequenceId(sequenceId);
+		}
+
+		@Test
+		void blockNull() {
+			final var action = new BlockAction.Move(0);
+
+			assertThatThrownBy(() -> action.apply(null))
+					.isInstanceOf(NullPointerException.class);
 		}
 	}
 

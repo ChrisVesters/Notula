@@ -23,4 +23,17 @@ public final class BlockActionMatcher {
 			assertThat(actual.getSequenceId()).isEqualTo(expected.getSequenceId());
 		}
 	}
+
+	public static class Move extends Matcher<BlockAction.Move> {
+
+		public Move(final BlockAction.Move expected) {
+			super(expected, BlockAction.Move.class);
+		}
+
+		@Override
+		public void assertEquals(final BlockAction.Move actual) {
+			assertThat(actual.getSequenceId())
+					.isEqualTo(expected.getSequenceId());
+		}
+	}
 }

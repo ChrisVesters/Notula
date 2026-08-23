@@ -11,6 +11,7 @@ import com.fasterxml.jackson.annotation.JsonTypeInfo;
 
 @JsonTypeInfo(use = JsonTypeInfo.Id.NAME, include = JsonTypeInfo.As.PROPERTY, property = "action")
 @JsonSubTypes({ @Type(value = BlockMutationDto.Create.class, name = "CREATE"),
+		@Type(value = BlockMutationDto.Move.class, name = "MOVE"),
 		@Type(value = BlockMutationDto.Delete.class, name = "DELETE") })
 public sealed interface BlockMutationDto {
 
@@ -19,6 +20,7 @@ public sealed interface BlockMutationDto {
 
 		return switch (action) {
 			case BlockAction.Create create -> new Create(create);
+			case BlockAction.Move move -> new Move(move);
 			case BlockAction.Delete _ -> new Delete();
 		};
 	}
@@ -34,6 +36,16 @@ public sealed interface BlockMutationDto {
 			this.topicId = create.getTopicId();
 			this.type = new BlockTypeDto(create.getType());
 			this.sequenceId = create.getSequenceId();
+		}
+	}
+
+	@Getter
+	final class Move implements BlockMutationDto {
+
+		private final int sequenceId;
+
+		private Move(final BlockAction.Move move) {
+			this.sequenceId = move.getSequenceId();
 		}
 	}
 
