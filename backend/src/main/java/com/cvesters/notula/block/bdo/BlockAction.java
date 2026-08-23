@@ -26,6 +26,30 @@ public sealed interface BlockAction {
 		}
 	}
 
+	sealed interface Update extends BlockAction {
+
+		void apply(final BlockInfo block);
+	}
+
+	@Getter
+	final class Move implements BlockAction.Update {
+
+		private final int sequenceId;
+
+		public Move(final int sequenceId) {
+			Validate.isTrue(sequenceId >= 0);
+
+			this.sequenceId = sequenceId;
+		}
+
+		@Override
+		public void apply(final BlockInfo block) {
+			Objects.requireNonNull(block);
+
+			block.setSequenceId(sequenceId);
+		}
+	}
+
 	@Getter
 	final class Delete implements BlockAction {
 	}

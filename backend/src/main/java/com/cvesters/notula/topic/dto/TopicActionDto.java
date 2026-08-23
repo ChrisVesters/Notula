@@ -71,7 +71,8 @@ public final class TopicActionDto {
 				this.update = new TextUpdateDto(position, length, value);
 			}
 
-			public TopicAction.Update toBdo() {
+			@Override
+			public TopicAction.UpdateName toBdo() {
 				final int position = update.position();
 				final int length = update.length();
 				final String value = update.value();
@@ -92,7 +93,8 @@ public final class TopicActionDto {
 				this.update = new TextUpdateDto(position, length, value);
 			}
 
-			public TopicAction.Update toBdo() {
+			@Override
+			public TopicAction.UpdateDescription toBdo() {
 				final int position = update.position();
 				final int length = update.length();
 				final String value = update.value();
@@ -113,7 +115,8 @@ public final class TopicActionDto {
 				this.duration = duration;
 			}
 
-			public TopicAction.Update toBdo() {
+			@Override
+			public TopicAction.UpdateDuration toBdo() {
 				final Minutes v = Optional.ofNullable(duration)
 						.map(Minutes::new)
 						.orElse(null);

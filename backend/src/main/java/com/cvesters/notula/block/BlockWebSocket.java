@@ -30,6 +30,15 @@ public class BlockWebSocket extends BaseController {
 		blockService.create(principal, action);
 	}
 
+	@MessageMapping(ENDPOINT + "/move")
+	public void move(@Valid @Payload final BlockActionDto.Move dto) {
+		final Principal principal = getPrincipal();
+
+		final long blockId = dto.getBlockId();
+		final BlockAction.Move action = dto.toBdo();
+		blockService.move(principal, blockId, action);
+	}
+
 	@MessageMapping(ENDPOINT + "/delete")
 	public void delete(@Valid @Payload final BlockActionDto.Delete dto) {
 		final Principal principal = getPrincipal();

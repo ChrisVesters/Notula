@@ -3,10 +3,12 @@ package com.cvesters.notula.block;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.Mockito.inOrder;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
@@ -17,9 +19,11 @@ import java.util.Optional;
 
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
+import org.mockito.ArgumentCaptor;
 import org.mockito.InOrder;
 
 import com.cvesters.notula.block.bdo.BlockAction;
+import com.cvesters.notula.block.bdo.BlockEvent;
 import com.cvesters.notula.block.bdo.BlockInfo;
 import com.cvesters.notula.common.domain.Principal;
 import com.cvesters.notula.common.exception.MissingEntityException;
@@ -267,9 +271,8 @@ class BlockServiceTest {
 			final var action = new BlockAction.Create(TOPIC.getId(),
 					BLOCK.getType(), 1);
 
-			assertThatThrownBy(
-					() -> blockService.create(PRINCIPAL, action))
-							.isInstanceOf(IllegalArgumentException.class);
+			assertThatThrownBy(() -> blockService.create(PRINCIPAL, action))
+					.isInstanceOf(IllegalArgumentException.class);
 
 			verifyNoInteractions(blockPublisher);
 			verify(blockStorageGateway, never()).updateAll(any());
@@ -282,19 +285,345 @@ class BlockServiceTest {
 			final var block = new BlockAction.Create(TOPIC.getId(),
 					BLOCK.getType(), BLOCK.getSequenceId());
 
-			assertThatThrownBy(
-					() -> blockService.create(null, block))
-							.isInstanceOf(NullPointerException.class);
+			assertThatThrownBy(() -> blockService.create(null, block))
+					.isInstanceOf(NullPointerException.class);
 		}
 
 		@Test
 		void actionNull() {
 
-			assertThatThrownBy(
-					() -> blockService.create(PRINCIPAL, null))
-							.isInstanceOf(NullPointerException.class);
+			assertThatThrownBy(() -> blockService.create(PRINCIPAL, null))
+					.isInstanceOf(NullPointerException.class);
 		}
 
+	}
+
+	@Nested
+	class Move {
+
+		private static final TestTopic TOPIC = TestTopic.SPORER_PROJECT_BLOCKERS;
+
+		@Test
+		void down() {
+			final List<BlockInfo> existingBlocks = TestBlock.ofTopic(TOPIC)
+					.stream()
+					.map(TestBlock::info)
+					.toList();
+
+			final BlockInfo block = existingBlocks.stream()
+					.filter(b -> b.getSequenceId() == 0)
+					.findFirst()
+					.orElseThrow();
+
+			final BlockInfo second = existingBlocks.stream()
+					.filter(b -> b.getSequenceId() == 1)
+					.findFirst()
+					.orElseThrow();
+
+			final BlockInfo third = existingBlocks.stream()
+					.filter(b -> b.getSequenceId() == 2)
+					.findFirst()
+					.orElseThrow();
+
+			when(blockStorageGateway.find(block.getId()))
+					.thenReturn(Optional.of(block));
+
+			when(blockStorageGateway.findAllByTopicId(TOPIC.getId()))
+					.thenReturn(existingBlocks);
+
+			final var action = new BlockAction.Move(2);
+			final BlockInfo result = blockService.move(PRINCIPAL, block.getId(),
+					action);
+
+			assertThat(result).isEqualTo(block);
+			assertThat(result.getSequenceId()).isEqualTo(2);
+
+			final var moved = List.of(result, second, third);
+			verify(blockStorageGateway).updateAll(argThat(updates -> {
+				assertThat(updates).hasSameSizeAs(moved)
+						.satisfiesExactlyInAnyOrder(update -> {
+							assertThat(update.getId())
+									.isEqualTo(second.getId());
+							assertThat(update.getSequenceId()).isZero();
+						}, update -> {
+							assertThat(update.getId()).isEqualTo(third.getId());
+							assertThat(update.getSequenceId()).isOne();
+						}, update -> {
+							assertThat(update.getId()).isEqualTo(block.getId());
+							assertThat(update.getSequenceId()).isEqualTo(2);
+						});
+				return true;
+			}));
+
+			final ArgumentCaptor<BlockEvent> events = ArgumentCaptor
+					.forClass(BlockEvent.class);
+			verify(blockPublisher, times(moved.size()))
+					.publish(events.capture());
+
+			final List<BlockEvent> blockEvents = events.getAllValues();
+			assertThat(blockEvents).hasSameSizeAs(moved)
+					.satisfiesExactlyInAnyOrder(event -> {
+						assertThat(event.block()).isEqualTo(block);
+						final var expected = new BlockAction.Move(2);
+						final var matcher = new BlockActionMatcher.Move(
+								expected);
+						assertThat(event.action()).is(matcher.equal());
+					}, event -> {
+						assertThat(event.block()).isEqualTo(second);
+						final var expected = new BlockAction.Move(0);
+						final var matcher = new BlockActionMatcher.Move(
+								expected);
+						assertThat(event.action()).is(matcher.equal());
+					}, event -> {
+						assertThat(event.block()).isEqualTo(third);
+						final var expected = new BlockAction.Move(1);
+						final var matcher = new BlockActionMatcher.Move(
+								expected);
+						assertThat(event.action()).is(matcher.equal());
+					});
+		}
+
+		@Test
+		void up() {
+			final List<BlockInfo> existingBlocks = TestBlock.ofTopic(TOPIC)
+					.stream()
+					.map(TestBlock::info)
+					.toList();
+
+			final BlockInfo block = existingBlocks.stream()
+					.filter(b -> b.getSequenceId() == 2)
+					.findFirst()
+					.orElseThrow();
+
+			final BlockInfo second = existingBlocks.stream()
+					.filter(b -> b.getSequenceId() == 1)
+					.findFirst()
+					.orElseThrow();
+
+			final BlockInfo first = existingBlocks.stream()
+					.filter(b -> b.getSequenceId() == 0)
+					.findFirst()
+					.orElseThrow();
+
+			when(blockStorageGateway.find(block.getId()))
+					.thenReturn(Optional.of(block));
+
+			when(blockStorageGateway.findAllByTopicId(TOPIC.getId()))
+					.thenReturn(existingBlocks);
+
+			final var action = new BlockAction.Move(0);
+			final BlockInfo result = blockService.move(PRINCIPAL, block.getId(),
+					action);
+
+			assertThat(result).isEqualTo(block);
+			assertThat(result.getSequenceId()).isZero();
+
+			final var moved = List.of(result, second, first);
+			verify(blockStorageGateway).updateAll(argThat(updates -> {
+				assertThat(updates).hasSameSizeAs(moved)
+						.satisfiesExactlyInAnyOrder(update -> {
+							assertThat(update.getId()).isEqualTo(block.getId());
+							assertThat(update.getSequenceId()).isZero();
+						}, update -> {
+							assertThat(update.getId()).isEqualTo(first.getId());
+							assertThat(update.getSequenceId()).isOne();
+						}, update -> {
+							assertThat(update.getId())
+									.isEqualTo(second.getId());
+							assertThat(update.getSequenceId()).isEqualTo(2);
+						});
+				return true;
+			}));
+
+			final ArgumentCaptor<BlockEvent> events = ArgumentCaptor
+					.forClass(BlockEvent.class);
+			verify(blockPublisher, times(moved.size()))
+					.publish(events.capture());
+
+			final List<BlockEvent> blockEvents = events.getAllValues();
+			assertThat(blockEvents).hasSameSizeAs(moved)
+					.satisfiesExactlyInAnyOrder(event -> {
+						assertThat(event.block()).isEqualTo(block);
+						final var expected = new BlockAction.Move(0);
+						final var matcher = new BlockActionMatcher.Move(
+								expected);
+						assertThat(event.action()).is(matcher.equal());
+					}, event -> {
+						assertThat(event.block()).isEqualTo(first);
+						final var expected = new BlockAction.Move(1);
+						final var matcher = new BlockActionMatcher.Move(
+								expected);
+						assertThat(event.action()).is(matcher.equal());
+					}, event -> {
+						assertThat(event.block()).isEqualTo(second);
+						final var expected = new BlockAction.Move(2);
+						final var matcher = new BlockActionMatcher.Move(
+								expected);
+						assertThat(event.action()).is(matcher.equal());
+					});
+		}
+
+		@Test
+		void neighbour() {
+			final List<BlockInfo> existingBlocks = TestBlock.ofTopic(TOPIC)
+					.stream()
+					.map(TestBlock::info)
+					.toList();
+
+			final BlockInfo block = existingBlocks.stream()
+					.filter(b -> b.getSequenceId() == 1)
+					.findFirst()
+					.orElseThrow();
+
+			final BlockInfo neighbour = existingBlocks.stream()
+					.filter(b -> b.getSequenceId() == 2)
+					.findFirst()
+					.orElseThrow();
+
+			when(blockStorageGateway.find(block.getId()))
+					.thenReturn(Optional.of(block));
+
+			when(blockStorageGateway.findAllByTopicId(TOPIC.getId()))
+					.thenReturn(existingBlocks);
+
+			final var action = new BlockAction.Move(2);
+			final BlockInfo result = blockService.move(PRINCIPAL, block.getId(),
+					action);
+
+			assertThat(result).isEqualTo(block);
+			assertThat(result.getSequenceId()).isEqualTo(2);
+
+			final var moved = List.of(neighbour, result);
+			verify(blockStorageGateway).updateAll(argThat(updates -> {
+				assertThat(updates).hasSameSizeAs(moved)
+						.satisfiesExactlyInAnyOrder(update -> {
+							assertThat(update.getId()).isEqualTo(block.getId());
+							assertThat(update.getSequenceId()).isEqualTo(2);
+						}, update -> {
+							assertThat(update.getId())
+									.isEqualTo(neighbour.getId());
+							assertThat(update.getSequenceId()).isEqualTo(1);
+						});
+				return true;
+			}));
+
+			final ArgumentCaptor<BlockEvent> events = ArgumentCaptor
+					.forClass(BlockEvent.class);
+			verify(blockPublisher, times(moved.size()))
+					.publish(events.capture());
+
+			final List<BlockEvent> blockEvents = events.getAllValues();
+			assertThat(blockEvents).hasSameSizeAs(moved)
+					.satisfiesExactlyInAnyOrder(event -> {
+						assertThat(event.block()).isEqualTo(block);
+						final var expected = new BlockAction.Move(2);
+						final var matcher = new BlockActionMatcher.Move(
+								expected);
+						assertThat(event.action()).is(matcher.equal());
+					}, event -> {
+						assertThat(event.block()).isEqualTo(neighbour);
+						final var expected = new BlockAction.Move(1);
+						final var matcher = new BlockActionMatcher.Move(
+								expected);
+						assertThat(event.action()).is(matcher.equal());
+					});
+		}
+
+		@Test
+		void unchanged() {
+			final BlockInfo block = TestBlock.SPORER_PROJECT_BLOCKERS_FIRST
+					.info();
+			final long blockId = block.getId();
+			when(blockStorageGateway.find(blockId))
+					.thenReturn(Optional.of(block));
+
+			final var action = new BlockAction.Move(block.getSequenceId());
+			blockService.move(PRINCIPAL, blockId, action);
+
+			verifyNoInteractions(blockPublisher);
+			verify(blockStorageGateway, never()).updateAll(any());
+			verify(blockStorageGateway, never()).findAllByTopicId(anyLong());
+		}
+
+		@Test
+		void sequenceIdTooLarge() {
+			final List<BlockInfo> existingBlocks = TestBlock.ofTopic(TOPIC)
+					.stream()
+					.map(TestBlock::info)
+					.toList();
+
+			final BlockInfo block = existingBlocks.getFirst();
+			final long blockId = block.getId();
+			when(blockStorageGateway.find(blockId))
+					.thenReturn(Optional.of(block));
+
+			when(blockStorageGateway.findAllByTopicId(TOPIC.getId()))
+					.thenReturn(existingBlocks);
+
+			final var action = new BlockAction.Move(existingBlocks.size());
+
+			assertThatThrownBy(
+					() -> blockService.move(PRINCIPAL, blockId, action))
+							.isInstanceOf(IllegalArgumentException.class);
+
+			verifyNoInteractions(blockPublisher);
+			verify(blockStorageGateway, never()).updateAll(any());
+		}
+
+		@Test
+		void notFound() {
+			final long blockId = TestBlock.SPORER_PROJECT_BLOCKERS_FIRST
+					.getId();
+			when(blockStorageGateway.find(blockId))
+					.thenReturn(Optional.empty());
+
+			final var action = new BlockAction.Move(1);
+
+			assertThatThrownBy(
+					() -> blockService.move(PRINCIPAL, blockId, action))
+							.isInstanceOf(MissingEntityException.class);
+
+			verifyNoInteractions(blockPublisher);
+			verify(blockStorageGateway, never()).updateAll(any());
+		}
+
+		@Test
+		void otherOrganisation() {
+			final Principal principal = TestSession.ALISON_DACH_GLOVER
+					.principal();
+
+			final BlockInfo block = TestBlock.SPORER_PROJECT_BLOCKERS_FIRST
+					.info();
+			final long blockId = block.getId();
+			final var action = new BlockAction.Move(1);
+
+			assertThatThrownBy(
+					() -> blockService.move(principal, blockId, action))
+							.isInstanceOf(MissingEntityException.class);
+
+			verifyNoInteractions(blockPublisher);
+			verify(blockStorageGateway, never()).updateAll(any());
+		}
+
+		@Test
+		void principalNull() {
+			final long blockId = TestBlock.SPORER_PROJECT_BLOCKERS_FIRST
+					.getId();
+			final var action = new BlockAction.Move(1);
+
+			assertThatThrownBy(() -> blockService.move(null, blockId, action))
+					.isInstanceOf(NullPointerException.class);
+		}
+
+		@Test
+		void actionNull() {
+			final long blockId = TestBlock.SPORER_PROJECT_BLOCKERS_FIRST
+					.getId();
+
+			assertThatThrownBy(
+					() -> blockService.move(PRINCIPAL, blockId, null))
+							.isInstanceOf(NullPointerException.class);
+		}
 	}
 
 	@Nested
@@ -415,9 +744,8 @@ class BlockServiceTest {
 			when(blockStorageGateway.find(blockId))
 					.thenReturn(Optional.empty());
 
-			assertThatThrownBy(
-					() -> blockService.delete(principal, blockId))
-							.isInstanceOf(MissingEntityException.class);
+			assertThatThrownBy(() -> blockService.delete(principal, blockId))
+					.isInstanceOf(MissingEntityException.class);
 
 			verify(blockStorageGateway, never()).delete(any());
 			verifyNoInteractions(blockPublisher);
@@ -427,9 +755,8 @@ class BlockServiceTest {
 		void principalNull() {
 			final long blockId = BLOCK.getId();
 
-			assertThatThrownBy(
-					() -> blockService.delete(null, blockId))
-							.isInstanceOf(NullPointerException.class);
+			assertThatThrownBy(() -> blockService.delete(null, blockId))
+					.isInstanceOf(NullPointerException.class);
 		}
 	}
 

@@ -34,6 +34,27 @@ public final class BlockActionDto {
 		}
 	}
 
+	public static final class Move {
+
+		private final long blockId;
+
+		@PositiveOrZero
+		private final int sequenceId;
+
+		public Move(final long blockId, final int sequenceId) {
+			this.blockId = blockId;
+			this.sequenceId = sequenceId;
+		}
+
+		public long getBlockId() {
+			return blockId;
+		}
+
+		public BlockAction.Move toBdo() {
+			return new BlockAction.Move(sequenceId);
+		}
+	}
+
 	public static final class Delete {
 
 		private final long blockId;

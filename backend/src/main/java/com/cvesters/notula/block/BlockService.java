@@ -1,5 +1,6 @@
 package com.cvesters.notula.block;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 
@@ -69,6 +70,50 @@ public class BlockService {
 		blockPublisher.publish(event);
 
 		return created;
+	}
+
+	public BlockInfo move(final Principal principal, final long blockId,
+			final BlockAction.Move action) {
+		Objects.requireNonNull(principal);
+		Objects.requireNonNull(action);
+
+		final BlockInfo block = getById(principal, blockId);
+		final int from = block.getSequenceId();
+		final int to = action.getSequenceId();
+		final int direction = Integer.signum(to - from);
+		if (direction == 0) {
+			return block;
+		}
+
+		final List<BlockInfo> existingBlocks = blockStorage
+				.findAllByTopicId(block.getTopicId());
+		if (to >= existingBlocks.size()) {
+			throw new IllegalArgumentException();
+		}
+
+		final int min = Math.min(from + direction, to);
+		final int max = Math.max(from + direction, to);
+		final List<BlockInfo> toUpdateBlocks = existingBlocks.stream()
+				.filter(b -> b.getSequenceId() >= min)
+				.filter(b -> b.getSequenceId() <= max)
+				.toList();
+
+		final var events = new ArrayList<BlockEvent>();
+
+		action.apply(block);
+		events.add(new BlockEvent(block, action));
+
+		for (final BlockInfo b : toUpdateBlocks) {
+			final int updatedSequenceId = b.getSequenceId() - direction;
+			final var move = new BlockAction.Move(updatedSequenceId);
+			move.apply(b);
+			events.add(new BlockEvent(b, move));
+		}
+
+		blockStorage.updateAll(events.stream().map(BlockEvent::block).toList());
+		events.forEach(blockPublisher::publish);
+
+		return block;
 	}
 
 	public void delete(final Principal principal, final long blockId) {
