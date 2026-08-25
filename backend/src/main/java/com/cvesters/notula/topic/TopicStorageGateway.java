@@ -1,6 +1,5 @@
 package com.cvesters.notula.topic;
 
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
@@ -34,23 +33,6 @@ public class TopicStorageGateway {
 
 	public List<TopicInfo> findAllByMeetingId(final long meetingId) {
 		return topicRepository.findAllByMeetingId(meetingId)
-				.stream()
-				.map(TopicDao::toBdo)
-				.toList();
-	}
-
-	public List<TopicInfo> updateAll(final List<TopicInfo> topics) {
-		Objects.requireNonNull(topics);
-
-		final var updated = new ArrayList<TopicDao>();
-		for (final TopicInfo topic : topics) {
-			final TopicDao dao = topicRepository.findById(topic.getId())
-					.orElseThrow(MissingEntityException::new);
-			dao.update(topic);
-			updated.add(dao);
-		}
-
-		return topicRepository.saveAll(updated)
 				.stream()
 				.map(TopicDao::toBdo)
 				.toList();

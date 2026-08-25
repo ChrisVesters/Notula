@@ -58,7 +58,7 @@ public class TopicService {
 				.filter(t -> t.getSequenceId() >= action.getSequenceId())
 				.toList();
 		toUpdateTopics.forEach(TopicInfo::moveDown);
-		topicStorage.updateAll(toUpdateTopics);
+		toUpdateTopics.forEach(topicStorage::update);
 		// TODO: publish move action/event!!
 
 		final var topic = new TopicInfo(meeting.getOrganisationId(),
@@ -98,7 +98,7 @@ public class TopicService {
 				.filter(t -> t.getSequenceId() > topicInfo.getSequenceId())
 				.toList();
 		toUpdateTopics.forEach(TopicInfo::moveUp);
-		topicStorage.updateAll(toUpdateTopics);
+		toUpdateTopics.forEach(topicStorage::update);
 		// TODO: publish move action/event!!
 
 		final var action = new TopicAction.Delete();

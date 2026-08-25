@@ -5,14 +5,11 @@ import static org.assertj.core.api.Assertions.assertThatCode;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.lang.reflect.Field;
-import java.util.ArrayList;
 import java.util.List;
 
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.dao.InvalidDataAccessApiUsageException;
 import org.springframework.test.context.jdbc.Sql;
 
@@ -130,160 +127,6 @@ class TopicRepositoryTest extends RepositoryTest {
 		@Test
 		void topicNull() {
 			assertThatThrownBy(() -> topicRepository.save(null))
-					.isInstanceOf(InvalidDataAccessApiUsageException.class);
-		}
-	}
-
-	@Nested
-	class SaveAll {
-
-		@Test
-		void singleInList() {
-			final TestMeeting meeting = TestMeeting.SPORER_Q2_PLANNING;
-			final TestOrganisation organisation = meeting.getOrganisation();
-			final int sequenceId = 0;
-			final String name = "New Product Launches";
-
-			final var bdo = new TopicInfo(organisation.getId(), meeting.getId(),
-					sequenceId, name);
-			final var dao = new TopicDao(bdo);
-			final var daos = List.of(dao);
-
-			final List<TopicDao> saved = topicRepository.saveAll(daos);
-
-			assertThat(saved).hasSameSizeAs(daos)
-					.zipSatisfy(daos, (savedDao, expectedDao) -> {
-						final var matcher = new TopicDaoMatcher(entityManager,
-								expectedDao);
-
-						assertThat(savedDao).is(matcher.created())
-								.is(matcher.found());
-					});
-		}
-
-		@Test
-		@Disabled("Currently not enforced")
-		void overlappingSequenceId() {
-			final TestMeeting meeting = TestMeeting.SPORER_PROJECT;
-			final TestOrganisation organisation = meeting.getOrganisation();
-
-			final var bdo = new TopicInfo(organisation.getId(), meeting.getId(),
-					0, "Name");
-			final var dao = new TopicDao(bdo);
-
-			assertThatThrownBy(() -> topicRepository.save(dao))
-					.isInstanceOf(DataIntegrityViolationException.class);
-		}
-
-		@Test
-		void multiple() {
-			final TestMeeting meeting = TestMeeting.SPORER_RETRO;
-			final TestOrganisation organisation = meeting.getOrganisation();
-
-			final var bdo1 = new TopicInfo(organisation.getId(),
-					meeting.getId(), 0, "Good");
-			final var dao1 = new TopicDao(bdo1);
-
-			final var bdo2 = new TopicInfo(organisation.getId(),
-					meeting.getId(), 1, "Bad");
-			final var dao2 = new TopicDao(bdo2);
-			final var daos = List.of(dao1, dao2);
-
-			final List<TopicDao> saved = topicRepository.saveAll(daos);
-
-			assertThat(saved).hasSameSizeAs(daos)
-					.zipSatisfy(daos, (savedDao, expectedDao) -> {
-						final var matcher = new TopicDaoMatcher(entityManager,
-								expectedDao);
-
-						assertThat(savedDao).is(matcher.created())
-								.is(matcher.found());
-					});
-		}
-
-		@Test
-		@Disabled("Currently not enforced")
-		void sameSequenceId() {
-			final TestMeeting meeting = TestMeeting.SPORER_RETRO;
-			final TestOrganisation organisation = meeting.getOrganisation();
-
-			final var bdo1 = new TopicInfo(organisation.getId(),
-					meeting.getId(), 0, "Good");
-			final var dao1 = new TopicDao(bdo1);
-
-			final var bdo2 = new TopicInfo(organisation.getId(),
-					meeting.getId(), 0, "Bad");
-			final var dao2 = new TopicDao(bdo2);
-			final var daos = List.of(dao1, dao2);
-
-			assertThatThrownBy(() -> topicRepository.saveAll(daos))
-					.isInstanceOf(DataIntegrityViolationException.class);
-		}
-
-		@Test
-		@Disabled("Currently not enforced")
-		void multipleWithOverlappingSequenceId() {
-			final TestMeeting meeting = TestMeeting.SPORER_PROJECT;
-			final TestOrganisation organisation = meeting.getOrganisation();
-
-			final var bdo1 = new TopicInfo(organisation.getId(),
-					meeting.getId(), 0, "Good");
-			final var dao1 = new TopicDao(bdo1);
-
-			final var bdo2 = new TopicInfo(organisation.getId(),
-					meeting.getId(), 23, "Bad");
-			final var dao2 = new TopicDao(bdo2);
-			final var daos = List.of(dao1, dao2);
-
-			assertThatThrownBy(() -> topicRepository.saveAll(daos))
-					.isInstanceOf(DataIntegrityViolationException.class);
-		}
-
-		@Test
-		void multipleWithUpdateSequenceId() throws Exception {
-			final TestMeeting meeting = TestMeeting.SPORER_PROJECT;
-			final TestOrganisation organisation = meeting.getOrganisation();
-
-			final var bdo1 = new TopicInfo(organisation.getId(),
-					meeting.getId(), 2, "Quick Fixes");
-			final var dao1 = new TopicDao(bdo1);
-
-			final TestTopic existingTopic = TestTopic.SPORER_PROJECT_TIMELINE;
-			final var bdo2 = existingTopic.info();
-			bdo2.moveDown();
-			final var dao2 = new TopicDao(bdo2);
-			final Field idField = dao2.getClass().getDeclaredField("id");
-			idField.setAccessible(true);
-			idField.set(dao2, existingTopic.getId());
-
-			final var daos = List.of(dao1, dao2);
-
-			final List<TopicDao> saved = topicRepository.saveAll(daos);
-
-			assertThat(saved).hasSameSizeAs(daos)
-					.zipSatisfy(daos, (savedDao, expectedDao) -> {
-						final var matcher = new TopicDaoMatcher(entityManager,
-								expectedDao);
-
-						assertThat(savedDao).is(matcher.created())
-								.is(matcher.found());
-					});
-		}
-
-		@Test
-		void listNull() {
-			final List<TopicDao> dao = null;
-
-			assertThatThrownBy(() -> topicRepository.saveAll(dao))
-					.isInstanceOf(InvalidDataAccessApiUsageException.class);
-		}
-
-		@Test
-		void listContainsNull() {
-			final var dao = new ArrayList<TopicDao>();
-			dao.add(null);
-
-			assertThatThrownBy(() -> topicRepository.saveAll(dao))
 					.isInstanceOf(InvalidDataAccessApiUsageException.class);
 		}
 	}

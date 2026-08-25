@@ -193,10 +193,8 @@ class TopicServiceTest {
 				return true;
 			}));
 
-			final InOrder inOrder = inOrder(topicStorageGateway);
-			inOrder.verify(topicStorageGateway)
-					.updateAll(Collections.emptyList());
-			inOrder.verify(topicStorageGateway).create(any());
+			verify(topicStorageGateway, never()).update(any());
+			verify(topicStorageGateway).create(any());
 		}
 
 		@Test
@@ -247,7 +245,8 @@ class TopicServiceTest {
 
 			final InOrder inOrder = inOrder(topicStorageGateway);
 			// TODO: should have been moved down!
-			inOrder.verify(topicStorageGateway).updateAll(existingTopics);
+			existingTopics.forEach(
+					topic -> inOrder.verify(topicStorageGateway).update(topic));
 			inOrder.verify(topicStorageGateway).create(any());
 		}
 
@@ -259,13 +258,14 @@ class TopicServiceTest {
 			when(topicStorageGateway.findAllByMeetingId(MEETING_ID))
 					.thenReturn(Collections.emptyList());
 
-			final var action = new TopicAction.Create(MEETING_ID, 1, TOPIC_NAME);
+			final var action = new TopicAction.Create(MEETING_ID, 1,
+					TOPIC_NAME);
 
 			assertThatThrownBy(() -> topicService.create(PRINCIPAL, action))
 					.isInstanceOf(IllegalArgumentException.class);
 
 			verifyNoInteractions(topicPublisher);
-			verify(topicStorageGateway, never()).updateAll(any());
+			verify(topicStorageGateway, never()).update(any());
 			verify(topicStorageGateway, never()).create(any());
 		}
 
@@ -357,9 +357,8 @@ class TopicServiceTest {
 			final TopicAction.Update action = new TopicAction.UpdateName(0, 0,
 					"Project ");
 
-			assertThatThrownBy(
-					() -> topicService.update(null, topicId, action))
-							.isInstanceOf(NullPointerException.class);
+			assertThatThrownBy(() -> topicService.update(null, topicId, action))
+					.isInstanceOf(NullPointerException.class);
 		}
 
 		@Test
@@ -403,7 +402,7 @@ class TopicServiceTest {
 				return true;
 			}));
 
-			verify(topicStorageGateway).updateAll(Collections.emptyList());
+			verify(topicStorageGateway, never()).update(any());
 		}
 
 		@Test
@@ -440,7 +439,8 @@ class TopicServiceTest {
 			final List<TopicInfo> toUpdateTopics = existingTopics.stream()
 					.filter(t -> t.getId() != topicId)
 					.toList();
-			verify(topicStorageGateway).updateAll(toUpdateTopics);
+			toUpdateTopics.forEach(
+					topic -> verify(topicStorageGateway).update(topic));
 		}
 
 		@Test
@@ -473,7 +473,7 @@ class TopicServiceTest {
 				return true;
 			}));
 
-			verify(topicStorageGateway).updateAll(Collections.emptyList());
+			verify(topicStorageGateway, never()).update(any());
 		}
 
 		@Test
@@ -484,9 +484,8 @@ class TopicServiceTest {
 			when(topicStorageGateway.find(topicId))
 					.thenReturn(Optional.empty());
 
-			assertThatThrownBy(
-					() -> topicService.delete(principal, topicId))
-							.isInstanceOf(MissingEntityException.class);
+			assertThatThrownBy(() -> topicService.delete(principal, topicId))
+					.isInstanceOf(MissingEntityException.class);
 
 			verify(topicStorageGateway, never()).delete(any());
 			verifyNoInteractions(topicPublisher);
@@ -496,9 +495,8 @@ class TopicServiceTest {
 		void principalNull() {
 			final long topicId = TOPIC.getId();
 
-			assertThatThrownBy(
-					() -> topicService.delete(null, topicId))
-							.isInstanceOf(NullPointerException.class);
+			assertThatThrownBy(() -> topicService.delete(null, topicId))
+					.isInstanceOf(NullPointerException.class);
 		}
 	}
 }
