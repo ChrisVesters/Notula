@@ -71,6 +71,15 @@
 					duration: null,
 					blocks: []
 				});
+			} else if (mutation.action === "MOVE") {
+				const topic = meeting?.topics.find(t => t.id === event.topicId);
+				// TODO: what if topic does not exist? Out of sync?
+				if (!topic) {
+					console.error("Topic does not exist");
+					return;
+				}
+
+				topic.sequenceId = mutation.sequenceId;
 			} else if (mutation.action === "UPDATE_DURATION") {
 				const topic = meeting?.topics.find(t => t.id === event.topicId);
 				if (topic) {

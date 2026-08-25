@@ -4,6 +4,7 @@ import type WebSocketClient from "$lib/common/WebSocketClient";
 import type {
 	TopicCreateAction,
 	TopicDeleteAction,
+	TopicMoveAction,
 	TopicUpdateAction
 } from "./TopicTypes";
 
@@ -12,6 +13,10 @@ export default class TopicWebSocketClient {
 
 	public static create(topic: TopicCreateAction): void {
 		TopicWebSocketClient.send("/create", topic);
+	}
+
+	public static move(action: TopicMoveAction): void {
+		TopicWebSocketClient.send("/move", action);
 	}
 
 	public static update(action: TopicUpdateAction): void {
