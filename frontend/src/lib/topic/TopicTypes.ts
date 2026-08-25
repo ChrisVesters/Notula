@@ -4,6 +4,11 @@ export type TopicCreateAction = {
 	name: string;
 };
 
+export type TopicMoveAction = {
+	topicId: number;
+	sequenceId: number;
+};
+
 export type TopicUpdateAction =
 	| TopicUpdateNameAction
 	| TopicUpdateDescriptionAction
@@ -43,6 +48,7 @@ export type TopicEvent = {
 
 export type TopicMutation =
 	| TopicMutationCreate
+	| TopicMutationMove
 	| TopicMutationUpdateName
 	| TopicMutationUpdateDescription
 	| TopicMutationUpdateDuration
@@ -53,6 +59,11 @@ export type TopicMutationCreate = {
 	meetingId: number;
 	sequenceId: number;
 	name: string;
+};
+
+export type TopicMutationMove = {
+	action: "MOVE";
+	sequenceId: number;
 };
 
 export type TopicMutationUpdateName = {

@@ -40,6 +40,16 @@
 	</span>
 </FeedbackButton>
 
-{#each topics as topic, index (topic.id)}
-	<TopicAgendaView bind:topic={topics[index]} />
-{/each}
+<ul class="topics">
+	{#each topics as topic, index (topic.id)}
+		<TopicAgendaView bind:topic={topics[index]} {meetingId} />
+	{/each}
+</ul>
+
+<style>
+	.topics {
+		list-style: none;
+		margin: 0;
+		padding: 0;
+	}
+</style>
