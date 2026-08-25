@@ -175,6 +175,105 @@ public class TopicWebSocketTest extends WebSocketTest {
 	}
 
 	@Nested
+	class Move {
+
+		private static final String ENDPOINT = DESTINATION_PREFIX + "/move";
+
+		private static final TestTopic TOPIC = TestTopic.SPORER_PROJECT_BLOCKERS;
+
+		@Test
+		void success() throws Exception {
+			final byte[] payload = getRequestPayload(2);
+
+			connect(SESSION);
+			send(ENDPOINT, payload);
+
+			final var action = new TopicAction.Move(2);
+			final var matcher = new TopicActionMatcher.Move(action);
+			verify(topicService, timeout(WAIT_TIMEOUT.toMillis())).move(
+					eq(PRINCIPAL), eq(TOPIC.getId()),
+					argThat(matcher::matches));
+		}
+
+		@Test
+		void notFound() throws Exception {
+			final byte[] payload = getRequestPayload(2);
+
+			when(topicService.move(any(), anyLong(), any()))
+					.thenThrow(new MissingEntityException());
+
+			connect(SESSION);
+			final FrameHandler errorFrameHandler = subscribeToErrors();
+			send(ENDPOINT, payload);
+
+			assertThat(errorFrameHandler.getResponse())
+					.succeedsWithin(WAIT_TIMEOUT.toSeconds(), TimeUnit.SECONDS)
+					.isNotNull()
+					.satisfies(
+							message -> assertThat(message).startsWith("Error"));
+		}
+
+		@Test
+		void unauthenticated() throws Exception {
+			final byte[] payload = getRequestPayload(2);
+
+			connect();
+			send(ENDPOINT, payload);
+
+			assertThat(stompSessionHandler.getError())
+					.succeedsWithin(WAIT_TIMEOUT.toSeconds(), TimeUnit.SECONDS)
+					.isInstanceOf(ConnectionLostException.class);
+		}
+
+		@ParameterizedTest(name = "[{index}] name = {0}")
+		@MethodSource("invalidPayloadCases")
+		void invalidPayload(final String name, final String body)
+				throws Exception {
+			final byte[] payload = body.getBytes(StandardCharsets.UTF_8);
+
+			connect(SESSION);
+			final FrameHandler errorFrameHandler = subscribeToErrors();
+			send(ENDPOINT, payload);
+
+			assertThat(errorFrameHandler.getResponse())
+					.succeedsWithin(WAIT_TIMEOUT.toSeconds(), TimeUnit.SECONDS)
+					.isNotNull()
+					.satisfies(
+							message -> assertThat(message).startsWith("Error"));
+
+			verifyNoInteractions(topicService);
+		}
+
+		private static Stream<Arguments> invalidPayloadCases() {
+			return Stream.of(Arguments.of("topicId missing", """
+					{
+						"sequenceId": 2
+					}
+					"""), Arguments.of("sequenceId missing", """
+					{
+						"topicId": 2
+					}
+					"""), Arguments.of("sequenceId negative", """
+					{
+						"topicId": 2,
+						"sequenceId": -1
+					}
+					"""));
+		}
+
+		private byte[] getRequestPayload(final int sequenceId) {
+			final String json = """
+					{
+						"topicId": %d,
+						"sequenceId": %d
+					}
+					""".formatted(TOPIC.getId(), sequenceId);
+
+			return json.getBytes(StandardCharsets.UTF_8);
+		}
+	}
+
+	@Nested
 	class UpdateName {
 
 		private static final String ENDPOINT = DESTINATION_PREFIX + "/update";

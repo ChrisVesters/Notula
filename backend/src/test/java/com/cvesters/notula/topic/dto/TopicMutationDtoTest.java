@@ -32,6 +32,19 @@ class TopicMutationDtoTest {
 		}
 
 		@Test
+		void move() {
+			final int sequenceId = 2;
+			final var action = new TopicAction.Move(sequenceId);
+
+			final var dto = TopicMutationDto.of(action);
+
+			assertThat(dto).isInstanceOf(TopicMutationDto.Move.class);
+
+			final var moveDto = (TopicMutationDto.Move) dto;
+			assertThat(moveDto.getSequenceId()).isEqualTo(sequenceId);
+		}
+
+		@Test
 		void updateName() {
 			final int position = 4;
 			final int length = 12;

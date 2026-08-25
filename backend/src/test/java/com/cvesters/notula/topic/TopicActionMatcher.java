@@ -26,6 +26,19 @@ public final class TopicActionMatcher {
 		}
 	}
 
+	public static class Move extends Matcher<TopicAction.Move> {
+
+		public Move(final TopicAction.Move expected) {
+			super(expected, TopicAction.Move.class);
+		}
+
+		@Override
+		public void assertEquals(final TopicAction.Move actual) {
+			assertThat(actual.getSequenceId())
+					.isEqualTo(expected.getSequenceId());
+		}
+	}
+
 	public static class UpdateName extends Matcher<TopicAction.UpdateName> {
 
 		public UpdateName(final TopicAction.UpdateName expected) {

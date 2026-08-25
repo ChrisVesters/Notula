@@ -13,6 +13,7 @@ import com.fasterxml.jackson.annotation.JsonTypeInfo;
 
 @JsonTypeInfo(use = JsonTypeInfo.Id.NAME, include = JsonTypeInfo.As.PROPERTY, property = "action")
 @JsonSubTypes({ @Type(value = TopicMutationDto.Create.class, name = "CREATE"),
+		@Type(value = TopicMutationDto.Move.class, name = "MOVE"),
 		@Type(value = TopicMutationDto.UpdateName.class, name = "UPDATE_NAME"),
 		@Type(value = TopicMutationDto.UpdateDescription.class, name = "UPDATE_DESCRIPTION"),
 		@Type(value = TopicMutationDto.UpdateDuration.class, name = "UPDATE_DURATION"),
@@ -24,6 +25,7 @@ public sealed interface TopicMutationDto {
 
 		return switch (action) {
 			case TopicAction.Create create -> new Create(create);
+			case TopicAction.Move move -> new Move(move);
 			case TopicAction.UpdateName updateName -> new UpdateName(
 					updateName);
 			case TopicAction.UpdateDescription updateDescription -> new UpdateDescription(
@@ -45,6 +47,16 @@ public sealed interface TopicMutationDto {
 			this.meetingId = create.getMeetingId();
 			this.sequenceId = create.getSequenceId();
 			this.name = create.getName();
+		}
+	}
+
+	@Getter
+	final class Move implements TopicMutationDto {
+
+		private final int sequenceId;
+
+		private Move(final TopicAction.Move move) {
+			this.sequenceId = move.getSequenceId();
 		}
 	}
 

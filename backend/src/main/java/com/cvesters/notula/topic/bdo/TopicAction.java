@@ -35,6 +35,25 @@ public sealed interface TopicAction {
 	}
 
 	@Getter
+	final class Move implements TopicAction.Update {
+
+		private final int sequenceId;
+
+		public Move(final int sequenceId) {
+			Validate.isTrue(sequenceId >= 0);
+
+			this.sequenceId = sequenceId;
+		}
+
+		@Override
+		public void apply(final TopicInfo object) {
+			Objects.requireNonNull(object);
+
+			object.setSequenceId(sequenceId);
+		}
+	}
+
+	@Getter
 	final class UpdateName extends TextUpdate<TopicInfo>
 			implements TopicAction.Update {
 

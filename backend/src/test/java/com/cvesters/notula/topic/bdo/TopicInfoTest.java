@@ -106,57 +106,24 @@ class TopicInfoTest {
 	}
 
 	@Nested
-	class MoveUp {
+	class SetSequenceId {
 
 		@Test
 		void success() {
-			final TestTopic topic = TestTopic.SPORER_PROJECT_BLOCKERS;
-			final var topicInfo = topic.info();
+			final var topicInfo = TOPIC.info();
+			final int sequenceId = TOPIC.getSequenceId() + 5;
 
-			topicInfo.moveUp();
+			topicInfo.setSequenceId(sequenceId);
 
-			assertThat(topicInfo.getSequenceId())
-					.isEqualTo(TOPIC.getSequenceId() - 1);
+			assertThat(topicInfo.getSequenceId()).isEqualTo(sequenceId);
 		}
 
 		@Test
-		void first() {
-			final TestTopic topic = TestTopic.SPORER_PROJECT_DELIVERABLES;
-			final var topicInfo = topic.info();
+		void sequenceIdNegative() {
+			final var topicInfo = TOPIC.info();
 
-			assertThatThrownBy(topicInfo::moveUp)
-					.isInstanceOf(IllegalStateException.class);
-		}
-	}
-
-	@Nested
-	class MoveDown {
-
-		@Test
-		void success() {
-			final TestTopic topic = TestTopic.SPORER_PROJECT_BLOCKERS;
-			final var topicInfo = topic.info();
-
-			topicInfo.moveDown();
-
-			assertThat(topicInfo.getSequenceId())
-					.isEqualTo(topic.getSequenceId() + 1);
-		}
-
-		@Test
-		void overflow() {
-			final long id = TOPIC.getId();
-			final long organisationId = ORGANISATION.getId();
-			final long meetingId = MEETING.getId();
-			final String name = TOPIC.getName();
-			final String description = TOPIC.getDescription();
-			final var duration = TOPIC.getDuration();
-
-			final var topicInfo = new TopicInfo(id, organisationId, meetingId,
-					Integer.MAX_VALUE, name, description, duration);
-
-			assertThatThrownBy(topicInfo::moveDown)
-					.isInstanceOf(IllegalStateException.class);
+			assertThatThrownBy(() -> topicInfo.setSequenceId(-1))
+					.isInstanceOf(IllegalArgumentException.class);
 		}
 	}
 

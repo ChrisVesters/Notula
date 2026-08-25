@@ -43,17 +43,4 @@ public class BlockInfo {
 
 		this.sequenceId = sequenceId;
 	}
-
-	// TODO: deprecated? Or rewrite with moveTo
-	public void moveUp() {
-		Validate.validState(sequenceId > 0);
-
-		sequenceId--;
-	}
-
-	public void moveDown() {
-		Validate.validState(sequenceId < Integer.MAX_VALUE);
-
-		sequenceId++;
-	}
 }
