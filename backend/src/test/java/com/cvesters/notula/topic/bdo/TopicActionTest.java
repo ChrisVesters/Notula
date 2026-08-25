@@ -53,6 +53,47 @@ class TopicActionTest {
 	}
 
 	@Nested
+	class Move {
+
+		@Test
+		void constructor() {
+			final int sequenceId = 2;
+
+			final var action = new TopicAction.Move(sequenceId);
+
+			assertThat(action.getSequenceId()).isEqualTo(sequenceId);
+		}
+
+		@Test
+		void sequenceIdNegative() {
+			final int sequenceId = -1;
+
+			assertThatThrownBy(() -> new TopicAction.Move(sequenceId))
+					.isInstanceOf(IllegalArgumentException.class);
+		}
+
+		@Test
+		void apply() {
+			final int sequenceId = 2;
+			final TopicInfo topic = mock();
+
+			final var action = new TopicAction.Move(sequenceId);
+
+			action.apply(topic);
+
+			verify(topic).setSequenceId(sequenceId);
+		}
+
+		@Test
+		void topicNull() {
+			final var action = new TopicAction.Move(0);
+
+			assertThatThrownBy(() -> action.apply(null))
+					.isInstanceOf(NullPointerException.class);
+		}
+	}
+
+	@Nested
 	class UpdateName {
 
 		@ParameterizedTest

@@ -41,6 +41,27 @@ public final class TopicActionDto {
 		}
 	}
 
+	public static final class Move {
+
+		private final long topicId;
+
+		@PositiveOrZero
+		private final int sequenceId;
+
+		public Move(final long topicId, final int sequenceId) {
+			this.topicId = topicId;
+			this.sequenceId = sequenceId;
+		}
+
+		public long getTopicId() {
+			return topicId;
+		}
+
+		public TopicAction.Move toBdo() {
+			return new TopicAction.Move(sequenceId);
+		}
+	}
+
 	@JsonTypeInfo(use = JsonTypeInfo.Id.NAME, include = JsonTypeInfo.As.PROPERTY, property = "action")
 	@JsonSubTypes({ @Type(value = Update.Name.class, name = "UPDATE_NAME"),
 			@Type(value = Update.Description.class, name = "UPDATE_DESCRIPTION"),

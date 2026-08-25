@@ -51,16 +51,10 @@ public class TopicInfo {
 		return Optional.ofNullable(duration);
 	}
 
-	public void moveUp() {
-		Validate.validState(sequenceId > 0);
+	public void setSequenceId(final int sequenceId) {
+		Validate.isTrue(sequenceId >= 0);
 
-		sequenceId--;
-	}
-
-	public void moveDown() {
-		Validate.validState(sequenceId < Integer.MAX_VALUE);
-
-		sequenceId++;
+		this.sequenceId = sequenceId;
 	}
 
 	public void setName(final String name) {

@@ -1,9 +1,11 @@
 package com.cvesters.notula.topic;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import com.cvesters.notula.common.domain.Principal;
 import com.cvesters.notula.common.exception.MissingEntityException;
@@ -39,6 +41,7 @@ public class TopicService {
 				.orElseThrow(MissingEntityException::new);
 	}
 
+	@Transactional
 	public TopicInfo create(final Principal principal,
 			final TopicAction.Create action) {
 		Objects.requireNonNull(principal);
@@ -49,26 +52,77 @@ public class TopicService {
 
 		final List<TopicInfo> existingTopics = topicStorage
 				.findAllByMeetingId(meeting.getId());
-		// TODO: move logic into action?
 		if (action.getSequenceId() > existingTopics.size()) {
 			throw new IllegalArgumentException();
 		}
 
-		final List<TopicInfo> toUpdateTopics = existingTopics.stream()
-				.filter(t -> t.getSequenceId() >= action.getSequenceId())
-				.toList();
-		toUpdateTopics.forEach(TopicInfo::moveDown);
-		toUpdateTopics.forEach(topicStorage::update);
-		// TODO: publish move action/event!!
+		final var events = new ArrayList<TopicEvent>();
+		for (final TopicInfo t : existingTopics) {
+			if (t.getSequenceId() < action.getSequenceId()) {
+				continue;
+			}
+
+			final int updatedSequenceId = t.getSequenceId() + 1;
+			final var move = new TopicAction.Move(updatedSequenceId);
+			move.apply(t);
+			final TopicInfo updatedTopic = topicStorage.update(t);
+			events.add(new TopicEvent(updatedTopic, move));
+		}
 
 		final var topic = new TopicInfo(meeting.getOrganisationId(),
 				meeting.getId(), action.getSequenceId(), action.getName());
 		final TopicInfo created = topicStorage.create(topic);
+		events.add(new TopicEvent(created, action));
 
-		final var event = new TopicEvent(created, action);
-		topicPublisher.publish(event);
+		events.forEach(topicPublisher::publish);
 
 		return created;
+	}
+
+	@Transactional
+	public TopicInfo move(final Principal principal, final long topicId,
+			final TopicAction.Move action) {
+		Objects.requireNonNull(principal);
+		Objects.requireNonNull(action);
+
+		final TopicInfo topic = getById(principal, topicId);
+		final int from = topic.getSequenceId();
+		final int to = action.getSequenceId();
+		final int direction = Integer.signum(to - from);
+		if (direction == 0) {
+			return topic;
+		}
+
+		final List<TopicInfo> existingTopics = topicStorage
+				.findAllByMeetingId(topic.getMeetingId());
+		if (to >= existingTopics.size()) {
+			throw new IllegalArgumentException();
+		}
+
+		final int min = Math.min(from + direction, to);
+		final int max = Math.max(from + direction, to);
+		final List<TopicInfo> toUpdateTopics = existingTopics.stream()
+				.filter(t -> t.getSequenceId() >= min)
+				.filter(t -> t.getSequenceId() <= max)
+				.toList();
+
+		final var events = new ArrayList<TopicEvent>();
+
+		action.apply(topic);
+		final TopicInfo updated = topicStorage.update(topic);
+		events.add(new TopicEvent(updated, action));
+
+		for (final TopicInfo t : toUpdateTopics) {
+			final int updatedSequenceId = t.getSequenceId() - direction;
+			final var move = new TopicAction.Move(updatedSequenceId);
+			move.apply(t);
+			final TopicInfo updatedTopic = topicStorage.update(t);
+			events.add(new TopicEvent(updatedTopic, move));
+		}
+
+		events.forEach(topicPublisher::publish);
+
+		return topic;
 	}
 
 	public TopicInfo update(final Principal principal, final long topicId,
@@ -85,25 +139,31 @@ public class TopicService {
 		return updated;
 	}
 
+	@Transactional
 	public void delete(final Principal principal, final long topicId) {
 		Objects.requireNonNull(principal);
 
 		final TopicInfo topicInfo = getById(principal, topicId);
 		topicStorage.delete(topicInfo);
 
+		final var events = new ArrayList<TopicEvent>();
+		events.add(new TopicEvent(topicInfo, new TopicAction.Delete()));
+
 		final List<TopicInfo> existingTopics = topicStorage
 				.findAllByMeetingId(topicInfo.getMeetingId());
-		// TODO: move logic into action?
-		final List<TopicInfo> toUpdateTopics = existingTopics.stream()
-				.filter(t -> t.getSequenceId() > topicInfo.getSequenceId())
-				.toList();
-		toUpdateTopics.forEach(TopicInfo::moveUp);
-		toUpdateTopics.forEach(topicStorage::update);
-		// TODO: publish move action/event!!
+		for (final TopicInfo t : existingTopics) {
+			if (t.getSequenceId() <= topicInfo.getSequenceId()) {
+				continue;
+			}
 
-		final var action = new TopicAction.Delete();
-		final var event = new TopicEvent(topicInfo, action);
-		topicPublisher.publish(event);
+			final int updatedSequenceId = t.getSequenceId() - 1;
+			final var move = new TopicAction.Move(updatedSequenceId);
+			move.apply(t);
+			final TopicInfo updatedTopic = topicStorage.update(t);
+			events.add(new TopicEvent(updatedTopic, move));
+		}
+
+		events.forEach(topicPublisher::publish);
 	}
 
 }

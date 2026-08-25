@@ -32,6 +32,22 @@ class TopicActionDtoTest {
 	}
 
 	@Nested
+	class Move {
+
+		@Test
+		void toBdo() {
+			final int sequenceId = 2;
+
+			final var dto = new TopicActionDto.Move(TOPIC.getId(), sequenceId);
+			final TopicAction.Move bdo = dto.toBdo();
+
+			final var expected = new TopicAction.Move(sequenceId);
+			final var matcher = new TopicActionMatcher.Move(expected);
+			assertThat(bdo).is(matcher.equal());
+		}
+	}
+
+	@Nested
 	class UpdateName {
 
 		@Test
