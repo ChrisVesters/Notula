@@ -41,6 +41,7 @@ public class BlockService {
 				.orElseThrow(MissingEntityException::new);
 	}
 
+	@Transactional
 	public BlockInfo create(final Principal principal,
 			final BlockAction.Create action) {
 		Objects.requireNonNull(principal);
@@ -51,24 +52,29 @@ public class BlockService {
 
 		final List<BlockInfo> existingBlocks = blockStorage
 				.findAllByTopicId(topic.getId());
-		// TODO: move logic into action?
 		if (action.getSequenceId() > existingBlocks.size()) {
 			throw new IllegalArgumentException();
 		}
 
-		final List<BlockInfo> toUpdateBlocks = existingBlocks.stream()
-				.filter(b -> b.getSequenceId() >= action.getSequenceId())
-				.toList();
-		toUpdateBlocks.forEach(BlockInfo::moveDown);
-		toUpdateBlocks.forEach(blockStorage::update);
+		final var events = new ArrayList<BlockEvent>();
+		for (final BlockInfo b : existingBlocks) {
+			if (b.getSequenceId() < action.getSequenceId()) {
+				continue;
+			}
+
+			final int updatedSequenceId = b.getSequenceId() + 1;
+			final var move = new BlockAction.Move(updatedSequenceId);
+			move.apply(b);
+			final BlockInfo updatedBlock = blockStorage.update(b);
+			events.add(new BlockEvent(updatedBlock, move));
+		}
 
 		final var block = new BlockInfo(topic.getOrganisationId(),
 				topic.getId(), action.getType(), action.getSequenceId());
-
 		final BlockInfo created = blockStorage.create(block);
+		events.add(new BlockEvent(created, action));
 
-		final var event = new BlockEvent(created, action);
-		blockPublisher.publish(event);
+		events.forEach(blockPublisher::publish);
 
 		return created;
 	}
@@ -119,23 +125,30 @@ public class BlockService {
 		return block;
 	}
 
+	@Transactional
 	public void delete(final Principal principal, final long blockId) {
 		Objects.requireNonNull(principal);
 
 		final BlockInfo blockInfo = getById(principal, blockId);
 		blockStorage.delete(blockInfo);
 
+		final var events = new ArrayList<BlockEvent>();
+		events.add(new BlockEvent(blockInfo, new BlockAction.Delete()));
+
 		final List<BlockInfo> existingBlocks = blockStorage
 				.findAllByTopicId(blockInfo.getTopicId());
-		// TODO: move logic into action?
-		final List<BlockInfo> toUpdateBlocks = existingBlocks.stream()
-				.filter(t -> t.getSequenceId() > blockInfo.getSequenceId())
-				.toList();
-		toUpdateBlocks.forEach(BlockInfo::moveUp);
-		toUpdateBlocks.forEach(blockStorage::update);
-		// TODO: publish move action/event!!
+		for (final BlockInfo b : existingBlocks) {
+			if (b.getSequenceId() <= blockInfo.getSequenceId()) {
+				continue;
+			}
 
-		final var event = new BlockEvent(blockInfo, new BlockAction.Delete());
-		blockPublisher.publish(event);
+			final int updatedSequenceId = b.getSequenceId() - 1;
+			final var move = new BlockAction.Move(updatedSequenceId);
+			move.apply(b);
+			final BlockInfo updatedBlock = blockStorage.update(b);
+			events.add(new BlockEvent(updatedBlock, move));
+		}
+
+		events.forEach(blockPublisher::publish);
 	}
 }

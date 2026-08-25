@@ -210,12 +210,32 @@ class BlockServiceTest {
 			when(topicService.getById(PRINCIPAL, topicId))
 					.thenReturn(TOPIC.info());
 
-			final List<BlockInfo> existingBlocks = TestBlock.ofTopic(TOPIC)
-					.stream()
+			final List<TestBlock> blocks = TestBlock.ofTopic(TOPIC);
+			final List<BlockInfo> existingBlocks = blocks.stream()
 					.map(TestBlock::info)
 					.toList();
 			when(blockStorageGateway.findAllByTopicId(topicId))
 					.thenReturn(existingBlocks);
+			final List<BlockInfo> updatedBlocks = blocks.stream()
+					.map(b -> mock(BlockInfo.class))
+					.toList();
+
+			when(blockStorageGateway.update(any())).thenAnswer(invocation -> {
+				var update = invocation.getArgument(0, BlockInfo.class);
+
+				for (int i = 0; i < blocks.size(); i++) {
+					var block = blocks.get(i);
+					if (update.getId() != block.getId()) {
+						continue;
+					}
+
+					assertThat(update.getSequenceId())
+							.isEqualTo(block.getSequenceId() + 1);
+					return updatedBlocks.get(i);
+				}
+
+				throw new AssertionError("Unexpected update: " + update);
+			});
 
 			final int sequenceId = 0;
 			final var created = new BlockInfo(BLOCK.getId(),
@@ -240,17 +260,33 @@ class BlockServiceTest {
 
 			assertThat(result).isEqualTo(created);
 
+			final ArgumentCaptor<BlockEvent> events = ArgumentCaptor
+					.forClass(BlockEvent.class);
+
+			verify(blockPublisher, times(blocks.size() + 1))
+					.publish(events.capture());
+
+			final List<BlockEvent> blockEvents = events.getAllValues();
+
+			for (int i = 0; i < blocks.size(); i++) {
+				final var expected = new BlockAction.Move(
+						blocks.get(i).getSequenceId() + 1);
+				final var matcher = new BlockActionMatcher.Move(expected);
+
+				final BlockEvent event = blockEvents.get(i);
+				assertThat(event.block()).isEqualTo(updatedBlocks.get(i));
+				assertThat(event.action()).is(matcher.equal());
+			}
+
 			final var expectedAction = new BlockAction.Create(TOPIC.getId(),
 					BLOCK.getType(), sequenceId);
 			final var matcher = new BlockActionMatcher.Create(expectedAction);
-			verify(blockPublisher).publish(argThat(event -> {
-				assertThat(event.block()).isEqualTo(created);
-				assertThat(event.action()).is(matcher.equal());
-				return true;
-			}));
+
+			final BlockEvent createEvent = blockEvents.get(blocks.size());
+			assertThat(createEvent.block()).isEqualTo(created);
+			assertThat(createEvent.action()).is(matcher.equal());
 
 			final InOrder inOrder = inOrder(blockStorageGateway);
-			// TODO: should have been moved down!
 			existingBlocks.forEach(
 					b -> inOrder.verify(blockStorageGateway).update(b));
 			inOrder.verify(blockStorageGateway).create(any());
@@ -694,30 +730,65 @@ class BlockServiceTest {
 			when(blockStorageGateway.find(blockId))
 					.thenReturn(Optional.of(blockInfo));
 
-			when(blockStorageGateway.findAllByTopicId(topicId))
-					.thenReturn(List.of(blockInfo));
 			final List<BlockInfo> existingBlocks = blocks.stream()
 					.map(TestBlock::info)
 					.toList();
 			when(blockStorageGateway.findAllByTopicId(topicId))
 					.thenReturn(existingBlocks);
 
+			final List<TestBlock> movedBlocks = blocks.stream()
+					.filter(b -> b.getSequenceId() > deleted.getSequenceId())
+					.toList();
+			final List<BlockInfo> updatedBlocks = movedBlocks.stream()
+					.map(b -> mock(BlockInfo.class))
+					.toList();
+
+			when(blockStorageGateway.update(any())).thenAnswer(invocation -> {
+				var update = invocation.getArgument(0, BlockInfo.class);
+
+				for (int i = 0; i < movedBlocks.size(); i++) {
+					var movedBlock = movedBlocks.get(i);
+					if (update.getId() != movedBlock.getId()) {
+						continue;
+					}
+
+					assertThat(update.getSequenceId())
+							.isEqualTo(movedBlock.getSequenceId() - 1);
+					return updatedBlocks.get(i);
+				}
+
+				throw new AssertionError("Unexpected update: " + update);
+			});
+
 			blockService.delete(principal, blockId);
 
-			verify(blockStorageGateway).delete(blockInfo);
-			verify(blockPublisher).publish(argThat(event -> {
-				assertThat(event.block()).isEqualTo(blockInfo);
-				assertThat(event.action())
-						.isInstanceOf(BlockAction.Delete.class);
-				return true;
-			}));
+			final ArgumentCaptor<BlockEvent> events = ArgumentCaptor
+					.forClass(BlockEvent.class);
 
-			// TODO: should have been moved up!
-			final List<BlockInfo> toUpdateBlocks = existingBlocks.stream()
-					.filter(t -> t.getId() != topicId)
-					.toList();
-			toUpdateBlocks.forEach(b -> verify(blockStorageGateway).update(b));
+			verify(blockPublisher, times(movedBlocks.size() + 1))
+					.publish(events.capture());
 
+			final List<BlockEvent> blockEvents = events.getAllValues();
+
+			final BlockEvent deleteEvent = blockEvents.getFirst();
+			assertThat(deleteEvent.block()).isEqualTo(blockInfo);
+			assertThat(deleteEvent.action())
+					.isInstanceOf(BlockAction.Delete.class);
+
+			for (int i = 0; i < movedBlocks.size(); i++) {
+				final var expected = new BlockAction.Move(
+						movedBlocks.get(i).getSequenceId() - 1);
+				final var matcher = new BlockActionMatcher.Move(expected);
+
+				final BlockEvent event = blockEvents.get(i + 1);
+				assertThat(event.block()).isEqualTo(updatedBlocks.get(i));
+				assertThat(event.action()).is(matcher.equal());
+			}
+
+			final InOrder inOrder = inOrder(blockStorageGateway);
+			inOrder.verify(blockStorageGateway).delete(blockInfo);
+			movedBlocks.forEach(b -> inOrder.verify(blockStorageGateway)
+					.update(argThat(u -> u.getId() == b.getId())));
 		}
 
 		@Test
