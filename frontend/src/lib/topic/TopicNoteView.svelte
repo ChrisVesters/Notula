@@ -20,6 +20,10 @@
 
 	let { topic = $bindable() }: TopicNoteViewProps = $props();
 
+	let blocks = $derived(
+		topic.blocks.toSorted((a, b) => a.sequenceId - b.sequenceId)
+	);
+
 	const handleUpdateTopicName = (action: UpdateAction) => {
 		const request: TopicUpdateNameAction = {
 			topicId: topic.id,
@@ -58,11 +62,16 @@
 	</span>
 </FeedbackButton>
 
-<!-- TODO: extract to component? -->
-<!-- TODO: Sort -->
-<!-- $: sortedItems = items
-  .slice()
-  .sort((a, b) => a.id - b.id); -->
-{#each topic.blocks as block, index (block.id)}
-	<BlockView bind:block={topic.blocks[index]} />
-{/each}
+<ul class="blocks">
+	{#each blocks as block, index (block.id)}
+		<BlockView bind:block={blocks[index]} topicId={topic.id} />
+	{/each}
+</ul>
+
+<style>
+	.blocks {
+		list-style: none;
+		margin: 0;
+		padding: 0;
+	}
+</style>

@@ -17,6 +17,11 @@ export type BlockCreateAction = {
 	sequenceId: number;
 };
 
+export type BlockMoveAction = {
+	blockId: number;
+	sequenceId: number;
+};
+
 export type BlockDeleteAction = {
 	blockId: number;
 };
@@ -27,12 +32,20 @@ export type BlockEvent = {
 	mutation: BlockMutation;
 };
 
-export type BlockMutation = BlockMutationCreate | BlockMutationDelete;
+export type BlockMutation =
+	| BlockMutationCreate
+	| BlockMutationMove
+	| BlockMutationDelete;
 
 export type BlockMutationCreate = {
 	action: "CREATE";
 	topicId: number;
 	type: BlockType;
+	sequenceId: number;
+};
+
+export type BlockMutationMove = {
+	action: "MOVE";
 	sequenceId: number;
 };
 
