@@ -15,7 +15,5 @@ public interface BlockRepository extends Repository<BlockDao, Long> {
 
 	BlockDao save(BlockDao block);
 
-	List<BlockDao> saveAll(Iterable<BlockDao> blocks);
-
 	void delete(BlockDao topic);
 }

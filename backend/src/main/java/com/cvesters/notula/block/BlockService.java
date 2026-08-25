@@ -5,6 +5,7 @@ import java.util.List;
 import java.util.Objects;
 
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import com.cvesters.notula.block.bdo.BlockAction;
 import com.cvesters.notula.block.bdo.BlockEvent;
@@ -59,7 +60,7 @@ public class BlockService {
 				.filter(b -> b.getSequenceId() >= action.getSequenceId())
 				.toList();
 		toUpdateBlocks.forEach(BlockInfo::moveDown);
-		blockStorage.updateAll(toUpdateBlocks);
+		toUpdateBlocks.forEach(blockStorage::update);
 
 		final var block = new BlockInfo(topic.getOrganisationId(),
 				topic.getId(), action.getType(), action.getSequenceId());
@@ -72,6 +73,7 @@ public class BlockService {
 		return created;
 	}
 
+	@Transactional
 	public BlockInfo move(final Principal principal, final long blockId,
 			final BlockAction.Move action) {
 		Objects.requireNonNull(principal);
@@ -101,16 +103,17 @@ public class BlockService {
 		final var events = new ArrayList<BlockEvent>();
 
 		action.apply(block);
-		events.add(new BlockEvent(block, action));
+		final BlockInfo updated = blockStorage.update(block);
+		events.add(new BlockEvent(updated, action));
 
 		for (final BlockInfo b : toUpdateBlocks) {
 			final int updatedSequenceId = b.getSequenceId() - direction;
 			final var move = new BlockAction.Move(updatedSequenceId);
 			move.apply(b);
-			events.add(new BlockEvent(b, move));
+			final BlockInfo updatedBlock = blockStorage.update(b);
+			events.add(new BlockEvent(updatedBlock, move));
 		}
 
-		blockStorage.updateAll(events.stream().map(BlockEvent::block).toList());
 		events.forEach(blockPublisher::publish);
 
 		return block;
@@ -125,11 +128,11 @@ public class BlockService {
 		final List<BlockInfo> existingBlocks = blockStorage
 				.findAllByTopicId(blockInfo.getTopicId());
 		// TODO: move logic into action?
-		final List<BlockInfo> toUpdateTopics = existingBlocks.stream()
+		final List<BlockInfo> toUpdateBlocks = existingBlocks.stream()
 				.filter(t -> t.getSequenceId() > blockInfo.getSequenceId())
 				.toList();
-		toUpdateTopics.forEach(BlockInfo::moveUp);
-		blockStorage.updateAll(toUpdateTopics);
+		toUpdateBlocks.forEach(BlockInfo::moveUp);
+		toUpdateBlocks.forEach(blockStorage::update);
 		// TODO: publish move action/event!!
 
 		final var event = new BlockEvent(blockInfo, new BlockAction.Delete());

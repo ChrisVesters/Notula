@@ -1,6 +1,5 @@
 package com.cvesters.notula.block;
 
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
@@ -39,21 +38,14 @@ public class BlockStorageGateway {
 				.toList();
 	}
 
-	public List<BlockInfo> updateAll(final List<BlockInfo> blocks) {
-		Objects.requireNonNull(blocks);
+	public BlockInfo update(final BlockInfo block) {
+		Objects.requireNonNull(block);
 
-		final var updated = new ArrayList<BlockDao>();
-		for (final BlockInfo block : blocks) {
-			final BlockDao dao = blockRepository.findById(block.getId())
-					.orElseThrow(MissingEntityException::new);
-			dao.update(block);
-			updated.add(dao);
-		}
-
-		return blockRepository.saveAll(updated)
-				.stream()
-				.map(BlockDao::toBdo)
-				.toList();
+		final BlockDao dao = blockRepository.findById(block.getId())
+				.orElseThrow(MissingEntityException::new);
+		dao.update(block);
+		final BlockDao saved = blockRepository.save(dao);
+		return saved.toBdo();
 	}
 
 	public void delete(final BlockInfo block) {

@@ -2,16 +2,11 @@ package com.cvesters.notula.block;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.mockito.ArgumentMatchers.anyIterable;
 import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.Mockito.inOrder;
 import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.never;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 
-import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
@@ -145,104 +140,48 @@ class BlockStorageGatewayTest {
 	}
 
 	@Nested
-	class UpdateAll {
+	class Update {
+
+		private static final TestBlock BLOCK = TestBlock.SPORER_PROJECT_BLOCKERS_FIRST;
 
 		@Test
-		void single() {
-			final TestBlock block = TestBlock.SPORER_PROJECT_BLOCKERS_FIRST;
-			final BlockInfo updateBdo = block.info();
-			final List<BlockInfo> blocks = List.of(updateBdo);
+		void success() {
+			final BlockDao blockDao = mock();
 
-			final BlockDao found = mock();
-			when(blockRepository.findById(block.getId()))
-					.thenReturn(Optional.of(found));
+			when(blockRepository.findById(BLOCK.getId()))
+					.thenReturn(Optional.of(blockDao));
 
 			final BlockDao updatedDao = mock();
 			final BlockInfo updatedBdo = mock();
 			when(updatedDao.toBdo()).thenReturn(updatedBdo);
 
-			final List<BlockDao> updatedBlocks = List.of(updatedDao);
-			when(blockRepository.saveAll(List.of(found)))
-					.thenReturn(updatedBlocks);
+			when(blockRepository.save(blockDao)).thenReturn(updatedDao);
 
-			final var result = gateway.updateAll(blocks);
+			final BlockInfo update = BLOCK.info();
 
-			assertThat(result).hasSize(1).contains(updatedBdo);
+			final BlockInfo result = gateway.update(update);
 
-			final InOrder inOrder = inOrder(found, blockRepository);
-			inOrder.verify(found).update(updateBdo);
-			inOrder.verify(blockRepository).saveAll(List.of(found));
-		}
+			assertThat(result).isEqualTo(updatedBdo);
 
-		@Test
-		void multiple() {
-			final List<TestBlock> blocks = List.of(
-					TestBlock.SPORER_PROJECT_BLOCKERS_FIRST,
-					TestBlock.SPORER_PROJECT_BLOCKERS_SECOND);
-
-			final List<BlockInfo> updateBdos = new ArrayList<>();
-			final List<BlockDao> foundDaos = new ArrayList<>();
-			final List<BlockDao> updatedDaos = new ArrayList<>();
-			final List<BlockInfo> updatedBdos = new ArrayList<>();
-			for (final TestBlock block : blocks) {
-				final BlockInfo updateBdo = block.info();
-				updateBdos.add(updateBdo);
-
-				final BlockDao found = mock();
-				when(blockRepository.findById(block.getId()))
-						.thenReturn(Optional.of(found));
-				foundDaos.add(found);
-
-				final BlockDao updatedDao = mock();
-				final BlockInfo updatedBdo = mock();
-				when(updatedDao.toBdo()).thenReturn(updatedBdo);
-
-				updatedDaos.add(updatedDao);
-				updatedBdos.add(updatedBdo);
-			}
-
-			when(blockRepository.saveAll(foundDaos)).thenReturn(updatedDaos);
-
-			final var result = gateway.updateAll(updateBdos);
-
-			assertThat(result).containsExactlyElementsOf(updatedBdos);
-		}
-
-		@Test
-		void emptyList() {
-			final List<BlockInfo> blocks = List.of();
-
-			when(blockRepository
-					.saveAll(argThat((List<BlockDao> list) -> list.isEmpty())))
-							.thenReturn(List.of());
-
-			final var result = gateway.updateAll(blocks);
-
-			assertThat(result).isEmpty();
-
-			verify(blockRepository).saveAll(anyIterable());
-			verifyNoMoreInteractions(blockRepository);
+			final InOrder inOrder = inOrder(blockDao, blockRepository);
+			inOrder.verify(blockDao).update(update);
+			inOrder.verify(blockRepository).save(blockDao);
 		}
 
 		@Test
 		void notFound() {
-			final TestBlock block = TestBlock.SPORER_PROJECT_BLOCKERS_FIRST;
-			final List<BlockInfo> blocks = List.of(block.info());
-
-			when(blockRepository.findById(block.getId()))
+			when(blockRepository.findById(BLOCK.getId()))
 					.thenReturn(Optional.empty());
 
-			assertThatThrownBy(() -> gateway.updateAll(blocks))
-					.isInstanceOf(MissingEntityException.class);
+			final BlockInfo update = BLOCK.info();
 
-			verify(blockRepository, never()).saveAll(anyIterable());
+			assertThatThrownBy(() -> gateway.update(update))
+					.isInstanceOf(MissingEntityException.class);
 		}
 
 		@Test
-		void blocksNull() {
-			final List<BlockInfo> blocks = null;
-
-			assertThatThrownBy(() -> gateway.updateAll(blocks))
+		void blockNull() {
+			assertThatThrownBy(() -> gateway.update(null))
 					.isInstanceOf(NullPointerException.class);
 		}
 	}
