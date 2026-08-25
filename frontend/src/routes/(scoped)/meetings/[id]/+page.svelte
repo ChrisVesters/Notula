@@ -102,6 +102,17 @@
 				} else {
 					console.error("Unhandled block type:", mutation.type);
 				}
+			} else if (mutation.action === "MOVE") {
+				const block = meeting?.topics
+					.flatMap(t => t.blocks)
+					.find(b => b.id === event.blockId);
+				// TODO: what if block does not exist? Out of sync?
+				if (!block) {
+					console.error("Block does not exist");
+					return;
+				}
+
+				block.sequenceId = mutation.sequenceId;
 			} else if (mutation.action === "DELETE") {
 				const topic = meeting?.topics.find(t =>
 					t.blocks.some(b => b.id === event.blockId)

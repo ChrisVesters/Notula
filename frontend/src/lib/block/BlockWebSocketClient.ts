@@ -1,13 +1,21 @@
 import Session from "$lib/auth/Session";
 import type WebSocketClient from "$lib/common/WebSocketClient";
 
-import type { BlockCreateAction, BlockDeleteAction } from "./BlockTypes";
+import type {
+	BlockCreateAction,
+	BlockDeleteAction,
+	BlockMoveAction
+} from "./BlockTypes";
 
 export default class BlockWebSocketClient {
 	private static readonly ENDPOINT = "/app/blocks";
 
 	public static create(action: BlockCreateAction): void {
 		BlockWebSocketClient.send("/create", action);
+	}
+
+	public static move(action: BlockMoveAction): void {
+		BlockWebSocketClient.send("/move", action);
 	}
 
 	public static delete(action: BlockDeleteAction): void {

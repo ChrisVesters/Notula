@@ -12,6 +12,7 @@
 	let { size = "1rem", children }: IconRenderProps = $props();
 </script>
 
+<!-- Bootstrap Icons -->
 <svg
 	xmlns="http://www.w3.org/2000/svg"
 	width={size}
