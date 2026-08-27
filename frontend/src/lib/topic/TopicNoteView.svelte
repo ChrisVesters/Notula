@@ -64,7 +64,7 @@
 
 <ul class="blocks">
 	{#each blocks as block, index (block.id)}
-		<BlockView bind:block={blocks[index]} topicId={topic.id} />
+		<BlockView bind:block={blocks[index]} />
 	{/each}
 </ul>
 
