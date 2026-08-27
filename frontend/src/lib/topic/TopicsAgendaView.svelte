@@ -42,7 +42,7 @@
 
 <ul class="topics">
 	{#each topics as topic, index (topic.id)}
-		<TopicAgendaView bind:topic={topics[index]} {meetingId} />
+		<TopicAgendaView bind:topic={topics[index]} />
 	{/each}
 </ul>
 

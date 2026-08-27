@@ -4,17 +4,13 @@
 	import IconDelete from "$lib/assets/icons/IconDelete.svelte";
 	import IconDrag from "$lib/assets/icons/IconDrag.svelte";
 
+	import { DropPosition, reorderHandler } from "$lib/common/ReorderHandler";
 	import type { TopicDetails } from "$lib/details/DetailTypes";
 	import type { UpdateAction } from "$lib/editor/ActionTypes";
 	import Input from "$lib/editor/Input.svelte";
 	import TextArea from "$lib/editor/TextArea.svelte";
 	import IconButton from "$lib/form/IconButton.svelte";
 
-	import {
-		topicDrag,
-		type DragSource,
-		type DropPosition
-	} from "./TopicDrag.svelte";
 	import type {
 		TopicDeleteAction,
 		TopicMoveAction,
@@ -26,92 +22,31 @@
 
 	export type TopicAgendaViewProps = {
 		topic: Readonly<TopicDetails>;
-		meetingId: Readonly<number>;
 	};
 
-	let { topic = $bindable(), meetingId }: TopicAgendaViewProps = $props();
+	let { topic = $bindable() }: TopicAgendaViewProps = $props();
 
-	let draggable = $state(false);
+	let dragged = $state(false);
+	let dropPosition: DropPosition | null = $state(null);
 
-	const dragged = $derived(topicDrag.source?.topicId === topic.id);
-	const dropPosition = $derived(
-		topicDrag.target?.topicId === topic.id
-			? topicDrag.target.position
-			: null
-	);
-
-	const handleDragStart = (event: DragEvent) => {
-		if (!event.dataTransfer) {
-			return;
-		}
-
-		event.dataTransfer.effectAllowed = "move";
-		// Firefox only starts a drag once data has been set.
-		event.dataTransfer.setData("text/plain", "");
-
-		topicDrag.start({
-			meetingId,
-			topicId: topic.id,
-			sequenceId: topic.sequenceId
-		});
-	};
-
-	const handleDragEnd = () => {
-		draggable = false;
-		topicDrag.end();
-	};
-
-	const handleDragOver = (
-		event: DragEvent & { currentTarget: HTMLElement }
-	) => {
-		if (!event.dataTransfer || topicDrag.source?.meetingId !== meetingId) {
-			return;
-		}
-
-		event.preventDefault();
-		event.dataTransfer.dropEffect = "move";
-
-		const bounds = event.currentTarget.getBoundingClientRect();
-		const middle = bounds.top + bounds.height / 2;
-
-		topicDrag.over({
-			topicId: topic.id,
-			position: event.clientY < middle ? "BEFORE" : "AFTER"
-		});
-	};
-
-	const handleDrop = (event: DragEvent) => {
-		const source = topicDrag.source;
-		const position = dropPosition;
-
-		topicDrag.end();
-
-		if (!source || position === null) {
-			return;
-		}
-
-		event.preventDefault();
-
-		handleMoveTopic(source, position);
-	};
-
-	const handleMoveTopic = (source: DragSource, position: DropPosition) => {
-		// The index of the gap the topic is dropped in, before removal.
-		const gap =
-			position === "BEFORE" ? topic.sequenceId : topic.sequenceId + 1;
-		const sequenceId = gap > source.sequenceId ? gap - 1 : gap;
-
-		if (sequenceId === source.sequenceId) {
-			return;
-		}
-
+	const handleMoveTopic = (sequenceId: number) => {
 		const request: TopicMoveAction = {
-			topicId: source.topicId,
+			topicId: topic.id,
 			sequenceId
 		};
 
 		TopicWebSocketClient.move(request);
 	};
+
+	const handleReorder = $derived(
+		reorderHandler({
+			sequenceId: topic.sequenceId,
+			onDragChange: (value: boolean) => (dragged = value),
+			onDropChange: (value: DropPosition | null) =>
+				(dropPosition = value),
+			onMove: handleMoveTopic
+		})
+	);
 
 	const handleUpdateTopicName = (action: UpdateAction) => {
 		const request: TopicUpdateNameAction = {
@@ -159,13 +94,9 @@
 <li
 	class="topic"
 	class:dragged
-	class:drop-before={dropPosition === "BEFORE"}
-	class:drop-after={dropPosition === "AFTER"}
-	{draggable}
-	ondragstart={handleDragStart}
-	ondragend={handleDragEnd}
-	ondragover={handleDragOver}
-	ondrop={handleDrop}
+	class:drop-before={dropPosition === DropPosition.BEFORE}
+	class:drop-after={dropPosition === DropPosition.AFTER}
+	{@attach handleReorder}
 >
 	<Input
 		className="h2"
@@ -199,15 +130,11 @@
 			class="handle"
 			type="button"
 			aria-label="Move topic"
-			onpointerdown={() => (draggable = true)}
-			onpointerup={() => (draggable = false)}
+			data-reorder-handle
 		>
 			<IconDrag />
 		</button>
-		<IconButton
-			icon={IconDelete}
-			onClick={handleDeleteTopic}
-		/>
+		<IconButton icon={IconDelete} onClick={handleDeleteTopic} />
 	</div>
 </li>
 
