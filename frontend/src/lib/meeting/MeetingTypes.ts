@@ -1,4 +1,5 @@
 import type { BlockEvent } from "$lib/block/BlockTypes";
+import type { EventOrigin } from "$lib/common/EventTypes";
 import type { TopicEvent } from "$lib/topic/TopicTypes";
 
 export type MeetingInfo = {
@@ -37,6 +38,7 @@ export type MeetingEvent = {
 	target: "MEETING";
 	meetingId: number;
 	mutation: MeetingMutation;
+	origin: EventOrigin;
 };
 
 export type MeetingMutation =

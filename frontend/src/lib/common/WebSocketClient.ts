@@ -62,11 +62,15 @@ export default class WebSocketClient {
 		this.client.deactivate();
 	}
 
-	public send(destination: string, body: string, headers = {}): void {
+	public send(
+		destination: string,
+		body: string,
+		headers: Record<string, string> = {}
+	): void {
 		const msg = {
 			destination,
-			body
-			// headers: { ...headers, "message-id": crypto.randomUUID() }
+			body,
+			headers
 		};
 
 		if (this.client.connected) {

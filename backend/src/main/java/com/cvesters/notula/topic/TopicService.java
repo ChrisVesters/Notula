@@ -7,6 +7,7 @@ import java.util.Objects;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import com.cvesters.notula.common.domain.Origin;
 import com.cvesters.notula.common.domain.Principal;
 import com.cvesters.notula.common.exception.MissingEntityException;
 import com.cvesters.notula.meeting.MeetingService;
@@ -42,12 +43,12 @@ public class TopicService {
 	}
 
 	@Transactional
-	public TopicInfo create(final Principal principal,
+	public TopicInfo create(final Origin origin,
 			final TopicAction.Create action) {
-		Objects.requireNonNull(principal);
+		Objects.requireNonNull(origin);
 		Objects.requireNonNull(action);
 
-		final MeetingInfo meeting = meetingService.getById(principal,
+		final MeetingInfo meeting = meetingService.getById(origin.principal(),
 				action.getMeetingId());
 
 		final List<TopicInfo> existingTopics = topicStorage
@@ -66,13 +67,13 @@ public class TopicService {
 			final var move = new TopicAction.Move(updatedSequenceId);
 			move.apply(t);
 			final TopicInfo updatedTopic = topicStorage.update(t);
-			events.add(new TopicEvent(updatedTopic, move));
+			events.add(new TopicEvent(updatedTopic, move, origin));
 		}
 
 		final var topic = new TopicInfo(meeting.getOrganisationId(),
 				meeting.getId(), action.getSequenceId(), action.getName());
 		final TopicInfo created = topicStorage.create(topic);
-		events.add(new TopicEvent(created, action));
+		events.add(new TopicEvent(created, action, origin));
 
 		events.forEach(topicPublisher::publish);
 
@@ -80,12 +81,12 @@ public class TopicService {
 	}
 
 	@Transactional
-	public TopicInfo move(final Principal principal, final long topicId,
+	public TopicInfo move(final Origin origin, final long topicId,
 			final TopicAction.Move action) {
-		Objects.requireNonNull(principal);
+		Objects.requireNonNull(origin);
 		Objects.requireNonNull(action);
 
-		final TopicInfo topic = getById(principal, topicId);
+		final TopicInfo topic = getById(origin.principal(), topicId);
 		final int from = topic.getSequenceId();
 		final int to = action.getSequenceId();
 		final int direction = Integer.signum(to - from);
@@ -110,14 +111,14 @@ public class TopicService {
 
 		action.apply(topic);
 		final TopicInfo updated = topicStorage.update(topic);
-		events.add(new TopicEvent(updated, action));
+		events.add(new TopicEvent(updated, action, origin));
 
 		for (final TopicInfo t : toUpdateTopics) {
 			final int updatedSequenceId = t.getSequenceId() - direction;
 			final var move = new TopicAction.Move(updatedSequenceId);
 			move.apply(t);
 			final TopicInfo updatedTopic = topicStorage.update(t);
-			events.add(new TopicEvent(updatedTopic, move));
+			events.add(new TopicEvent(updatedTopic, move, origin));
 		}
 
 		events.forEach(topicPublisher::publish);
@@ -125,29 +126,30 @@ public class TopicService {
 		return topic;
 	}
 
-	public TopicInfo update(final Principal principal, final long topicId,
+	public TopicInfo update(final Origin origin, final long topicId,
 			final TopicAction.Update action) {
+		Objects.requireNonNull(origin);
 		Objects.requireNonNull(action);
 
-		final TopicInfo topicInfo = getById(principal, topicId);
+		final TopicInfo topicInfo = getById(origin.principal(), topicId);
 		action.apply(topicInfo);
 		final TopicInfo updated = topicStorage.update(topicInfo);
 
-		final var event = new TopicEvent(updated, action);
+		final var event = new TopicEvent(updated, action, origin);
 		topicPublisher.publish(event);
 
 		return updated;
 	}
 
 	@Transactional
-	public void delete(final Principal principal, final long topicId) {
-		Objects.requireNonNull(principal);
+	public void delete(final Origin origin, final long topicId) {
+		Objects.requireNonNull(origin);
 
-		final TopicInfo topicInfo = getById(principal, topicId);
+		final TopicInfo topicInfo = getById(origin.principal(), topicId);
 		topicStorage.delete(topicInfo);
 
 		final var events = new ArrayList<TopicEvent>();
-		events.add(new TopicEvent(topicInfo, new TopicAction.Delete()));
+		events.add(new TopicEvent(topicInfo, new TopicAction.Delete(), origin));
 
 		final List<TopicInfo> existingTopics = topicStorage
 				.findAllByMeetingId(topicInfo.getMeetingId());
@@ -160,7 +162,7 @@ public class TopicService {
 			final var move = new TopicAction.Move(updatedSequenceId);
 			move.apply(t);
 			final TopicInfo updatedTopic = topicStorage.update(t);
-			events.add(new TopicEvent(updatedTopic, move));
+			events.add(new TopicEvent(updatedTopic, move, origin));
 		}
 
 		events.forEach(topicPublisher::publish);

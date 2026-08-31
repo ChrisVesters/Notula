@@ -7,18 +7,29 @@ import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 
+import java.util.UUID;
+
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
 
+import com.cvesters.notula.common.domain.Origin;
+import com.cvesters.notula.common.dto.OriginDto;
 import com.cvesters.notula.meeting.bdo.MeetingAction;
 import com.cvesters.notula.meeting.bdo.MeetingEvent;
 import com.cvesters.notula.meeting.dto.MeetingEventDto;
 import com.cvesters.notula.meeting.dto.MeetingMutationDto;
+import com.cvesters.notula.session.TestSession;
 
 class MeetingPublisherTest {
 
 	private static final String DESTINATION_PREFIX = "/topic/meetings";
+
+	private static final TestSession SESSION = TestSession.EDUARDO_CHRISTIANSEN_SPORER;
+	private static final UUID CLIENT_ID = UUID
+			.fromString("3f9c1a44-1d2e-4a51-8b0c-2c7e9b1d4a0b");
+	private static final Origin ORIGIN = new Origin(SESSION.principal(),
+			CLIENT_ID);
 
 	private final SimpMessagingTemplate messagingTemplate = mock();
 	private final MeetingPublisher publisher = new MeetingPublisher(
@@ -35,13 +46,15 @@ class MeetingPublisherTest {
 		@Test
 		void create() {
 			final var action = new MeetingAction.Create("New");
-			final var event = new MeetingEvent(MEETING_ID, action);
+			final var event = new MeetingEvent(MEETING_ID, action, ORIGIN);
 
 			publisher.publish(event);
 
 			verify(messagingTemplate).convertAndSend(eq(DESTINATION),
 					argThat((MeetingEventDto dto) -> {
 						assertThat(dto.getMeetingId()).isEqualTo(MEETING_ID);
+						assertThat(dto.getOrigin())
+								.isEqualTo(new OriginDto(ORIGIN));
 						assertThat(dto.getMutation())
 								.isInstanceOf(MeetingMutationDto.Create.class);
 
@@ -55,7 +68,7 @@ class MeetingPublisherTest {
 		@Test
 		void updateName() {
 			final var action = new MeetingAction.UpdateName(4, 12, "Updated");
-			final var event = new MeetingEvent(MEETING_ID, action);
+			final var event = new MeetingEvent(MEETING_ID, action, ORIGIN);
 
 			publisher.publish(event);
 
@@ -78,7 +91,7 @@ class MeetingPublisherTest {
 		void updateDescription() {
 			final var action = new MeetingAction.UpdateDescription(4, 12,
 					"Updated");
-			final var event = new MeetingEvent(MEETING_ID, action);
+			final var event = new MeetingEvent(MEETING_ID, action, ORIGIN);
 
 			publisher.publish(event);
 
@@ -100,7 +113,7 @@ class MeetingPublisherTest {
 		@Test
 		void delete() {
 			final var action = new MeetingAction.Delete();
-			final var event = new MeetingEvent(MEETING_ID, action);
+			final var event = new MeetingEvent(MEETING_ID, action, ORIGIN);
 
 			publisher.publish(event);
 

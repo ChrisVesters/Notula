@@ -5,6 +5,8 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
+import java.util.UUID;
+
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 
@@ -12,10 +14,19 @@ import com.cvesters.notula.block.TestBlock;
 import com.cvesters.notula.block.bdo.BlockAction;
 import com.cvesters.notula.block.bdo.BlockEvent;
 import com.cvesters.notula.block.bdo.BlockInfo;
+import com.cvesters.notula.common.domain.Origin;
+import com.cvesters.notula.common.dto.OriginDto;
+import com.cvesters.notula.session.TestSession;
 
 class BlockEventDtoTest {
 
 	private static final TestBlock BLOCK = TestBlock.SPORER_PROJECT_BLOCKERS_FIRST;
+
+	private static final TestSession SESSION = TestSession.EDUARDO_CHRISTIANSEN_SPORER;
+	private static final UUID CLIENT_ID = UUID
+			.fromString("3f9c1a44-1d2e-4a51-8b0c-2c7e9b1d4a05");
+	private static final Origin ORIGIN = new Origin(SESSION.principal(),
+			CLIENT_ID);
 
 	@Nested
 	class Constructor {
@@ -30,15 +41,16 @@ class BlockEventDtoTest {
 
 			final var action = new BlockAction.Create(TOPIC_ID,
 					BLOCK.getType(), BLOCK.getSequenceId());
-			final var event = new BlockEvent(block, action);
+			final var event = new BlockEvent(block, action, ORIGIN);
 
 			final var dto = new BlockEventDto(event);
 
 			assertThat(dto.getTarget()).isEqualTo("BLOCK");
 			assertThat(dto.getBlockId()).isEqualTo(BLOCK_ID);
+			assertThat(dto.getOrigin()).isEqualTo(new OriginDto(ORIGIN));
+			
 			assertThat(dto.getMutation())
 					.isInstanceOf(BlockMutationDto.Create.class);
-
 			final var mutation = (BlockMutationDto.Create) dto.getMutation();
 			assertThat(mutation.getTopicId()).isEqualTo(TOPIC_ID);
 			assertThat(mutation.getType()).isEqualTo(BLOCK.getTypeDto());

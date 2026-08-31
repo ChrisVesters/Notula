@@ -25,7 +25,7 @@ import org.springframework.messaging.simp.stomp.ConnectionLostException;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 
 import com.cvesters.notula.common.domain.Minutes;
-import com.cvesters.notula.common.domain.Principal;
+import com.cvesters.notula.common.domain.Origin;
 import com.cvesters.notula.common.exception.MissingEntityException;
 import com.cvesters.notula.meeting.TestMeeting;
 import com.cvesters.notula.session.TestSession;
@@ -38,7 +38,8 @@ public class TopicWebSocketTest extends WebSocketTest {
 	private static final String DESTINATION_PREFIX = "/app/topics";
 
 	private static final TestSession SESSION = TestSession.EDUARDO_CHRISTIANSEN_SPORER;
-	private static final Principal PRINCIPAL = SESSION.principal();
+	private static final Origin ORIGIN = new Origin(SESSION.principal(),
+			CLIENT_ID);
 	private static final TestMeeting MEETING = TestMeeting.SPORER_PROJECT;
 
 	@MockitoBean
@@ -63,7 +64,7 @@ public class TopicWebSocketTest extends WebSocketTest {
 					sequenceId, name);
 			final var matcher = new TopicActionMatcher.Create(action);
 			verify(topicService, timeout(WAIT_TIMEOUT.toMillis()))
-					.create(eq(PRINCIPAL), argThat(matcher::matches));
+					.create(eq(ORIGIN), argThat(matcher::matches));
 		}
 
 		@Test
@@ -191,7 +192,7 @@ public class TopicWebSocketTest extends WebSocketTest {
 			final var action = new TopicAction.Move(2);
 			final var matcher = new TopicActionMatcher.Move(action);
 			verify(topicService, timeout(WAIT_TIMEOUT.toMillis())).move(
-					eq(PRINCIPAL), eq(TOPIC.getId()),
+					eq(ORIGIN), eq(TOPIC.getId()),
 					argThat(matcher::matches));
 		}
 
@@ -292,7 +293,7 @@ public class TopicWebSocketTest extends WebSocketTest {
 			final var expected = new TopicAction.UpdateName(5, 2, name);
 			final var matcher = new TopicActionMatcher.UpdateName(expected);
 			verify(topicService, timeout(WAIT_TIMEOUT.toMillis())).update(
-					eq(PRINCIPAL), eq(TOPIC.getId()),
+					eq(ORIGIN), eq(TOPIC.getId()),
 					argThat(matcher::matches));
 		}
 
@@ -437,7 +438,7 @@ public class TopicWebSocketTest extends WebSocketTest {
 			final var matcher = new TopicActionMatcher.UpdateDescription(
 					expected);
 			verify(topicService, timeout(WAIT_TIMEOUT.toMillis())).update(
-					eq(PRINCIPAL), eq(TOPIC.getId()),
+					eq(ORIGIN), eq(TOPIC.getId()),
 					argThat(matcher::matches));
 		}
 
@@ -580,7 +581,7 @@ public class TopicWebSocketTest extends WebSocketTest {
 					new Minutes(duration));
 			final var matcher = new TopicActionMatcher.UpdateDuration(expected);
 			verify(topicService, timeout(WAIT_TIMEOUT.toMillis())).update(
-					eq(PRINCIPAL), eq(TOPIC.getId()),
+					eq(ORIGIN), eq(TOPIC.getId()),
 					argThat(matcher::matches));
 		}
 
@@ -594,7 +595,7 @@ public class TopicWebSocketTest extends WebSocketTest {
 			final var expected = new TopicAction.UpdateDuration(null);
 			final var matcher = new TopicActionMatcher.UpdateDuration(expected);
 			verify(topicService, timeout(WAIT_TIMEOUT.toMillis())).update(
-					eq(PRINCIPAL), eq(TOPIC.getId()),
+					eq(ORIGIN), eq(TOPIC.getId()),
 					argThat(matcher::matches));
 		}
 
@@ -702,7 +703,7 @@ public class TopicWebSocketTest extends WebSocketTest {
 			send(ENDPOINT, payload);
 
 			verify(topicService, timeout(WAIT_TIMEOUT.toMillis()))
-					.delete(PRINCIPAL, TOPIC.getId());
+					.delete(ORIGIN, TOPIC.getId());
 		}
 
 		@Test

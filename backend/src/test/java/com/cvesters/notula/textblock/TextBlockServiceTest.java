@@ -3,13 +3,13 @@ package com.cvesters.notula.textblock;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.argThat;
-import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
 import java.util.Optional;
+import java.util.UUID;
 
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -17,15 +17,17 @@ import org.junit.jupiter.api.Test;
 import com.cvesters.notula.block.BlockService;
 import com.cvesters.notula.block.TestBlock;
 import com.cvesters.notula.block.bdo.BlockInfo;
+import com.cvesters.notula.common.domain.Origin;
 import com.cvesters.notula.common.domain.Principal;
 import com.cvesters.notula.common.exception.InvalidActionException;
-import com.cvesters.notula.meeting.TestMeeting;
 import com.cvesters.notula.session.TestSession;
 import com.cvesters.notula.textblock.bdo.TextBlockAction;
 import com.cvesters.notula.textblock.bdo.TextBlockInfo;
-import com.cvesters.notula.topic.TestTopic;
 
 class TextBlockServiceTest {
+
+	private static final UUID CLIENT_ID = UUID
+			.fromString("3f9c1a44-1d2e-4a51-8b0c-2c7e9b1d4a10");
 
 	private final BlockService blockService = mock();
 
@@ -39,14 +41,14 @@ class TextBlockServiceTest {
 	class Update {
 
 		private static final TestSession SESSION = TestSession.EDUARDO_CHRISTIANSEN_SPORER;
+		private static final Origin ORIGIN = new Origin(SESSION.principal(),
+				CLIENT_ID);
 		private static final TestTextBlock TEXT_BLOCK = TestTextBlock.SPORER_PROJECT_BLOCKERS_FIRST;
 		private static final TestBlock BLOCK = TestBlock.SPORER_PROJECT_BLOCKERS_FIRST;
-		private static final TestTopic TOPIC = BLOCK.getTopic();
-		private static final TestMeeting MEETING = TOPIC.getMeeting();
 
 		@Test
 		void success() {
-			final Principal principal = SESSION.principal();
+			final Principal principal = ORIGIN.principal();
 			final long blockId = BLOCK.getId();
 
 			final BlockInfo blockInfo = BLOCK.info();
@@ -66,12 +68,13 @@ class TextBlockServiceTest {
 
 			final var action = new TextBlockAction.UpdateContent(0, 0,
 					"Project ");
-			final TextBlockInfo result = textBlockService.update(principal,
+			final TextBlockInfo result = textBlockService.update(ORIGIN,
 					blockId, action);
 
 			assertThat(result).isEqualTo(updated);
 
 			verify(textBlockPublisher).publish(argThat(event -> {
+				assertThat(event.origin()).isEqualTo(ORIGIN);
 				assertThat(event.block()).isEqualTo(blockInfo);
 				assertThat(event.action()).isEqualTo(action);
 				return true;
@@ -80,7 +83,7 @@ class TextBlockServiceTest {
 
 		@Test
 		void uninitialized() {
-			final Principal principal = SESSION.principal();
+			final Principal principal = ORIGIN.principal();
 			final long blockId = BLOCK.getId();
 
 			final BlockInfo blockInfo = BLOCK.info();
@@ -99,12 +102,13 @@ class TextBlockServiceTest {
 
 			final var action = new TextBlockAction.UpdateContent(0, 0,
 					"Project");
-			final TextBlockInfo result = textBlockService.update(principal,
+			final TextBlockInfo result = textBlockService.update(ORIGIN,
 					blockId, action);
 
 			assertThat(result).isEqualTo(updated);
 
 			verify(textBlockPublisher).publish(argThat(event -> {
+				assertThat(event.origin()).isEqualTo(ORIGIN);
 				assertThat(event.block()).isEqualTo(blockInfo);
 				assertThat(event.action()).isEqualTo(action);
 				return true;
@@ -113,7 +117,7 @@ class TextBlockServiceTest {
 
 		@Test
 		void invalidType() {
-			final Principal principal = SESSION.principal();
+			final Principal principal = ORIGIN.principal();
 			final long blockId = BLOCK.getId();
 
 			final BlockInfo blockInfo = mock();
@@ -124,7 +128,7 @@ class TextBlockServiceTest {
 			final var action = new TextBlockAction.UpdateContent(0, 0,
 					"Project ");
 			assertThatThrownBy(
-					() -> textBlockService.update(principal, blockId, action))
+					() -> textBlockService.update(ORIGIN, blockId, action))
 							.isInstanceOf(InvalidActionException.class);
 
 			verifyNoInteractions(textBlockStorageGateway);
@@ -132,7 +136,7 @@ class TextBlockServiceTest {
 		}
 
 		@Test
-		void principalNull() {
+		void originNull() {
 			final long blockId = BLOCK.getId();
 
 			final var action = new TextBlockAction.UpdateContent(0, 0,
@@ -145,11 +149,10 @@ class TextBlockServiceTest {
 
 		@Test
 		void actionNull() {
-			final Principal principal = SESSION.principal();
 			final long blockId = BLOCK.getId();
 
 			assertThatThrownBy(
-					() -> textBlockService.update(principal, blockId, null))
+					() -> textBlockService.update(ORIGIN, blockId, null))
 							.isInstanceOf(NullPointerException.class);
 		}
 	}

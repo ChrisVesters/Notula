@@ -23,7 +23,7 @@ import org.junit.jupiter.params.provider.ValueSource;
 import org.springframework.messaging.simp.stomp.ConnectionLostException;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 
-import com.cvesters.notula.common.domain.Principal;
+import com.cvesters.notula.common.domain.Origin;
 import com.cvesters.notula.common.exception.MissingEntityException;
 import com.cvesters.notula.meeting.bdo.MeetingAction;
 import com.cvesters.notula.session.TestSession;
@@ -35,7 +35,8 @@ class MeetingWebSocketTest extends WebSocketTest {
 	private static final String DESTINATION_PREFIX = "/app/meetings";
 
 	private static final TestSession SESSION = TestSession.EDUARDO_CHRISTIANSEN_SPORER;
-	private static final Principal PRINCIPAL = SESSION.principal();
+	private static final Origin ORIGIN = new Origin(SESSION.principal(),
+			CLIENT_ID);
 	private static final TestMeeting MEETING = TestMeeting.SPORER_PROJECT;
 
 	@MockitoBean
@@ -58,7 +59,7 @@ class MeetingWebSocketTest extends WebSocketTest {
 			final var expected = new MeetingAction.UpdateName(5, 2, name);
 			final var matcher = new MeetingActionMatcher.UpdateName(expected);
 			verify(meetingService, timeout(WAIT_TIMEOUT.toMillis())).update(
-					eq(PRINCIPAL), eq(MEETING.getId()),
+					eq(ORIGIN), eq(MEETING.getId()),
 					argThat(matcher::matches));
 		}
 
@@ -213,7 +214,7 @@ class MeetingWebSocketTest extends WebSocketTest {
 			final var matcher = new MeetingActionMatcher.UpdateDescription(
 					expected);
 			verify(meetingService, timeout(WAIT_TIMEOUT.toMillis())).update(
-					eq(PRINCIPAL), eq(MEETING.getId()),
+					eq(ORIGIN), eq(MEETING.getId()),
 					argThat(matcher::matches));
 		}
 

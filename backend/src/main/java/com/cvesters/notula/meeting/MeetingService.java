@@ -5,6 +5,7 @@ import java.util.Objects;
 
 import org.springframework.stereotype.Service;
 
+import com.cvesters.notula.common.domain.Origin;
 import com.cvesters.notula.common.domain.Principal;
 import com.cvesters.notula.common.exception.MissingEntityException;
 import com.cvesters.notula.meeting.bdo.MeetingAction;
@@ -40,38 +41,41 @@ public class MeetingService {
 				.findAllByOrganisationId(principal.organisationId());
 	}
 
-	public MeetingInfo create(final Principal principal,
+	public MeetingInfo create(final Origin origin,
 			final MeetingAction.Create meeting) {
-		Objects.requireNonNull(principal);
+		Objects.requireNonNull(origin);
 		Objects.requireNonNull(meeting);
 
-		final var meetingInfo = new MeetingInfo(principal.organisationId(),
-				meeting.getName());
+		final var meetingInfo = new MeetingInfo(
+				origin.principal().organisationId(), meeting.getName());
 
 		return meetingStorage.create(meetingInfo);
 	}
 
-	public MeetingInfo update(final Principal principal, final long id,
+	public MeetingInfo update(final Origin origin, final long id,
 			final MeetingAction.Update action) {
+		Objects.requireNonNull(origin);
 		Objects.requireNonNull(action);
 
-		final MeetingInfo meetingInfo = getById(principal, id);
+		final MeetingInfo meetingInfo = getById(origin.principal(), id);
 		action.apply(meetingInfo);
 		final MeetingInfo updated = meetingStorage.update(meetingInfo);
 
-		final var event = new MeetingEvent(id, action);
+		final var event = new MeetingEvent(id, action, origin);
 		meetingPublisher.publish(event);
 
 		return updated;
 	}
 
-	public void delete(final Principal principal, final long id) {
-		final MeetingInfo meetingInfo = getById(principal, id);
+	public void delete(final Origin origin, final long id) {
+		Objects.requireNonNull(origin);
+
+		final MeetingInfo meetingInfo = getById(origin.principal(), id);
 
 		meetingStorage.delete(meetingInfo);
 
 		final var action = new MeetingAction.Delete();
-		final var event = new MeetingEvent(id, action);
+		final var event = new MeetingEvent(id, action, origin);
 		meetingPublisher.publish(event);
 	}
 }

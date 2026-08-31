@@ -1,5 +1,4 @@
-import Session from "$lib/auth/Session";
-import type WebSocketClient from "$lib/common/WebSocketClient";
+import ActionWebSocketClient from "$lib/common/ActionWebSocketClient";
 
 import type {
 	BlockCreateAction,
@@ -23,11 +22,9 @@ export default class BlockWebSocketClient {
 	}
 
 	private static send(suffix: string, payload: unknown): void {
-		const client: WebSocketClient = Session.getWebSocketClient();
-
-		client.send(
+		ActionWebSocketClient.send(
 			`${BlockWebSocketClient.ENDPOINT}${suffix}`,
-			JSON.stringify(payload)
+			payload
 		);
 	}
 }

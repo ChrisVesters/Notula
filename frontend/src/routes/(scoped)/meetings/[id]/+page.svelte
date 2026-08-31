@@ -48,7 +48,11 @@
 	};
 
 	const onEvent = (event: MeetingMessage) => {
-		// TODO: filter out events caused by use. We should do this directly locally.
+		// Events caused by our own actions can be recognised with
+		// isOwnEvent(event.origin). They are not filtered out yet: creating,
+		// moving and deleting topics and blocks currently relies on the echo
+		// to update the view. Filtering can only be turned on once those are
+		// applied locally first.
 		// TODO: what if initial data is not yet loaded?
 		// TODO: keep in queue and apply once loaded.
 		// TODO: swich case?

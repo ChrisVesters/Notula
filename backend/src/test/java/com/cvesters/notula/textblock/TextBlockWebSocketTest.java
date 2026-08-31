@@ -24,7 +24,7 @@ import org.springframework.messaging.simp.stomp.ConnectionLostException;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 
 import com.cvesters.notula.block.TestBlock;
-import com.cvesters.notula.common.domain.Principal;
+import com.cvesters.notula.common.domain.Origin;
 import com.cvesters.notula.common.exception.MissingEntityException;
 import com.cvesters.notula.session.TestSession;
 import com.cvesters.notula.test.FrameHandler;
@@ -36,7 +36,8 @@ class TextBlockWebSocketTest extends WebSocketTest {
 	private static final String DESTINATION_PREFIX = "/app/text-blocks";
 
 	private static final TestSession SESSION = TestSession.EDUARDO_CHRISTIANSEN_SPORER;
-	private static final Principal PRINCIPAL = SESSION.principal();
+	private static final Origin ORIGIN = new Origin(SESSION.principal(),
+			CLIENT_ID);
 
 	private static final TestBlock BLOCK = TestBlock.SPORER_PROJECT_BLOCKERS_FIRST;
 	private static final TestTextBlock TEXT_BLOCK = TestTextBlock.ofBlock(BLOCK);
@@ -63,7 +64,7 @@ class TextBlockWebSocketTest extends WebSocketTest {
 			final var matcher = new TextBlockActionMatcher.UpdateContent(
 					expected);
 			verify(textBlockService, timeout(WAIT_TIMEOUT.toMillis())).update(
-					eq(PRINCIPAL), eq(BLOCK.getId()),
+					eq(ORIGIN), eq(BLOCK.getId()),
 					argThat(matcher::matches));
 		}
 

@@ -10,6 +10,7 @@ import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
 import java.util.Optional;
+import java.util.UUID;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
@@ -21,8 +22,11 @@ import com.cvesters.notula.block.bdo.BlockEvent;
 import com.cvesters.notula.block.bdo.BlockInfo;
 import com.cvesters.notula.block.dto.BlockEventDto;
 import com.cvesters.notula.block.dto.BlockMutationDto;
+import com.cvesters.notula.common.domain.Origin;
+import com.cvesters.notula.common.dto.OriginDto;
 import com.cvesters.notula.common.exception.MissingEntityException;
 import com.cvesters.notula.meeting.TestMeeting;
+import com.cvesters.notula.session.TestSession;
 import com.cvesters.notula.topic.TestTopic;
 import com.cvesters.notula.topic.TopicStorageGateway;
 import com.cvesters.notula.topic.bdo.TopicInfo;
@@ -30,6 +34,12 @@ import com.cvesters.notula.topic.bdo.TopicInfo;
 class BlockPublisherTest {
 
 	private static final String DESTINATION_PREFIX = "/topic/meetings";
+
+	private static final TestSession SESSION = TestSession.EDUARDO_CHRISTIANSEN_SPORER;
+	private static final UUID CLIENT_ID = UUID
+			.fromString("3f9c1a44-1d2e-4a51-8b0c-2c7e9b1d4a09");
+	private static final Origin ORIGIN = new Origin(SESSION.principal(),
+			CLIENT_ID);
 
 	private final SimpMessagingTemplate messagingTemplate = mock();
 	private final TopicStorageGateway topicStorage = mock();
@@ -67,13 +77,15 @@ class BlockPublisherTest {
 
 			final var action = new BlockAction.Create(TOPIC_ID, BLOCK.getType(),
 					BLOCK.getSequenceId());
-			final var event = new BlockEvent(block, action);
+			final var event = new BlockEvent(block, action, ORIGIN);
 
 			publisher.publish(event);
 
 			verify(messagingTemplate).convertAndSend(eq(DESTINATION),
 					argThat((BlockEventDto dto) -> {
 						assertThat(dto.getBlockId()).isEqualTo(BLOCK_ID);
+						assertThat(dto.getOrigin())
+								.isEqualTo(new OriginDto(ORIGIN));
 
 						assertThat(dto.getMutation())
 								.isInstanceOf(BlockMutationDto.Create.class);
@@ -96,13 +108,16 @@ class BlockPublisherTest {
 			when(topicStorage.find(TOPIC_ID)).thenReturn(Optional.of(topic));
 
 			final var action = new BlockAction.Delete();
-			final var event = new BlockEvent(block, action);
+			final var event = new BlockEvent(block, action, ORIGIN);
 
 			publisher.publish(event);
 
 			verify(messagingTemplate).convertAndSend(eq(DESTINATION),
 					argThat((BlockEventDto dto) -> {
 						assertThat(dto.getBlockId()).isEqualTo(BLOCK_ID);
+						assertThat(dto.getOrigin())
+								.isEqualTo(new OriginDto(ORIGIN));
+
 						assertThat(dto.getMutation())
 								.isInstanceOf(BlockMutationDto.Delete.class);
 						return true;
@@ -114,7 +129,7 @@ class BlockPublisherTest {
 			when(topicStorage.find(TOPIC_ID)).thenReturn(Optional.empty());
 
 			final var action = new BlockAction.Delete();
-			final var event = new BlockEvent(block, action);
+			final var event = new BlockEvent(block, action, ORIGIN);
 
 			assertThatThrownBy(() -> publisher.publish(event))
 					.isInstanceOf(MissingEntityException.class);

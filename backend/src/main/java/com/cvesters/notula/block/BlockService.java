@@ -10,6 +10,7 @@ import org.springframework.transaction.annotation.Transactional;
 import com.cvesters.notula.block.bdo.BlockAction;
 import com.cvesters.notula.block.bdo.BlockEvent;
 import com.cvesters.notula.block.bdo.BlockInfo;
+import com.cvesters.notula.common.domain.Origin;
 import com.cvesters.notula.common.domain.Principal;
 import com.cvesters.notula.common.exception.MissingEntityException;
 import com.cvesters.notula.topic.TopicService;
@@ -42,12 +43,12 @@ public class BlockService {
 	}
 
 	@Transactional
-	public BlockInfo create(final Principal principal,
+	public BlockInfo create(final Origin origin,
 			final BlockAction.Create action) {
-		Objects.requireNonNull(principal);
+		Objects.requireNonNull(origin);
 		Objects.requireNonNull(action);
 
-		final TopicInfo topic = topicService.getById(principal,
+		final TopicInfo topic = topicService.getById(origin.principal(),
 				action.getTopicId());
 
 		final List<BlockInfo> existingBlocks = blockStorage
@@ -66,13 +67,13 @@ public class BlockService {
 			final var move = new BlockAction.Move(updatedSequenceId);
 			move.apply(b);
 			final BlockInfo updatedBlock = blockStorage.update(b);
-			events.add(new BlockEvent(updatedBlock, move));
+			events.add(new BlockEvent(updatedBlock, move, origin));
 		}
 
 		final var block = new BlockInfo(topic.getOrganisationId(),
 				topic.getId(), action.getType(), action.getSequenceId());
 		final BlockInfo created = blockStorage.create(block);
-		events.add(new BlockEvent(created, action));
+		events.add(new BlockEvent(created, action, origin));
 
 		events.forEach(blockPublisher::publish);
 
@@ -80,12 +81,12 @@ public class BlockService {
 	}
 
 	@Transactional
-	public BlockInfo move(final Principal principal, final long blockId,
+	public BlockInfo move(final Origin origin, final long blockId,
 			final BlockAction.Move action) {
-		Objects.requireNonNull(principal);
+		Objects.requireNonNull(origin);
 		Objects.requireNonNull(action);
 
-		final BlockInfo block = getById(principal, blockId);
+		final BlockInfo block = getById(origin.principal(), blockId);
 		final int from = block.getSequenceId();
 		final int to = action.getSequenceId();
 		final int direction = Integer.signum(to - from);
@@ -110,14 +111,14 @@ public class BlockService {
 
 		action.apply(block);
 		final BlockInfo updated = blockStorage.update(block);
-		events.add(new BlockEvent(updated, action));
+		events.add(new BlockEvent(updated, action, origin));
 
 		for (final BlockInfo b : toUpdateBlocks) {
 			final int updatedSequenceId = b.getSequenceId() - direction;
 			final var move = new BlockAction.Move(updatedSequenceId);
 			move.apply(b);
 			final BlockInfo updatedBlock = blockStorage.update(b);
-			events.add(new BlockEvent(updatedBlock, move));
+			events.add(new BlockEvent(updatedBlock, move, origin));
 		}
 
 		events.forEach(blockPublisher::publish);
@@ -126,14 +127,14 @@ public class BlockService {
 	}
 
 	@Transactional
-	public void delete(final Principal principal, final long blockId) {
-		Objects.requireNonNull(principal);
+	public void delete(final Origin origin, final long blockId) {
+		Objects.requireNonNull(origin);
 
-		final BlockInfo blockInfo = getById(principal, blockId);
+		final BlockInfo blockInfo = getById(origin.principal(), blockId);
 		blockStorage.delete(blockInfo);
 
 		final var events = new ArrayList<BlockEvent>();
-		events.add(new BlockEvent(blockInfo, new BlockAction.Delete()));
+		events.add(new BlockEvent(blockInfo, new BlockAction.Delete(), origin));
 
 		final List<BlockInfo> existingBlocks = blockStorage
 				.findAllByTopicId(blockInfo.getTopicId());
@@ -146,7 +147,7 @@ public class BlockService {
 			final var move = new BlockAction.Move(updatedSequenceId);
 			move.apply(b);
 			final BlockInfo updatedBlock = blockStorage.update(b);
-			events.add(new BlockEvent(updatedBlock, move));
+			events.add(new BlockEvent(updatedBlock, move, origin));
 		}
 
 		events.forEach(blockPublisher::publish);

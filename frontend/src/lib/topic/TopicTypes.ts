@@ -1,3 +1,5 @@
+import type { EventOrigin } from "$lib/common/EventTypes";
+
 export type TopicCreateAction = {
 	meetingId: number;
 	sequenceId: number;
@@ -44,6 +46,7 @@ export type TopicEvent = {
 	target: "TOPIC";
 	topicId: number;
 	mutation: TopicMutation;
+	origin: EventOrigin;
 };
 
 export type TopicMutation =
