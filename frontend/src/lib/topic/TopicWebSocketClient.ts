@@ -1,5 +1,4 @@
-import Session from "$lib/auth/Session";
-import type WebSocketClient from "$lib/common/WebSocketClient";
+import ActionWebSocketClient from "$lib/common/ActionWebSocketClient";
 
 import type {
 	TopicCreateAction,
@@ -28,11 +27,9 @@ export default class TopicWebSocketClient {
 	}
 
 	private static send(suffix: string, payload: unknown): void {
-		const client: WebSocketClient = Session.getWebSocketClient();
-
-		client.send(
+		ActionWebSocketClient.send(
 			`${TopicWebSocketClient.ENDPOINT}${suffix}`,
-			JSON.stringify(payload)
+			payload
 		);
 	}
 }

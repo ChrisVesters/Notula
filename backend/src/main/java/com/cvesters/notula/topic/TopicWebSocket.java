@@ -6,13 +6,12 @@ import org.springframework.messaging.handler.annotation.MessageMapping;
 import org.springframework.messaging.handler.annotation.Payload;
 import org.springframework.stereotype.Controller;
 
-import com.cvesters.notula.common.controller.BaseController;
-import com.cvesters.notula.common.domain.Principal;
+import com.cvesters.notula.common.domain.Origin;
 import com.cvesters.notula.topic.bdo.TopicAction;
 import com.cvesters.notula.topic.dto.TopicActionDto;
 
 @Controller
-public class TopicWebSocket extends BaseController {
+public class TopicWebSocket {
 
 	private static final String ENDPOINT = "/topics";
 
@@ -23,36 +22,32 @@ public class TopicWebSocket extends BaseController {
 	}
 
 	@MessageMapping(ENDPOINT + "/create")
-	public void create(@Valid @Payload final TopicActionDto.Create dto) {
-		final Principal principal = getPrincipal();
-
+	public void create(final Origin origin,
+			@Valid @Payload final TopicActionDto.Create dto) {
 		final TopicAction.Create action = dto.toBdo();
-		topicService.create(principal, action);
+		topicService.create(origin, action);
 	}
 
 	@MessageMapping(ENDPOINT + "/move")
-	public void move(@Valid @Payload final TopicActionDto.Move dto) {
-		final Principal principal = getPrincipal();
-
+	public void move(final Origin origin,
+			@Valid @Payload final TopicActionDto.Move dto) {
 		final long topicId = dto.getTopicId();
 		final TopicAction.Move action = dto.toBdo();
-		topicService.move(principal, topicId, action);
+		topicService.move(origin, topicId, action);
 	}
 
 	@MessageMapping(ENDPOINT + "/update")
-	public void update(@Valid @Payload final TopicActionDto.Update dto) {
-		final Principal principal = getPrincipal();
-
+	public void update(final Origin origin,
+			@Valid @Payload final TopicActionDto.Update dto) {
 		final long topicId = dto.getTopicId();
 		final TopicAction.Update action = dto.toBdo();
-		topicService.update(principal, topicId, action);
+		topicService.update(origin, topicId, action);
 	}
 
 	@MessageMapping(ENDPOINT + "/delete")
-	public void delete(@Valid @Payload final TopicActionDto.Delete dto) {
-		final Principal principal = getPrincipal();
-
+	public void delete(final Origin origin,
+			@Valid @Payload final TopicActionDto.Delete dto) {
 		final long topicId = dto.getTopicId();
-		topicService.delete(principal, topicId);
+		topicService.delete(origin, topicId);
 	}
 }

@@ -9,12 +9,14 @@ import static org.mockito.Mockito.when;
 
 import java.util.List;
 import java.util.Optional;
+import java.util.UUID;
 
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.MethodSource;
 
+import com.cvesters.notula.common.domain.Origin;
 import com.cvesters.notula.common.domain.Principal;
 import com.cvesters.notula.common.exception.MissingEntityException;
 import com.cvesters.notula.meeting.bdo.MeetingAction;
@@ -23,6 +25,9 @@ import com.cvesters.notula.organisation.TestOrganisation;
 import com.cvesters.notula.session.TestSession;
 
 class MeetingServiceTest {
+
+	private static final UUID CLIENT_ID = UUID
+			.fromString("3f9c1a44-1d2e-4a51-8b0c-2c7e9b1d4a0f");
 
 	private final MeetingStorageGateway meetingStorageGateway = mock();
 	private final MeetingPublisher meetingPublisher = mock();
@@ -138,6 +143,8 @@ class MeetingServiceTest {
 	class Create {
 
 		private static final TestSession SESSION = TestSession.EDUARDO_CHRISTIANSEN_SPORER;
+		private static final Origin ORIGIN = new Origin(SESSION.principal(),
+				CLIENT_ID);
 		private static final TestMeeting MEETING = TestMeeting.SPORER_PROJECT;
 
 		@Test
@@ -153,27 +160,24 @@ class MeetingServiceTest {
 			}))).thenReturn(created);
 
 			final var create = new MeetingAction.Create(MEETING.getName());
-			final MeetingInfo result = meetingService
-					.create(SESSION.principal(), create);
+			final MeetingInfo result = meetingService.create(ORIGIN, create);
 
 			assertThat(result).isEqualTo(created);
 		}
 
 		@Test
 		void actionNull() {
-			final Principal principal = SESSION.principal();
 			final MeetingAction.Create meeting = null;
 
-			assertThatThrownBy(() -> meetingService.create(principal, meeting))
+			assertThatThrownBy(() -> meetingService.create(ORIGIN, meeting))
 					.isInstanceOf(NullPointerException.class);
 		}
 
 		@Test
-		void principalNull() {
-			final Principal principal = null;
+		void originNull() {
 			final var create = new MeetingAction.Create(MEETING.getName());
 
-			assertThatThrownBy(() -> meetingService.create(principal, create))
+			assertThatThrownBy(() -> meetingService.create(null, create))
 					.isInstanceOf(NullPointerException.class);
 		}
 	}
@@ -182,11 +186,12 @@ class MeetingServiceTest {
 	class Update {
 
 		private static final TestSession SESSION = TestSession.EDUARDO_CHRISTIANSEN_SPORER;
+		private static final Origin ORIGIN = new Origin(SESSION.principal(),
+				CLIENT_ID);
 		private static final TestMeeting MEETING = TestMeeting.SPORER_PROJECT;
 
 		@Test
 		void success() {
-			final Principal principal = SESSION.principal();
 			final long meetingId = MEETING.getId();
 			final MeetingInfo meetingInfo = MEETING.info();
 			final MeetingAction.Update action = new MeetingAction.UpdateName(8,
@@ -204,21 +209,21 @@ class MeetingServiceTest {
 				return true;
 			}))).thenReturn(updated);
 
-			final MeetingInfo result = meetingService
-					.update(SESSION.principal(), meetingId, action);
+			final MeetingInfo result = meetingService.update(ORIGIN, meetingId,
+					action);
 
 			assertThat(result).isEqualTo(updated);
 
 			verify(meetingPublisher).publish(argThat(event -> {
 				assertThat(event.meetingId()).isEqualTo(MEETING.getId());
 				assertThat(event.action()).isEqualTo(action);
+				assertThat(event.origin()).isEqualTo(ORIGIN);
 				return true;
 			}));
 		}
 
 		@Test
 		void meetingNotFound() {
-			final Principal principal = SESSION.principal();
 			final long meetingId = MEETING.getId();
 			final MeetingAction.Update action = new MeetingAction.UpdateName(2,
 					4, "27");
@@ -227,12 +232,12 @@ class MeetingServiceTest {
 					.thenReturn(Optional.empty());
 
 			assertThatThrownBy(
-					() -> meetingService.update(principal, meetingId, action))
+					() -> meetingService.update(ORIGIN, meetingId, action))
 							.isInstanceOf(MissingEntityException.class);
 		}
 
 		@Test
-		void principalNull() {
+		void originNull() {
 			final long meetingId = MEETING.getId();
 			final MeetingAction.Update action = new MeetingAction.UpdateName(2,
 					4, "27");
@@ -244,10 +249,9 @@ class MeetingServiceTest {
 
 		@Test
 		void actionNull() {
-			final Principal principal = SESSION.principal();
 			final long meetingId = MEETING.getId();
 			assertThatThrownBy(
-					() -> meetingService.update(principal, meetingId, null))
+					() -> meetingService.update(ORIGIN, meetingId, null))
 							.isInstanceOf(NullPointerException.class);
 		}
 	}
@@ -256,43 +260,44 @@ class MeetingServiceTest {
 	class Delete {
 
 		private static final TestSession SESSION = TestSession.EDUARDO_CHRISTIANSEN_SPORER;
+		private static final Origin ORIGIN = new Origin(SESSION.principal(),
+				CLIENT_ID);
 		private static final TestMeeting MEETING = TestMeeting.SPORER_PROJECT;
 
 		@Test
 		void success() {
-			final Principal principal = SESSION.principal();
 			final long meetingId = MEETING.getId();
 			final MeetingInfo meetingInfo = MEETING.info();
 
 			when(meetingStorageGateway.find(meetingId))
 					.thenReturn(Optional.of(meetingInfo));
 
-			meetingService.delete(SESSION.principal(), meetingId);
+			meetingService.delete(ORIGIN, meetingId);
 
 			verify(meetingStorageGateway).delete(meetingInfo);
 
 			verify(meetingPublisher).publish(argThat(event -> {
 				assertThat(event.meetingId()).isEqualTo(MEETING.getId());
 				assertThat(event.action()).isInstanceOf(MeetingAction.Delete.class);
+				assertThat(event.origin()).isEqualTo(ORIGIN);
 				return true;
 			}));
 		}
 
 		@Test
 		void meetingNotFound() {
-			final Principal principal = SESSION.principal();
 			final long meetingId = MEETING.getId();
 
 			when(meetingStorageGateway.find(meetingId))
 					.thenReturn(Optional.empty());
 
 			assertThatThrownBy(
-					() -> meetingService.delete(principal, meetingId))
+					() -> meetingService.delete(ORIGIN, meetingId))
 							.isInstanceOf(MissingEntityException.class);
 		}
 
 		@Test
-		void principalNull() {
+		void originNull() {
 			assertThatThrownBy(() -> meetingService.delete(null, 1))
 					.isInstanceOf(NullPointerException.class);
 		}

@@ -1,9 +1,12 @@
 package com.cvesters.notula.config;
 
+import java.util.List;
+
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.core.Ordered;
 import org.springframework.core.annotation.Order;
+import org.springframework.messaging.handler.invocation.HandlerMethodArgumentResolver;
 import org.springframework.messaging.simp.config.ChannelRegistration;
 import org.springframework.messaging.simp.config.MessageBrokerRegistry;
 import org.springframework.scheduling.TaskScheduler;
@@ -18,13 +21,16 @@ public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
 
 	private final TaskScheduler scheduler;
 	private final WebSocketChannelInterceptor channelInterceptor;
+	private final OriginArgumentResolver originArgumentResolver;
 	private final String frontendUrl;
 
 	public WebSocketConfig(final TaskScheduler webSocketTaskScheduler,
 			final WebSocketChannelInterceptor interceptor,
+			final OriginArgumentResolver originArgumentResolver,
 			@Value("${frontend.url}") final String frontendUrl) {
 		this.scheduler = webSocketTaskScheduler;
 		this.channelInterceptor = interceptor;
+		this.originArgumentResolver = originArgumentResolver;
 		this.frontendUrl = frontendUrl;
 	}
 
@@ -46,5 +52,11 @@ public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
 	public void configureClientInboundChannel(
 			final ChannelRegistration registration) {
 		registration.interceptors(channelInterceptor);
+	}
+
+	@Override
+	public void addArgumentResolvers(
+			final List<HandlerMethodArgumentResolver> argumentResolvers) {
+		argumentResolvers.add(originArgumentResolver);
 	}
 }

@@ -25,7 +25,7 @@ import org.springframework.test.context.bean.override.mockito.MockitoBean;
 
 import com.cvesters.notula.block.bdo.BlockAction;
 import com.cvesters.notula.block.bdo.BlockType;
-import com.cvesters.notula.common.domain.Principal;
+import com.cvesters.notula.common.domain.Origin;
 import com.cvesters.notula.common.exception.MissingEntityException;
 import com.cvesters.notula.session.TestSession;
 import com.cvesters.notula.test.FrameHandler;
@@ -37,7 +37,8 @@ class BlockWebSocketTest extends WebSocketTest {
 	private static final String DESTINATION_PREFIX = "/app/blocks";
 
 	private static final TestSession SESSION = TestSession.EDUARDO_CHRISTIANSEN_SPORER;
-	private static final Principal PRINCIPAL = SESSION.principal();
+	private static final Origin ORIGIN = new Origin(SESSION.principal(),
+			CLIENT_ID);
 
 	private static final TestTopic TOPIC = TestTopic.SPORER_PROJECT_BLOCKERS;
 
@@ -60,7 +61,7 @@ class BlockWebSocketTest extends WebSocketTest {
 					BlockType.TEXT, 0);
 			final var matcher = new BlockActionMatcher.Create(action);
 			verify(blockService, timeout(WAIT_TIMEOUT.toMillis()))
-					.create(eq(PRINCIPAL), argThat(matcher::matches));
+					.create(eq(ORIGIN), argThat(matcher::matches));
 		}
 
 		@Test
@@ -180,7 +181,7 @@ class BlockWebSocketTest extends WebSocketTest {
 			final var action = new BlockAction.Move(2);
 			final var matcher = new BlockActionMatcher.Move(action);
 			verify(blockService, timeout(WAIT_TIMEOUT.toMillis())).move(
-					eq(PRINCIPAL), eq(BLOCK.getId()),
+					eq(ORIGIN), eq(BLOCK.getId()),
 					argThat(matcher::matches));
 		}
 
@@ -277,7 +278,7 @@ class BlockWebSocketTest extends WebSocketTest {
 			send(ENDPOINT, payload);
 
 			verify(blockService, timeout(WAIT_TIMEOUT.toMillis()))
-					.delete(PRINCIPAL, BLOCK.getId());
+					.delete(ORIGIN, BLOCK.getId());
 		}
 
 		@Test

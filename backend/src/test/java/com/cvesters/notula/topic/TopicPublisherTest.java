@@ -8,11 +8,16 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import java.util.UUID;
+
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
 
+import com.cvesters.notula.common.domain.Origin;
+import com.cvesters.notula.common.dto.OriginDto;
+import com.cvesters.notula.session.TestSession;
 import com.cvesters.notula.topic.bdo.TopicAction;
 import com.cvesters.notula.topic.bdo.TopicEvent;
 import com.cvesters.notula.topic.bdo.TopicInfo;
@@ -22,6 +27,12 @@ import com.cvesters.notula.topic.dto.TopicMutationDto;
 class TopicPublisherTest {
 
 	private static final String DESTINATION_PREFIX = "/topic/meetings";
+
+	private static final TestSession SESSION = TestSession.EDUARDO_CHRISTIANSEN_SPORER;
+	private static final UUID CLIENT_ID = UUID
+			.fromString("3f9c1a44-1d2e-4a51-8b0c-2c7e9b1d4a0a");
+	private static final Origin ORIGIN = new Origin(SESSION.principal(),
+			CLIENT_ID);
 
 	private final SimpMessagingTemplate messagingTemplate = mock();
 	private final TopicPublisher publisher = new TopicPublisher(
@@ -47,13 +58,15 @@ class TopicPublisherTest {
 		@Test
 		void create() {
 			final var action = new TopicAction.Create(MEETING_ID, 3, "New");
-			final var event = new TopicEvent(topic, action);
+			final var event = new TopicEvent(topic, action, ORIGIN);
 
 			publisher.publish(event);
 
 			verify(messagingTemplate).convertAndSend(eq(DESTINATION),
 					argThat((TopicEventDto dto) -> {
 						assertThat(dto.getTopicId()).isEqualTo(TOPIC_ID);
+						assertThat(dto.getOrigin())
+								.isEqualTo(new OriginDto(ORIGIN));
 						assertThat(dto.getMutation())
 								.isInstanceOf(TopicMutationDto.Create.class);
 
@@ -68,13 +81,15 @@ class TopicPublisherTest {
 		@Test
 		void updateName() {
 			final var action = new TopicAction.UpdateName(4, 12, "Updated");
-			final var event = new TopicEvent(topic, action);
+			final var event = new TopicEvent(topic, action, ORIGIN);
 
 			publisher.publish(event);
 
 			verify(messagingTemplate).convertAndSend(eq(DESTINATION),
 					argThat((TopicEventDto dto) -> {
 						assertThat(dto.getTopicId()).isEqualTo(TOPIC_ID);
+						assertThat(dto.getOrigin())
+								.isEqualTo(new OriginDto(ORIGIN));
 						assertThat(dto.getMutation()).isInstanceOf(
 								TopicMutationDto.UpdateName.class);
 
@@ -91,13 +106,15 @@ class TopicPublisherTest {
 		void updateDescription() {
 			final var action = new TopicAction.UpdateDescription(4, 12,
 					"Updated");
-			final var event = new TopicEvent(topic, action);
+			final var event = new TopicEvent(topic, action, ORIGIN);
 
 			publisher.publish(event);
 
 			verify(messagingTemplate).convertAndSend(eq(DESTINATION),
 					argThat((TopicEventDto dto) -> {
 						assertThat(dto.getTopicId()).isEqualTo(TOPIC_ID);
+						assertThat(dto.getOrigin())
+								.isEqualTo(new OriginDto(ORIGIN));
 						assertThat(dto.getMutation()).isInstanceOf(
 								TopicMutationDto.UpdateDescription.class);
 
@@ -113,13 +130,15 @@ class TopicPublisherTest {
 		@Test
 		void delete() {
 			final var action = new TopicAction.Delete();
-			final var event = new TopicEvent(topic, action);
+			final var event = new TopicEvent(topic, action, ORIGIN);
 
 			publisher.publish(event);
 
 			verify(messagingTemplate).convertAndSend(eq(DESTINATION),
 					argThat((TopicEventDto dto) -> {
 						assertThat(dto.getTopicId()).isEqualTo(TOPIC_ID);
+						assertThat(dto.getOrigin())
+								.isEqualTo(new OriginDto(ORIGIN));
 						assertThat(dto.getMutation())
 								.isInstanceOf(TopicMutationDto.Delete.class);
 						return true;

@@ -28,6 +28,7 @@ import org.springframework.http.MediaType;
 import org.springframework.security.test.context.support.WithAnonymousUser;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 
+import com.cvesters.notula.common.domain.Origin;
 import com.cvesters.notula.common.domain.Principal;
 import com.cvesters.notula.meeting.bdo.MeetingAction;
 import com.cvesters.notula.meeting.bdo.MeetingInfo;
@@ -100,12 +101,12 @@ class MeetingControllerTest extends ControllerTest {
 
 		@Test
 		void success() throws Exception {
-			final Principal principal = SESSION.principal();
+			final var origin = new Origin(SESSION.principal());
 			final MeetingInfo info = MEETING.info();
 
 			final var expected = new MeetingAction.Create(MEETING.getName());
 			final var matcher = new MeetingActionMatcher.Create(expected);
-			when(meetingService.create(eq(principal),
+			when(meetingService.create(eq(origin),
 					argThat(matcher::matches))).thenReturn(info);
 
 			final String body = getBody(MEETING);
@@ -168,13 +169,13 @@ class MeetingControllerTest extends ControllerTest {
 
 		@Test
 		void success() throws Exception {
-			final Principal principal = SESSION.principal();
+			final var origin = new Origin(SESSION.principal());
 
 			final var builder = delete(ENDPOINT + "/" + MEETING.getId());
 
 			mockMvc.perform(builder).andExpect(status().isNoContent());
 
-			verify(meetingService).delete(principal, MEETING.getId());
+			verify(meetingService).delete(origin, MEETING.getId());
 		}
 
 		@Test

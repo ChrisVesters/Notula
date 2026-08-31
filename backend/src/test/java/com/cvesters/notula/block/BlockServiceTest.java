@@ -16,6 +16,7 @@ import static org.mockito.Mockito.when;
 import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
+import java.util.UUID;
 
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -25,6 +26,7 @@ import org.mockito.InOrder;
 import com.cvesters.notula.block.bdo.BlockAction;
 import com.cvesters.notula.block.bdo.BlockEvent;
 import com.cvesters.notula.block.bdo.BlockInfo;
+import com.cvesters.notula.common.domain.Origin;
 import com.cvesters.notula.common.domain.Principal;
 import com.cvesters.notula.common.exception.MissingEntityException;
 import com.cvesters.notula.meeting.TestMeeting;
@@ -35,8 +37,12 @@ import com.cvesters.notula.topic.TopicService;
 
 class BlockServiceTest {
 
+	private static final UUID CLIENT_ID = UUID
+			.fromString("3f9c1a44-1d2e-4a51-8b0c-2c7e9b1d4a0d");
+
 	private static final TestSession SESSION = TestSession.EDUARDO_CHRISTIANSEN_SPORER;
 	private static final Principal PRINCIPAL = SESSION.principal();
+	private static final Origin ORIGIN = new Origin(PRINCIPAL, CLIENT_ID);
 
 	private final TopicService topicService = mock();
 
@@ -135,7 +141,7 @@ class BlockServiceTest {
 			final var action = new BlockAction.Create(TOPIC.getId(),
 					BLOCK.getType(), BLOCK.getSequenceId());
 
-			final BlockInfo result = blockService.create(PRINCIPAL, action);
+			final BlockInfo result = blockService.create(ORIGIN, action);
 
 			assertThat(result).isEqualTo(created);
 
@@ -143,6 +149,7 @@ class BlockServiceTest {
 					BLOCK.getType(), BLOCK.getSequenceId());
 			final var matcher = new BlockActionMatcher.Create(expectedAction);
 			verify(blockPublisher).publish(argThat(event -> {
+				assertThat(event.origin()).isEqualTo(ORIGIN);
 				assertThat(event.block()).isEqualTo(created);
 				assertThat(event.action()).is(matcher.equal());
 				return true;
@@ -186,7 +193,7 @@ class BlockServiceTest {
 			final var action = new BlockAction.Create(TOPIC.getId(),
 					BLOCK.getType(), sequenceId);
 
-			final BlockInfo result = blockService.create(PRINCIPAL, action);
+			final BlockInfo result = blockService.create(ORIGIN, action);
 
 			assertThat(result).isEqualTo(created);
 
@@ -194,6 +201,7 @@ class BlockServiceTest {
 					BLOCK.getType(), sequenceId);
 			final var matcher = new BlockActionMatcher.Create(expectedAction);
 			verify(blockPublisher).publish(argThat(event -> {
+				assertThat(event.origin()).isEqualTo(ORIGIN);
 				assertThat(event.block()).isEqualTo(created);
 				assertThat(event.action()).is(matcher.equal());
 				return true;
@@ -256,7 +264,7 @@ class BlockServiceTest {
 			final var action = new BlockAction.Create(TOPIC.getId(),
 					BLOCK.getType(), sequenceId);
 
-			final BlockInfo result = blockService.create(PRINCIPAL, action);
+			final BlockInfo result = blockService.create(ORIGIN, action);
 
 			assertThat(result).isEqualTo(created);
 
@@ -267,6 +275,9 @@ class BlockServiceTest {
 					.publish(events.capture());
 
 			final List<BlockEvent> blockEvents = events.getAllValues();
+
+			assertThat(blockEvents)
+					.allSatisfy(e -> assertThat(e.origin()).isEqualTo(ORIGIN));
 
 			for (int i = 0; i < blocks.size(); i++) {
 				final var expected = new BlockAction.Move(
@@ -305,7 +316,7 @@ class BlockServiceTest {
 			final var action = new BlockAction.Create(TOPIC.getId(),
 					BLOCK.getType(), 1);
 
-			assertThatThrownBy(() -> blockService.create(PRINCIPAL, action))
+			assertThatThrownBy(() -> blockService.create(ORIGIN, action))
 					.isInstanceOf(IllegalArgumentException.class);
 
 			verifyNoInteractions(blockPublisher);
@@ -314,7 +325,7 @@ class BlockServiceTest {
 		}
 
 		@Test
-		void principalNull() {
+		void originNull() {
 
 			final var block = new BlockAction.Create(TOPIC.getId(),
 					BLOCK.getType(), BLOCK.getSequenceId());
@@ -326,7 +337,7 @@ class BlockServiceTest {
 		@Test
 		void actionNull() {
 
-			assertThatThrownBy(() -> blockService.create(PRINCIPAL, null))
+			assertThatThrownBy(() -> blockService.create(ORIGIN, null))
 					.isInstanceOf(NullPointerException.class);
 		}
 
@@ -390,7 +401,7 @@ class BlockServiceTest {
 			});
 
 			final var action = new BlockAction.Move(2);
-			final BlockInfo result = blockService.move(PRINCIPAL, block.getId(),
+			final BlockInfo result = blockService.move(ORIGIN, block.getId(),
 					action);
 
 			assertThat(result).isEqualTo(block);
@@ -405,7 +416,10 @@ class BlockServiceTest {
 					.publish(events.capture());
 
 			final List<BlockEvent> blockEvents = events.getAllValues();
+
 			assertThat(blockEvents).hasSameSizeAs(moved)
+					.allSatisfy(event -> assertThat(event.origin())
+							.isEqualTo(ORIGIN))
 					.satisfiesExactlyInAnyOrder(event -> {
 						assertThat(event.block()).isEqualTo(updatedBlock);
 						final var expected = new BlockAction.Move(2);
@@ -480,7 +494,7 @@ class BlockServiceTest {
 			});
 
 			final var action = new BlockAction.Move(0);
-			final BlockInfo result = blockService.move(PRINCIPAL, block.getId(),
+			final BlockInfo result = blockService.move(ORIGIN, block.getId(),
 					action);
 
 			assertThat(result).isEqualTo(block);
@@ -493,7 +507,10 @@ class BlockServiceTest {
 					.publish(events.capture());
 
 			final List<BlockEvent> blockEvents = events.getAllValues();
+
 			assertThat(blockEvents).hasSameSizeAs(moved)
+					.allSatisfy(event -> assertThat(event.origin())
+							.isEqualTo(ORIGIN))
 					.satisfiesExactlyInAnyOrder(event -> {
 						assertThat(event.block()).isEqualTo(updatedBlock);
 						final var expected = new BlockAction.Move(0);
@@ -557,7 +574,7 @@ class BlockServiceTest {
 			});
 
 			final var action = new BlockAction.Move(2);
-			final BlockInfo result = blockService.move(PRINCIPAL, block.getId(),
+			final BlockInfo result = blockService.move(ORIGIN, block.getId(),
 					action);
 
 			assertThat(result).isEqualTo(block);
@@ -570,7 +587,10 @@ class BlockServiceTest {
 					.publish(events.capture());
 
 			final List<BlockEvent> blockEvents = events.getAllValues();
+
 			assertThat(blockEvents).hasSameSizeAs(moved)
+					.allSatisfy(event -> assertThat(event.origin())
+							.isEqualTo(ORIGIN))
 					.satisfiesExactlyInAnyOrder(event -> {
 						assertThat(event.block()).isEqualTo(updatedBlock);
 						final var expected = new BlockAction.Move(2);
@@ -595,7 +615,7 @@ class BlockServiceTest {
 					.thenReturn(Optional.of(block));
 
 			final var action = new BlockAction.Move(block.getSequenceId());
-			blockService.move(PRINCIPAL, blockId, action);
+			blockService.move(ORIGIN, blockId, action);
 
 			verifyNoInteractions(blockPublisher);
 			verify(blockStorageGateway, never()).update(any());
@@ -619,9 +639,8 @@ class BlockServiceTest {
 
 			final var action = new BlockAction.Move(existingBlocks.size());
 
-			assertThatThrownBy(
-					() -> blockService.move(PRINCIPAL, blockId, action))
-							.isInstanceOf(IllegalArgumentException.class);
+			assertThatThrownBy(() -> blockService.move(ORIGIN, blockId, action))
+					.isInstanceOf(IllegalArgumentException.class);
 
 			verifyNoInteractions(blockPublisher);
 			verify(blockStorageGateway, never()).update(any());
@@ -636,9 +655,8 @@ class BlockServiceTest {
 
 			final var action = new BlockAction.Move(1);
 
-			assertThatThrownBy(
-					() -> blockService.move(PRINCIPAL, blockId, action))
-							.isInstanceOf(MissingEntityException.class);
+			assertThatThrownBy(() -> blockService.move(ORIGIN, blockId, action))
+					.isInstanceOf(MissingEntityException.class);
 
 			verifyNoInteractions(blockPublisher);
 			verify(blockStorageGateway, never()).update(any());
@@ -646,24 +664,23 @@ class BlockServiceTest {
 
 		@Test
 		void otherOrganisation() {
-			final Principal principal = TestSession.ALISON_DACH_GLOVER
-					.principal();
+			final var origin = new Origin(
+					TestSession.ALISON_DACH_GLOVER.principal());
 
 			final BlockInfo block = TestBlock.SPORER_PROJECT_BLOCKERS_FIRST
 					.info();
 			final long blockId = block.getId();
 			final var action = new BlockAction.Move(1);
 
-			assertThatThrownBy(
-					() -> blockService.move(principal, blockId, action))
-							.isInstanceOf(MissingEntityException.class);
+			assertThatThrownBy(() -> blockService.move(origin, blockId, action))
+					.isInstanceOf(MissingEntityException.class);
 
 			verifyNoInteractions(blockPublisher);
 			verify(blockStorageGateway, never()).update(any());
 		}
 
 		@Test
-		void principalNull() {
+		void originNull() {
 			final long blockId = TestBlock.SPORER_PROJECT_BLOCKERS_FIRST
 					.getId();
 			final var action = new BlockAction.Move(1);
@@ -677,9 +694,8 @@ class BlockServiceTest {
 			final long blockId = TestBlock.SPORER_PROJECT_BLOCKERS_FIRST
 					.getId();
 
-			assertThatThrownBy(
-					() -> blockService.move(PRINCIPAL, blockId, null))
-							.isInstanceOf(NullPointerException.class);
+			assertThatThrownBy(() -> blockService.move(ORIGIN, blockId, null))
+					.isInstanceOf(NullPointerException.class);
 		}
 	}
 
@@ -687,12 +703,13 @@ class BlockServiceTest {
 	class Delete {
 
 		private static final TestSession SESSION = TestSession.EDUARDO_CHRISTIANSEN_SPORER;
+		private static final Origin ORIGIN = new Origin(SESSION.principal(),
+				CLIENT_ID);
 		private static final TestBlock BLOCK = TestBlock.SPORER_PROJECT_BLOCKERS_FIRST;
 		private static final TestTopic TOPIC = BLOCK.getTopic();
 
 		@Test
 		void onlyBlock() {
-			final Principal principal = SESSION.principal();
 			final long blockId = BLOCK.getId();
 			final long topicId = TOPIC.getId();
 
@@ -703,10 +720,11 @@ class BlockServiceTest {
 			when(blockStorageGateway.findAllByTopicId(topicId))
 					.thenReturn(List.of(blockInfo));
 
-			blockService.delete(principal, blockId);
+			blockService.delete(ORIGIN, blockId);
 
 			verify(blockStorageGateway).delete(blockInfo);
 			verify(blockPublisher).publish(argThat(event -> {
+				assertThat(event.origin()).isEqualTo(ORIGIN);
 				assertThat(event.block()).isEqualTo(blockInfo);
 				assertThat(event.action())
 						.isInstanceOf(BlockAction.Delete.class);
@@ -722,7 +740,6 @@ class BlockServiceTest {
 			final List<TestBlock> blocks = TestBlock.ofTopic(topic);
 			final TestBlock deleted = blocks.getFirst();
 
-			final Principal principal = SESSION.principal();
 			final long blockId = deleted.getId();
 			final long topicId = topic.getId();
 
@@ -760,7 +777,7 @@ class BlockServiceTest {
 				throw new AssertionError("Unexpected update: " + update);
 			});
 
-			blockService.delete(principal, blockId);
+			blockService.delete(ORIGIN, blockId);
 
 			final ArgumentCaptor<BlockEvent> events = ArgumentCaptor
 					.forClass(BlockEvent.class);
@@ -769,6 +786,9 @@ class BlockServiceTest {
 					.publish(events.capture());
 
 			final List<BlockEvent> blockEvents = events.getAllValues();
+
+			assertThat(blockEvents)
+					.allSatisfy(e -> assertThat(e.origin()).isEqualTo(ORIGIN));
 
 			final BlockEvent deleteEvent = blockEvents.getFirst();
 			assertThat(deleteEvent.block()).isEqualTo(blockInfo);
@@ -797,7 +817,6 @@ class BlockServiceTest {
 			final List<TestBlock> blocks = TestBlock.ofTopic(topic);
 			final TestBlock deleted = blocks.getLast();
 
-			final Principal principal = SESSION.principal();
 			final long blockId = deleted.getId();
 			final long topicId = topic.getId();
 
@@ -813,10 +832,11 @@ class BlockServiceTest {
 			when(blockStorageGateway.findAllByTopicId(topicId))
 					.thenReturn(existingBlocks);
 
-			blockService.delete(principal, blockId);
+			blockService.delete(ORIGIN, blockId);
 
 			verify(blockStorageGateway).delete(blockInfo);
 			verify(blockPublisher).publish(argThat(event -> {
+				assertThat(event.origin()).isEqualTo(ORIGIN);
 				assertThat(event.action())
 						.isInstanceOf(BlockAction.Delete.class);
 				return true;
@@ -831,13 +851,12 @@ class BlockServiceTest {
 			final List<TestBlock> blocks = TestBlock.ofTopic(topic);
 			final TestBlock deleted = blocks.getLast();
 
-			final Principal principal = SESSION.principal();
 			final long blockId = deleted.getId();
 
 			when(blockStorageGateway.find(blockId))
 					.thenReturn(Optional.empty());
 
-			assertThatThrownBy(() -> blockService.delete(principal, blockId))
+			assertThatThrownBy(() -> blockService.delete(ORIGIN, blockId))
 					.isInstanceOf(MissingEntityException.class);
 
 			verify(blockStorageGateway, never()).delete(any());
@@ -845,7 +864,7 @@ class BlockServiceTest {
 		}
 
 		@Test
-		void principalNull() {
+		void originNull() {
 			final long blockId = BLOCK.getId();
 
 			assertThatThrownBy(() -> blockService.delete(null, blockId))

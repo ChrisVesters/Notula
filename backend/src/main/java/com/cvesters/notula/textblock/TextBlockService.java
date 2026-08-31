@@ -7,7 +7,7 @@ import org.springframework.stereotype.Service;
 import com.cvesters.notula.block.BlockService;
 import com.cvesters.notula.block.bdo.BlockInfo;
 import com.cvesters.notula.block.bdo.BlockType;
-import com.cvesters.notula.common.domain.Principal;
+import com.cvesters.notula.common.domain.Origin;
 import com.cvesters.notula.common.exception.InvalidActionException;
 import com.cvesters.notula.textblock.bdo.TextBlockAction;
 import com.cvesters.notula.textblock.bdo.TextBlockInfo;
@@ -29,11 +29,13 @@ public class TextBlockService {
 		this.textBlockPublisher = textBlockPublisher;
 	}
 
-	public TextBlockInfo update(final Principal principal, final long blockId,
+	public TextBlockInfo update(final Origin origin, final long blockId,
 			final TextBlockAction.Update action) {
+		Objects.requireNonNull(origin);
 		Objects.requireNonNull(action);
 
-		final BlockInfo blockInfo = blockService.getById(principal, blockId);
+		final BlockInfo blockInfo = blockService.getById(origin.principal(),
+				blockId);
 		if (blockInfo.getType() != BlockType.TEXT) {
 			throw new InvalidActionException();
 		}
@@ -44,7 +46,7 @@ public class TextBlockService {
 		action.apply(textBlockInfo);
 		final TextBlockInfo updated = textBlockStorage.update(textBlockInfo);
 
-		final var event = new TextBlockEvent(blockInfo, action);
+		final var event = new TextBlockEvent(blockInfo, action, origin);
 		textBlockPublisher.publish(event);
 
 		return updated;

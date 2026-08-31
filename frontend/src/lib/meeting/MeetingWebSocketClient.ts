@@ -1,4 +1,5 @@
 import Session from "$lib/auth/Session";
+import ActionWebSocketClient from "$lib/common/ActionWebSocketClient";
 import WebSocketClient from "$lib/common/WebSocketClient";
 import type { MeetingDetails } from "$lib/details/DetailTypes";
 import type {
@@ -37,8 +38,6 @@ export default class MeetingWebSocketClient {
 	}
 
 	public static update(action: MeetingUpdateAction): void {
-		const client: WebSocketClient = Session.getWebSocketClient();
-
-		client.send(`/app/meetings/update`, JSON.stringify(action));
+		ActionWebSocketClient.send(`/app/meetings/update`, action);
 	}
 }

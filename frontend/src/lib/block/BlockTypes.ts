@@ -1,3 +1,5 @@
+import type { EventOrigin } from "$lib/common/EventTypes";
+
 export const BlockType = {
 	TEXT: "TEXT"
 } as const;
@@ -30,6 +32,7 @@ export type BlockEvent = {
 	target: "BLOCK";
 	blockId: number;
 	mutation: BlockMutation;
+	origin: EventOrigin;
 };
 
 export type BlockMutation =

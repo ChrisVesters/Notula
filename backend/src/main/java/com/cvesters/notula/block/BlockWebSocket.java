@@ -8,11 +8,10 @@ import org.springframework.stereotype.Controller;
 
 import com.cvesters.notula.block.bdo.BlockAction;
 import com.cvesters.notula.block.dto.BlockActionDto;
-import com.cvesters.notula.common.controller.BaseController;
-import com.cvesters.notula.common.domain.Principal;
+import com.cvesters.notula.common.domain.Origin;
 
 @Controller
-public class BlockWebSocket extends BaseController {
+public class BlockWebSocket {
 
 	private static final String ENDPOINT = "/blocks";
 
@@ -23,27 +22,24 @@ public class BlockWebSocket extends BaseController {
 	}
 
 	@MessageMapping(ENDPOINT + "/create")
-	public void create(@Valid @Payload final BlockActionDto.Create dto) {
-		final Principal principal = getPrincipal();
-
+	public void create(final Origin origin,
+			@Valid @Payload final BlockActionDto.Create dto) {
 		final BlockAction.Create action = dto.toBdo();
-		blockService.create(principal, action);
+		blockService.create(origin, action);
 	}
 
 	@MessageMapping(ENDPOINT + "/move")
-	public void move(@Valid @Payload final BlockActionDto.Move dto) {
-		final Principal principal = getPrincipal();
-
+	public void move(final Origin origin,
+			@Valid @Payload final BlockActionDto.Move dto) {
 		final long blockId = dto.getBlockId();
 		final BlockAction.Move action = dto.toBdo();
-		blockService.move(principal, blockId, action);
+		blockService.move(origin, blockId, action);
 	}
 
 	@MessageMapping(ENDPOINT + "/delete")
-	public void delete(@Valid @Payload final BlockActionDto.Delete dto) {
-		final Principal principal = getPrincipal();
-
+	public void delete(final Origin origin,
+			@Valid @Payload final BlockActionDto.Delete dto) {
 		final long blockId = dto.getBlockId();
-		blockService.delete(principal, blockId);
+		blockService.delete(origin, blockId);
 	}
 }

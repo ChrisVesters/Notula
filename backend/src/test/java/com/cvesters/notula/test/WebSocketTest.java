@@ -5,6 +5,7 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 import java.time.Duration;
+import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
 
@@ -33,6 +34,9 @@ import com.cvesters.notula.session.TestSession;
 public abstract class WebSocketTest {
 
 	protected static final Duration WAIT_TIMEOUT = Duration.ofSeconds(1);
+
+	protected static final UUID CLIENT_ID = UUID
+			.fromString("9d4e1b06-7c52-4f38-b1a9-6e83d0c5f2b7");
 
 	@MockitoBean
 	private JwtDecoder jwtDecoder;
@@ -74,6 +78,7 @@ public abstract class WebSocketTest {
 		final var httpHeaders = new WebSocketHttpHeaders();
 		final var stompHeaders = new StompHeaders();
 		stompHeaders.add("Authorization", "Bearer " + token);
+
 		final CompletableFuture<StompSession> future = stompClient.connectAsync(
 				url, httpHeaders, stompHeaders, stompSessionHandler);
 
@@ -84,8 +89,8 @@ public abstract class WebSocketTest {
 	protected void connect() throws Exception {
 		final var httpHeaders = new WebSocketHttpHeaders();
 		final var stompHeaders = new StompHeaders();
-		final CompletableFuture<StompSession> future = stompClient
-				.connectAsync(url, httpHeaders, stompHeaders, stompSessionHandler);
+		final CompletableFuture<StompSession> future = stompClient.connectAsync(
+				url, httpHeaders, stompHeaders, stompSessionHandler);
 
 		stompSession = future.get(WAIT_TIMEOUT.toSeconds(), TimeUnit.SECONDS);
 		assertThat(stompSession.isConnected()).isTrue();
@@ -102,6 +107,10 @@ public abstract class WebSocketTest {
 	}
 
 	protected void send(final String destination, final Object dto) {
-		stompSession.send(destination, dto);
+		final var stompHeaders = new StompHeaders();
+		stompHeaders.setDestination(destination);
+		stompHeaders.add("client-id", CLIENT_ID.toString());
+
+		stompSession.send(stompHeaders, dto);
 	}
 }
