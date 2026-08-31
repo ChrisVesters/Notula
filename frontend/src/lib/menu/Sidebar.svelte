@@ -2,6 +2,7 @@
 	import { goto } from "$app/navigation";
 	import { page } from "$app/state";
 
+	import logo from "$lib/assets/favicon.svg";
 	import { t } from "$lib/assets/translations";
 
 	import IconLogout from "$lib/assets/icons/IconLogOut.svelte";
@@ -53,6 +54,7 @@
 					<IconSidebarOpen />
 				{/if}
 			</button>
+			<img class="logo" src={logo} alt="" />
 			<h1>Notula</h1>
 		</div>
 
@@ -131,6 +133,19 @@
 		align-items: center;
 		padding: 0.5rem 1rem;
 		border-bottom: 1px solid var(--color-primary-600);
+	}
+
+	.sidebar-header .logo {
+		width: 1.75rem;
+		height: 1.75rem;
+		flex-shrink: 0;
+		opacity: 1;
+		transition: opacity 0.3s ease;
+	}
+
+	.sidebar.closed .sidebar-header .logo {
+		opacity: 0;
+		width: 0;
 	}
 
 	.sidebar-header h1 {
