@@ -13,6 +13,7 @@ import org.springframework.scheduling.TaskScheduler;
 import org.springframework.web.socket.config.annotation.EnableWebSocketMessageBroker;
 import org.springframework.web.socket.config.annotation.StompEndpointRegistry;
 import org.springframework.web.socket.config.annotation.WebSocketMessageBrokerConfigurer;
+import org.springframework.web.socket.config.annotation.WebSocketTransportRegistration;
 
 @Configuration
 @EnableWebSocketMessageBroker
@@ -22,15 +23,18 @@ public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
 	private final TaskScheduler scheduler;
 	private final WebSocketChannelInterceptor channelInterceptor;
 	private final OriginArgumentResolver originArgumentResolver;
+	private final WebSocketSessionRegistry sessionRegistry;
 	private final String frontendUrl;
 
 	public WebSocketConfig(final TaskScheduler webSocketTaskScheduler,
 			final WebSocketChannelInterceptor interceptor,
 			final OriginArgumentResolver originArgumentResolver,
+			final WebSocketSessionRegistry sessionRegistry,
 			@Value("${frontend.url}") final String frontendUrl) {
 		this.scheduler = webSocketTaskScheduler;
 		this.channelInterceptor = interceptor;
 		this.originArgumentResolver = originArgumentResolver;
+		this.sessionRegistry = sessionRegistry;
 		this.frontendUrl = frontendUrl;
 	}
 
@@ -52,6 +56,12 @@ public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
 	public void configureClientInboundChannel(
 			final ChannelRegistration registration) {
 		registration.interceptors(channelInterceptor);
+	}
+
+	@Override
+	public void configureWebSocketTransport(
+			final WebSocketTransportRegistration registration) {
+		registration.addDecoratorFactory(sessionRegistry);
 	}
 
 	@Override

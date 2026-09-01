@@ -14,6 +14,7 @@ import org.springframework.messaging.Message;
 import org.springframework.messaging.simp.stomp.StompCommand;
 import org.springframework.messaging.simp.stomp.StompHeaderAccessor;
 import org.springframework.messaging.support.MessageBuilder;
+import org.springframework.security.authentication.TestingAuthenticationToken;
 
 import com.cvesters.notula.common.domain.Origin;
 import com.cvesters.notula.common.domain.Principal;
@@ -123,6 +124,25 @@ class OriginArgumentResolverTest {
 		void unsupportedUser() throws Exception {
 			final var accessor = StompHeaderAccessor.create(StompCommand.SEND);
 			accessor.setUser(mock(java.security.Principal.class));
+			final Message<String> message = MessageBuilder.createMessage("",
+					accessor.getMessageHeaders());
+			final MethodParameter parameter = parameter(0);
+
+			assertThatThrownBy(
+					() -> resolver.resolveArgument(parameter, message))
+							.isInstanceOf(IllegalStateException.class)
+							.hasMessageContaining("Unsupported");
+		}
+
+		@Test
+		void unsupportedPrincipal() throws Exception {
+			final var accessor = StompHeaderAccessor.create(StompCommand.SEND);
+			final var principal = new Object();
+			final var credentials = new Object();
+			final var user = new TestingAuthenticationToken(principal,
+					credentials);
+
+			accessor.setUser(user);
 			final Message<String> message = MessageBuilder.createMessage("",
 					accessor.getMessageHeaders());
 			final MethodParameter parameter = parameter(0);
