@@ -4,6 +4,10 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
+import java.time.Instant;
+import java.util.HashMap;
+import java.util.Map;
+
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.springframework.messaging.Message;
@@ -31,8 +35,7 @@ class WebSocketChannelInterceptorTest {
 
 		@Test
 		void noStompHeader() {
-			final var accessor = StompHeaderAccessor
-					.create(StompCommand.CONNECT);
+			final var accessor = StompHeaderAccessor.create();
 
 			final Message<String> message = MessageBuilder.createMessage("",
 					accessor.getMessageHeaders());
@@ -86,7 +89,30 @@ class WebSocketChannelInterceptorTest {
 		}
 
 		@Test
-		void withAuthorizationHeader() {
+		void noJwtExpiry() {
+			final var accessor = StompHeaderAccessor
+					.create(StompCommand.CONNECT);
+			accessor.addNativeHeader("Authorization", "Bearer token");
+			accessor.setLeaveMutable(true);
+
+			final Map<String, Object> attributes = new HashMap<>();
+			accessor.setSessionAttributes(attributes);
+
+			final Message<String> message = MessageBuilder.createMessage("",
+					accessor.getMessageHeaders());
+
+			final Jwt jwtToken = mock();
+			when(decoder.decode("token")).thenReturn(jwtToken);
+			when(jwtToken.getExpiresAt()).thenReturn(null);
+
+			final Message<?> result = interceptor.preSend(message, channel);
+
+			assertThat(result).isEqualTo(message);
+			assertThat(result.getHeaders().get("simpUser")).isNull();
+		}
+
+		@Test
+		void noSessionAttributes() {
 			final var accessor = StompHeaderAccessor
 					.create(StompCommand.CONNECT);
 			accessor.addNativeHeader("Authorization", "Bearer token");
@@ -95,8 +121,34 @@ class WebSocketChannelInterceptorTest {
 			final Message<String> message = MessageBuilder.createMessage("",
 					accessor.getMessageHeaders());
 
+			final var expiresAt = Instant.now().plusSeconds(60);
 			final Jwt jwtToken = mock();
 			when(decoder.decode("token")).thenReturn(jwtToken);
+			when(jwtToken.getExpiresAt()).thenReturn(expiresAt);
+
+			final Message<?> result = interceptor.preSend(message, channel);
+
+			assertThat(result).isEqualTo(message);
+			assertThat(result.getHeaders().get("simpUser")).isNull();
+		}
+
+		@Test
+		void withAuthorizationHeader() {
+			final var accessor = StompHeaderAccessor
+					.create(StompCommand.CONNECT);
+			accessor.addNativeHeader("Authorization", "Bearer token");
+			accessor.setLeaveMutable(true);
+
+			final Map<String, Object> attributes = new HashMap<>();
+			accessor.setSessionAttributes(attributes);
+
+			final Message<String> message = MessageBuilder.createMessage("",
+					accessor.getMessageHeaders());
+
+			final var expiresAt = Instant.now().plusSeconds(60);
+			final Jwt jwtToken = mock();
+			when(decoder.decode("token")).thenReturn(jwtToken);
+			when(jwtToken.getExpiresAt()).thenReturn(expiresAt);
 
 			final AuthToken authToken = mock();
 			when(converter.convert(jwtToken)).thenReturn(authToken);
@@ -105,8 +157,10 @@ class WebSocketChannelInterceptorTest {
 
 			assertThat(result).isEqualTo(message);
 			assertThat(result.getHeaders()).isNotEmpty();
-			assertThat(result.getHeaders().get("simpUser"))
-					.isEqualTo(authToken);
+			assertThat(result.getHeaders()).containsEntry("simpUser",
+					authToken);
+			assertThat(attributes).containsEntry(
+					SessionAttributes.EXPIRES_AT.name(), expiresAt);
 		}
 	}
 }

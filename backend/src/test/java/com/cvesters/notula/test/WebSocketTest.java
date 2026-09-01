@@ -5,6 +5,7 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 import java.time.Duration;
+import java.time.Instant;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
@@ -34,6 +35,8 @@ import com.cvesters.notula.session.TestSession;
 public abstract class WebSocketTest {
 
 	protected static final Duration WAIT_TIMEOUT = Duration.ofSeconds(1);
+
+	private static final Duration ACCESS_EXPIRATION = Duration.ofMinutes(30);
 
 	protected static final UUID CLIENT_ID = UUID
 			.fromString("9d4e1b06-7c52-4f38-b1a9-6e83d0c5f2b7");
@@ -68,9 +71,15 @@ public abstract class WebSocketTest {
 	}
 
 	protected void connect(final TestSession session) throws Exception {
+		connect(session, Instant.now().plus(ACCESS_EXPIRATION));
+	}
+
+	protected void connect(final TestSession session, final Instant expiresAt)
+			throws Exception {
 		final String token = "token";
 		final Jwt jwt = mock();
 		when(jwtDecoder.decode(token)).thenReturn(jwt);
+		when(jwt.getExpiresAt()).thenReturn(expiresAt);
 
 		final var authToken = session.getAuthToken();
 		when(authManager.convert(jwt)).thenReturn(authToken);

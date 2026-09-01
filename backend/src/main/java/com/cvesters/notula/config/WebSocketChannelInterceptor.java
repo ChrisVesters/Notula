@@ -1,5 +1,8 @@
 package com.cvesters.notula.config;
 
+import java.time.Instant;
+import java.util.Map;
+
 import org.springframework.http.HttpHeaders;
 import org.springframework.messaging.Message;
 import org.springframework.messaging.MessageChannel;
@@ -44,8 +47,16 @@ public class WebSocketChannelInterceptor implements ChannelInterceptor {
 		final String token = authHeader.substring(bearerPrefix.length() + 1);
 		final Jwt jwt = decoder.decode(token);
 
+		final Instant expiresAt = jwt.getExpiresAt();
+		final Map<String, Object> attributes = accessor.getSessionAttributes();
+		if (expiresAt == null || attributes == null) {
+			return message;
+		}
+
 		final var auth = authenticationConverter.convert(jwt);
 		accessor.setUser(auth);
+		attributes.put(SessionAttributes.EXPIRES_AT.name(), expiresAt);
+
 		return message;
 	}
 }

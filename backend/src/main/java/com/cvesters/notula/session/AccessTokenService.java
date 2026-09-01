@@ -5,6 +5,7 @@ import java.time.Instant;
 import java.util.Objects;
 import java.util.Optional;
 
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.oauth2.jwt.JwsHeader;
 import org.springframework.security.oauth2.jwt.JwtClaimsSet;
 import org.springframework.security.oauth2.jwt.JwtEncoder;
@@ -18,12 +19,16 @@ import com.cvesters.notula.session.bdo.SessionInfo;
 @Service
 public class AccessTokenService {
 
-	private static final Duration ACCESS_EXPIRATION = Duration.ofMinutes(30);
-
 	private final JwtEncoder jwtEncoder;
+	private final Duration expiration;
 
-	public AccessTokenService(final JwtEncoder jwtEncoder) {
+	public AccessTokenService(final JwtEncoder jwtEncoder,
+			@Value("${jwt.access-token.expiration}")
+			final Duration expiration) {
+		Objects.requireNonNull(expiration);
+
 		this.jwtEncoder = jwtEncoder;
+		this.expiration = expiration;
 	}
 
 	public String create(final SessionInfo session,
@@ -35,7 +40,7 @@ public class AccessTokenService {
 		final var builder = JwtClaimsSet.builder()
 				.subject(String.valueOf(session.getUserId()))
 				.issuedAt(now)
-				.expiresAt(now.plus(ACCESS_EXPIRATION));
+				.expiresAt(now.plus(expiration));
 
 		session.getOrganisationId()
 				.ifPresent(organisationId -> builder.claim("organisation_id",

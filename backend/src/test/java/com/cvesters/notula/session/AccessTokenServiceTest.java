@@ -24,8 +24,10 @@ class AccessTokenServiceTest {
 
 	private final JwtEncoder jwtEncoder = mock();
 
+	private static final Duration EXPIRATION = Duration.ofMinutes(30);
+
 	private final AccessTokenService accessTokenService = new AccessTokenService(
-			jwtEncoder);
+			jwtEncoder, EXPIRATION);
 
 	@Nested
 	class Create {
@@ -53,7 +55,7 @@ class AccessTokenServiceTest {
 				assertThat(claims.getIssuedAt()).isCloseTo(now,
 						within(Duration.ofSeconds(1)));
 				assertThat(claims.getExpiresAt()).isCloseTo(
-						now.plus(Duration.ofMinutes(30)),
+						now.plus(EXPIRATION),
 						within(Duration.ofSeconds(1)));
 				return true;
 			}))).thenReturn(token);
@@ -87,7 +89,7 @@ class AccessTokenServiceTest {
 				assertThat(claims.getIssuedAt()).isCloseTo(now,
 						within(Duration.ofSeconds(1)));
 				assertThat(claims.getExpiresAt()).isCloseTo(
-						now.plus(Duration.ofMinutes(30)),
+						now.plus(EXPIRATION),
 						within(Duration.ofSeconds(1)));
 				return true;
 			}))).thenReturn(token);
@@ -121,7 +123,7 @@ class AccessTokenServiceTest {
 				assertThat(claims.getIssuedAt()).isCloseTo(now,
 						within(Duration.ofSeconds(1)));
 				assertThat(claims.getExpiresAt()).isCloseTo(
-						now.plus(Duration.ofMinutes(30)),
+						now.plus(EXPIRATION),
 						within(Duration.ofSeconds(1)));
 				return true;
 			}))).thenReturn(token);
