@@ -1,5 +1,5 @@
-import { writable } from "svelte/store";
 import type { Writable } from "svelte/store";
+import { writable } from "svelte/store";
 
 import type { OrganisationUserRole } from "$lib/organisation/OrganisationUserTypes";
 
@@ -32,6 +32,14 @@ export class Principal {
 	public isScoped(): boolean {
 		return this.isValid() && this.organisationId !== null;
 	}
+
+	public isSameIdentity(other: Principal): boolean {
+		return (
+			this.userId === other.userId &&
+			this.organisationId === other.organisationId &&
+			this.role === other.role
+		);
+	}
 }
 
 type JwtPayload = {
@@ -50,16 +58,19 @@ export default class Auth {
 		return principal;
 	}
 
-	public static updatePrincipal(token: string): void {
+	public static updatePrincipal(token: string): Principal {
 		const base64Payload = token.split(".")[1];
 		const payload: JwtPayload = JSON.parse(window.atob(base64Payload));
 
-		const userId = parseInt(payload.sub, 10);
+		const userId = Number.parseInt(payload.sub, 10);
 		const organisationId = payload.organisation_id ?? null;
 		const role = payload.role ?? null;
 		const expiresAt = new Date(payload.exp * 1000);
 
-		principal.set(new Principal(userId, organisationId, role, expiresAt));
+		const updated = new Principal(userId, organisationId, role, expiresAt);
+		principal.set(updated);
+
+		return updated;
 	}
 
 	public static deletePrincipal(): void {

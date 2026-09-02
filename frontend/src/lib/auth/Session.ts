@@ -44,33 +44,14 @@ export default class Session {
 			return;
 		}
 
-		Session.#SESSION_ID = sessionId;
-		Session.#ACCESS_TOKEN = accessToken;
-
-		// TODO: better handling in case token is expired/can not be refreshed!
-		if (Session.#WS_CLIENT !== null) {
-			Session.#WS_CLIENT.disconnect();
-		}
-		Session.#WS_CLIENT = new WebSocketClient(accessToken);
-
-		Auth.updatePrincipal(accessToken);
-		Session.scheduleRefresh();
+		Session.start(sessionId, accessToken);
 	}
 
 	public static update(session: SessionInfo): void {
 		DataStorage.setItem("sessionId", session.id.toString());
 		DataStorage.setItem("accessToken", session.accessToken);
 
-		Session.#SESSION_ID = session.id;
-		Session.#ACCESS_TOKEN = session.accessToken;
-
-		if (Session.#WS_CLIENT !== null) {
-			Session.#WS_CLIENT.disconnect();
-		}
-		Session.#WS_CLIENT = new WebSocketClient(session.accessToken);
-
-		Auth.updatePrincipal(session.accessToken);
-		Session.scheduleRefresh();
+		Session.start(session.id, session.accessToken);
 	}
 
 	public static delete(): void {
@@ -109,6 +90,23 @@ export default class Session {
 		} else {
 			console.warn("Unable to refresh session");
 		}
+	}
+
+	private static start(sessionId: number, accessToken: string): void {
+		Session.#SESSION_ID = sessionId;
+		Session.#ACCESS_TOKEN = accessToken;
+
+		const previous = get(Auth.getPrincipal());
+		const updated = Auth.updatePrincipal(accessToken);
+
+		if (Session.#WS_CLIENT !== null && previous?.isSameIdentity(updated)) {
+			Session.#WS_CLIENT.reconnect(accessToken);
+		} else {
+			Session.#WS_CLIENT?.disconnect();
+			Session.#WS_CLIENT = new WebSocketClient(accessToken);
+		}
+
+		Session.scheduleRefresh();
 	}
 
 	private static scheduleRefresh(): void {
