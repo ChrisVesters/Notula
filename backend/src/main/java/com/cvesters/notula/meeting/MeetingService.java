@@ -15,11 +15,15 @@ import com.cvesters.notula.meeting.bdo.MeetingInfo;
 @Service
 public class MeetingService {
 
+	private final MeetingLock meetingLock;
+
 	private final MeetingPublisher meetingPublisher;
 	private final MeetingStorageGateway meetingStorage;
 
-	public MeetingService(final MeetingStorageGateway meetingStorageGateway,
-			MeetingPublisher meetingPublisher) {
+	public MeetingService(final MeetingLock meetingLock,
+			final MeetingStorageGateway meetingStorageGateway,
+			final MeetingPublisher meetingPublisher) {
+		this.meetingLock = meetingLock;
 		this.meetingStorage = meetingStorageGateway;
 		this.meetingPublisher = meetingPublisher;
 	}
@@ -57,6 +61,12 @@ public class MeetingService {
 		Objects.requireNonNull(origin);
 		Objects.requireNonNull(action);
 
+		return meetingLock.call(id,
+				() -> doUpdate(origin, id, action));
+	}
+
+	private MeetingInfo doUpdate(final Origin origin, final long id,
+			final MeetingAction.Update action) {
 		final MeetingInfo meetingInfo = getById(origin.principal(), id);
 		action.apply(meetingInfo);
 		final MeetingInfo updated = meetingStorage.update(meetingInfo);
@@ -70,6 +80,11 @@ public class MeetingService {
 	public void delete(final Origin origin, final long id) {
 		Objects.requireNonNull(origin);
 
+		meetingLock.run(id,
+				() -> doDelete(origin, id));
+	}
+
+	private void doDelete(final Origin origin, final long id) {
 		final MeetingInfo meetingInfo = getById(origin.principal(), id);
 
 		meetingStorage.delete(meetingInfo);

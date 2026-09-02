@@ -3,6 +3,8 @@ package com.cvesters.notula.textblock;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.argThat;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
@@ -20,6 +22,8 @@ import com.cvesters.notula.block.bdo.BlockInfo;
 import com.cvesters.notula.common.domain.Origin;
 import com.cvesters.notula.common.domain.Principal;
 import com.cvesters.notula.common.exception.InvalidActionException;
+import com.cvesters.notula.meeting.MeetingLock;
+import com.cvesters.notula.meeting.TestMeetingLock;
 import com.cvesters.notula.session.TestSession;
 import com.cvesters.notula.textblock.bdo.TextBlockAction;
 import com.cvesters.notula.textblock.bdo.TextBlockInfo;
@@ -30,12 +34,14 @@ class TextBlockServiceTest {
 			.fromString("3f9c1a44-1d2e-4a51-8b0c-2c7e9b1d4a10");
 
 	private final BlockService blockService = mock();
+	private final MeetingLock meetingLock = TestMeetingLock.passThrough();
 
 	private final TextBlockStorageGateway textBlockStorageGateway = mock();
 	private final TextBlockPublisher textBlockPublisher = mock();
 
 	private final TextBlockService textBlockService = new TextBlockService(
-			blockService, textBlockStorageGateway, textBlockPublisher);
+			blockService, meetingLock, textBlockStorageGateway,
+			textBlockPublisher);
 
 	@Nested
 	class Update {
@@ -154,6 +160,23 @@ class TextBlockServiceTest {
 			assertThatThrownBy(
 					() -> textBlockService.update(ORIGIN, blockId, null))
 							.isInstanceOf(NullPointerException.class);
+		}
+
+		@Test
+		void serialised() {
+			final long meetingId = 7L;
+
+			when(blockService.getMeetingId(ORIGIN.principal(), BLOCK.getId()))
+					.thenReturn(meetingId);
+
+			TestMeetingLock.withhold(meetingLock);
+
+			final var action = new TextBlockAction.UpdateContent(0, 0, "text");
+
+			textBlockService.update(ORIGIN, BLOCK.getId(), action);
+
+			verify(meetingLock).call(eq(meetingId), any());
+			verifyNoInteractions(textBlockStorageGateway);
 		}
 	}
 }

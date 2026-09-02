@@ -3,8 +3,11 @@ package com.cvesters.notula.meeting;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.argThat;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
 import java.util.List;
@@ -29,11 +32,13 @@ class MeetingServiceTest {
 	private static final UUID CLIENT_ID = UUID
 			.fromString("3f9c1a44-1d2e-4a51-8b0c-2c7e9b1d4a0f");
 
+	private final MeetingLock meetingLock = TestMeetingLock.passThrough();
+
 	private final MeetingStorageGateway meetingStorageGateway = mock();
 	private final MeetingPublisher meetingPublisher = mock();
 
 	private final MeetingService meetingService = new MeetingService(
-			meetingStorageGateway, meetingPublisher);
+			meetingLock, meetingStorageGateway, meetingPublisher);
 
 	@Nested
 	class GetById {
@@ -254,6 +259,18 @@ class MeetingServiceTest {
 					() -> meetingService.update(ORIGIN, meetingId, null))
 							.isInstanceOf(NullPointerException.class);
 		}
+
+		@Test
+		void serialised() {
+			TestMeetingLock.withhold(meetingLock);
+
+			final var action = new MeetingAction.UpdateName(0, 0, "Renamed");
+
+			meetingService.update(ORIGIN, MEETING.getId(), action);
+
+			verify(meetingLock).call(eq(MEETING.getId()), any());
+			verifyNoInteractions(meetingStorageGateway);
+		}
 	}
 
 	@Nested
@@ -300,6 +317,16 @@ class MeetingServiceTest {
 		void originNull() {
 			assertThatThrownBy(() -> meetingService.delete(null, 1))
 					.isInstanceOf(NullPointerException.class);
+		}
+
+		@Test
+		void serialised() {
+			TestMeetingLock.withhold(meetingLock);
+
+			meetingService.delete(ORIGIN, MEETING.getId());
+
+			verify(meetingLock).run(eq(MEETING.getId()), any());
+			verifyNoInteractions(meetingStorageGateway);
 		}
 	}
 }
