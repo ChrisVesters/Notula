@@ -3,6 +3,7 @@ package com.cvesters.notula.topic;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.Mockito.inOrder;
@@ -10,6 +11,7 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
@@ -26,7 +28,9 @@ import org.mockito.InOrder;
 import com.cvesters.notula.common.domain.Origin;
 import com.cvesters.notula.common.domain.Principal;
 import com.cvesters.notula.common.exception.MissingEntityException;
+import com.cvesters.notula.meeting.MeetingLock;
 import com.cvesters.notula.meeting.MeetingService;
+import com.cvesters.notula.meeting.TestMeetingLock;
 import com.cvesters.notula.meeting.TestMeeting;
 import com.cvesters.notula.organisation.TestOrganisation;
 import com.cvesters.notula.session.TestSession;
@@ -40,12 +44,13 @@ class TopicServiceTest {
 			.fromString("3f9c1a44-1d2e-4a51-8b0c-2c7e9b1d4a0e");
 
 	private final MeetingService meetingService = mock();
+	private final MeetingLock meetingLock = TestMeetingLock.passThrough();
 
 	private final TopicStorageGateway topicStorageGateway = mock();
 	private final TopicPublisher topicPublisher = mock();
 
 	private final TopicService topicService = new TopicService(meetingService,
-			topicStorageGateway, topicPublisher);
+			meetingLock, topicStorageGateway, topicPublisher);
 
 	@Nested
 	class GetById {
@@ -97,6 +102,37 @@ class TopicServiceTest {
 
 			assertThatThrownBy(() -> topicService.getById(null, topicId))
 					.isInstanceOf(NullPointerException.class);
+		}
+	}
+
+	@Nested
+	class GetMeetingId {
+
+		private static final TestSession SESSION = TestSession.EDUARDO_CHRISTIANSEN_SPORER;
+		private static final Principal PRINCIPAL = SESSION.principal();
+		private static final TestTopic TOPIC = TestTopic.SPORER_PROJECT_TIMELINE;
+
+		@Test
+		void success() {
+			when(topicStorageGateway.find(TOPIC.getId()))
+					.thenReturn(Optional.of(TOPIC.info()));
+
+			final long meetingId = topicService.getMeetingId(PRINCIPAL,
+					TOPIC.getId());
+
+			assertThat(meetingId).isEqualTo(TOPIC.getMeeting().getId());
+		}
+
+		@Test
+		void notFound() {
+			final long topicId = TOPIC.getId();
+
+			when(topicStorageGateway.find(topicId))
+					.thenReturn(Optional.empty());
+
+			assertThatThrownBy(
+					() -> topicService.getMeetingId(PRINCIPAL, topicId))
+					.isInstanceOf(MissingEntityException.class);
 		}
 	}
 
@@ -336,6 +372,19 @@ class TopicServiceTest {
 					.isInstanceOf(NullPointerException.class);
 		}
 
+
+		@Test
+		void serialised() {
+			TestMeetingLock.withhold(meetingLock);
+
+			final var action = new TopicAction.Create(MEETING_ID,
+					TOPIC_SEQUENCE_ID, TOPIC_NAME);
+
+			topicService.create(ORIGIN, action);
+
+			verify(meetingLock).call(eq(MEETING_ID), any());
+			verifyNoInteractions(topicStorageGateway);
+		}
 	}
 
 	@Nested
@@ -693,6 +742,22 @@ class TopicServiceTest {
 			assertThatThrownBy(() -> topicService.move(ORIGIN, topicId, null))
 					.isInstanceOf(NullPointerException.class);
 		}
+
+		@Test
+		void serialised() {
+			final TestTopic topic = TestTopic.SPORER_PROJECT_BLOCKERS;
+			when(topicStorageGateway.find(topic.getId()))
+					.thenReturn(Optional.of(topic.info()));
+
+			TestMeetingLock.withhold(meetingLock);
+
+			topicService.move(ORIGIN, topic.getId(), new TopicAction.Move(1));
+
+			verify(meetingLock).call(eq(MEETING.getId()), any());
+
+			verify(topicStorageGateway).find(topic.getId());
+			verifyNoMoreInteractions(topicStorageGateway);
+		}
 	}
 
 	@Nested
@@ -777,6 +842,23 @@ class TopicServiceTest {
 
 			assertThatThrownBy(() -> topicService.update(ORIGIN, topicId, null))
 					.isInstanceOf(NullPointerException.class);
+		}
+
+		@Test
+		void serialised() {
+			when(topicStorageGateway.find(TOPIC.getId()))
+					.thenReturn(Optional.of(TOPIC.info()));
+
+			TestMeetingLock.withhold(meetingLock);
+
+			final var action = new TopicAction.UpdateName(0, 0, "Renamed");
+
+			topicService.update(ORIGIN, TOPIC.getId(), action);
+
+			verify(meetingLock).call(eq(MEETING.getId()), any());
+
+			verify(topicStorageGateway).find(TOPIC.getId());
+			verifyNoMoreInteractions(topicStorageGateway);
 		}
 	}
 
@@ -945,6 +1027,21 @@ class TopicServiceTest {
 
 			assertThatThrownBy(() -> topicService.delete(null, topicId))
 					.isInstanceOf(NullPointerException.class);
+		}
+
+		@Test
+		void serialised() {
+			when(topicStorageGateway.find(TOPIC.getId()))
+					.thenReturn(Optional.of(TOPIC.info()));
+
+			TestMeetingLock.withhold(meetingLock);
+
+			topicService.delete(ORIGIN, TOPIC.getId());
+
+			verify(meetingLock).run(eq(MEETING.getId()), any());
+
+			verify(topicStorageGateway).find(TOPIC.getId());
+			verifyNoMoreInteractions(topicStorageGateway);
 		}
 	}
 }

@@ -5,11 +5,11 @@ import java.util.List;
 import java.util.Objects;
 
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
 
 import com.cvesters.notula.common.domain.Origin;
 import com.cvesters.notula.common.domain.Principal;
 import com.cvesters.notula.common.exception.MissingEntityException;
+import com.cvesters.notula.meeting.MeetingLock;
 import com.cvesters.notula.meeting.MeetingService;
 import com.cvesters.notula.meeting.bdo.MeetingInfo;
 import com.cvesters.notula.topic.bdo.TopicAction;
@@ -20,14 +20,17 @@ import com.cvesters.notula.topic.bdo.TopicInfo;
 public class TopicService {
 
 	private final MeetingService meetingService;
+	private final MeetingLock meetingLock;
 
 	private final TopicStorageGateway topicStorage;
 	private final TopicPublisher topicPublisher;
 
 	public TopicService(final MeetingService meetingService,
+			final MeetingLock meetingLock,
 			final TopicStorageGateway topicStorage,
 			final TopicPublisher topicPublisher) {
 		this.meetingService = meetingService;
+		this.meetingLock = meetingLock;
 		this.topicStorage = topicStorage;
 		this.topicPublisher = topicPublisher;
 	}
@@ -42,12 +45,21 @@ public class TopicService {
 				.orElseThrow(MissingEntityException::new);
 	}
 
-	@Transactional
+	public long getMeetingId(final Principal principal, final long topicId) {
+		return getById(principal, topicId).getMeetingId();
+	}
+
 	public TopicInfo create(final Origin origin,
 			final TopicAction.Create action) {
 		Objects.requireNonNull(origin);
 		Objects.requireNonNull(action);
 
+		return meetingLock.call(action.getMeetingId(),
+				() -> doCreate(origin, action));
+	}
+
+	private TopicInfo doCreate(final Origin origin,
+			final TopicAction.Create action) {
 		final MeetingInfo meeting = meetingService.getById(origin.principal(),
 				action.getMeetingId());
 
@@ -80,12 +92,19 @@ public class TopicService {
 		return created;
 	}
 
-	@Transactional
 	public TopicInfo move(final Origin origin, final long topicId,
 			final TopicAction.Move action) {
 		Objects.requireNonNull(origin);
 		Objects.requireNonNull(action);
 
+		final long meetingId = getMeetingId(origin.principal(), topicId);
+
+		return meetingLock.call(meetingId,
+				() -> doMove(origin, topicId, action));
+	}
+
+	private TopicInfo doMove(final Origin origin, final long topicId,
+			final TopicAction.Move action) {
 		final TopicInfo topic = getById(origin.principal(), topicId);
 		final int from = topic.getSequenceId();
 		final int to = action.getSequenceId();
@@ -131,6 +150,14 @@ public class TopicService {
 		Objects.requireNonNull(origin);
 		Objects.requireNonNull(action);
 
+		final long meetingId = getMeetingId(origin.principal(), topicId);
+
+		return meetingLock.call(meetingId,
+				() -> doUpdate(origin, topicId, action));
+	}
+
+	private TopicInfo doUpdate(final Origin origin, final long topicId,
+			final TopicAction.Update action) {
 		final TopicInfo topicInfo = getById(origin.principal(), topicId);
 		action.apply(topicInfo);
 		final TopicInfo updated = topicStorage.update(topicInfo);
@@ -141,10 +168,15 @@ public class TopicService {
 		return updated;
 	}
 
-	@Transactional
 	public void delete(final Origin origin, final long topicId) {
 		Objects.requireNonNull(origin);
 
+		final long meetingId = getMeetingId(origin.principal(), topicId);
+
+		meetingLock.run(meetingId, () -> doDelete(origin, topicId));
+	}
+
+	private void doDelete(final Origin origin, final long topicId) {
 		final TopicInfo topicInfo = getById(origin.principal(), topicId);
 		topicStorage.delete(topicInfo);
 
