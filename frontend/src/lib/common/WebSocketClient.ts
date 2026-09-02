@@ -46,7 +46,7 @@ export default class WebSocketClient {
 			console.log("Disconnected from STOMP broker");
 
 			this.subscriptions.forEach(registration => {
-				registration.subscription == undefined;
+				registration.subscription = undefined;
 			});
 		};
 
@@ -55,6 +55,23 @@ export default class WebSocketClient {
 		};
 
 		this.client.activate();
+	}
+
+	public reconnect(accessToken: string): void {
+		console.log("Reconnecting to STOMP broker");
+
+		this.client.configure({
+			connectHeaders: {
+				Authorization: `Bearer ${accessToken}`
+			}
+		});
+
+		this.client
+			.deactivate()
+			.then(() => this.client.activate())
+			.catch(error =>
+				console.error("Unable to reconnect to STOMP broker:", error)
+			);
 	}
 
 	public disconnect(): void {
