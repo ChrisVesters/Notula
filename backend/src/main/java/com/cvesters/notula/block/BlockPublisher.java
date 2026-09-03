@@ -2,12 +2,12 @@ package com.cvesters.notula.block;
 
 import java.util.Objects;
 
-import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.stereotype.Service;
 
 import com.cvesters.notula.block.bdo.BlockEvent;
 import com.cvesters.notula.block.dto.BlockEventDto;
 import com.cvesters.notula.common.exception.MissingEntityException;
+import com.cvesters.notula.common.messaging.TransactionalPublisher;
 import com.cvesters.notula.topic.TopicStorageGateway;
 import com.cvesters.notula.topic.bdo.TopicInfo;
 
@@ -16,12 +16,12 @@ class BlockPublisher {
 
 	private static final String TOPIC = "/topic/meetings/";
 
-	private final SimpMessagingTemplate messagingTemplate;
+	private final TransactionalPublisher publisher;
 	private final TopicStorageGateway topicStorage;
 
-	public BlockPublisher(final SimpMessagingTemplate messagingTemplate,
+	public BlockPublisher(final TransactionalPublisher publisher,
 			final TopicStorageGateway topicStorage) {
-		this.messagingTemplate = messagingTemplate;
+		this.publisher = publisher;
 		this.topicStorage = topicStorage;
 	}
 
@@ -32,7 +32,7 @@ class BlockPublisher {
 				.orElseThrow(MissingEntityException::new);
 
 		final var dto = new BlockEventDto(event);
-		messagingTemplate.convertAndSend(TOPIC + topic.getMeetingId(), dto);
+		publisher.send(TOPIC + topic.getMeetingId(), dto);
 	}
 
 }

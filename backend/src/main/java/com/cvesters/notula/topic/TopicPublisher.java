@@ -2,9 +2,9 @@ package com.cvesters.notula.topic;
 
 import java.util.Objects;
 
-import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.stereotype.Service;
 
+import com.cvesters.notula.common.messaging.TransactionalPublisher;
 import com.cvesters.notula.topic.bdo.TopicEvent;
 import com.cvesters.notula.topic.dto.TopicEventDto;
 
@@ -13,10 +13,10 @@ public class TopicPublisher {
 
 	private static final String TOPIC = "/topic/meetings/";
 
-	private final SimpMessagingTemplate messagingTemplate;
+	private final TransactionalPublisher publisher;
 
-	public TopicPublisher(final SimpMessagingTemplate messagingTemplate) {
-		this.messagingTemplate = messagingTemplate;
+	public TopicPublisher(final TransactionalPublisher publisher) {
+		this.publisher = publisher;
 	}
 
 	public void publish(final TopicEvent event) {
@@ -25,7 +25,7 @@ public class TopicPublisher {
 		final long meetingId = event.topic().getMeetingId();
 
 		final var eventDto = new TopicEventDto(event);
-		messagingTemplate.convertAndSend(TOPIC + meetingId, eventDto);
+		publisher.send(TOPIC + meetingId, eventDto);
 	}
 
 }

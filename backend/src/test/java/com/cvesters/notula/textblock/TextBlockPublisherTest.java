@@ -15,12 +15,12 @@ import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
-import org.springframework.messaging.simp.SimpMessagingTemplate;
 
 import com.cvesters.notula.block.bdo.BlockInfo;
 import com.cvesters.notula.common.domain.Origin;
 import com.cvesters.notula.common.dto.OriginDto;
 import com.cvesters.notula.common.exception.MissingEntityException;
+import com.cvesters.notula.common.messaging.TransactionalPublisher;
 import com.cvesters.notula.session.TestSession;
 import com.cvesters.notula.textblock.bdo.TextBlockAction;
 import com.cvesters.notula.textblock.dao.TextBlockEvent;
@@ -39,10 +39,10 @@ class TextBlockPublisherTest {
 	private static final Origin ORIGIN = new Origin(SESSION.principal(),
 			CLIENT_ID);
 
-	private final SimpMessagingTemplate messagingTemplate = mock();
+	private final TransactionalPublisher publisher = mock();
 	private final TopicStorageGateway topicStorage = mock();
-	private final TextBlockPublisher publisher = new TextBlockPublisher(
-			messagingTemplate, topicStorage);
+	private final TextBlockPublisher textBlockPublisher =
+			new TextBlockPublisher(publisher, topicStorage);
 
 	@Nested
 	class Publish {
@@ -71,9 +71,9 @@ class TextBlockPublisherTest {
 			final var action = new TextBlockAction.UpdateContent(2, 3, "New");
 			final var event = new TextBlockEvent(block, action, ORIGIN);
 
-			publisher.publish(event);
+			textBlockPublisher.publish(event);
 
-			verify(messagingTemplate).convertAndSend(eq(DESTINATION),
+			verify(publisher).send(eq(DESTINATION),
 					argThat((TextBlockEventDto dto) -> {
 						assertThat(dto.getBlockId()).isEqualTo(BLOCK_ID);
 						assertThat(dto.getOrigin())
@@ -101,15 +101,15 @@ class TextBlockPublisherTest {
 			final var action = new TextBlockAction.UpdateContent(2, 3, "New");
 			final var event = new TextBlockEvent(block, action, ORIGIN);
 
-			assertThatThrownBy(() -> publisher.publish(event))
+			assertThatThrownBy(() -> textBlockPublisher.publish(event))
 					.isInstanceOf(MissingEntityException.class);
 
-			verifyNoInteractions(messagingTemplate);
+			verifyNoInteractions(publisher);
 		}
 
 		@Test
 		void eventNull() {
-			assertThatThrownBy(() -> publisher.publish(null))
+			assertThatThrownBy(() -> textBlockPublisher.publish(null))
 					.isInstanceOf(NullPointerException.class);
 		}
 	}
