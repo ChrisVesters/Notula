@@ -13,10 +13,10 @@ import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
-import org.springframework.messaging.simp.SimpMessagingTemplate;
 
 import com.cvesters.notula.common.domain.Origin;
 import com.cvesters.notula.common.dto.OriginDto;
+import com.cvesters.notula.common.messaging.TransactionalPublisher;
 import com.cvesters.notula.session.TestSession;
 import com.cvesters.notula.topic.bdo.TopicAction;
 import com.cvesters.notula.topic.bdo.TopicEvent;
@@ -34,9 +34,9 @@ class TopicPublisherTest {
 	private static final Origin ORIGIN = new Origin(SESSION.principal(),
 			CLIENT_ID);
 
-	private final SimpMessagingTemplate messagingTemplate = mock();
-	private final TopicPublisher publisher = new TopicPublisher(
-			messagingTemplate);
+	private final TransactionalPublisher publisher = mock();
+	private final TopicPublisher topicPublisher = new TopicPublisher(
+			publisher);
 
 	@Nested
 	class Publish {
@@ -60,9 +60,9 @@ class TopicPublisherTest {
 			final var action = new TopicAction.Create(MEETING_ID, 3, "New");
 			final var event = new TopicEvent(topic, action, ORIGIN);
 
-			publisher.publish(event);
+			topicPublisher.publish(event);
 
-			verify(messagingTemplate).convertAndSend(eq(DESTINATION),
+			verify(publisher).send(eq(DESTINATION),
 					argThat((TopicEventDto dto) -> {
 						assertThat(dto.getTopicId()).isEqualTo(TOPIC_ID);
 						assertThat(dto.getOrigin())
@@ -83,9 +83,9 @@ class TopicPublisherTest {
 			final var action = new TopicAction.UpdateName(4, 12, "Updated");
 			final var event = new TopicEvent(topic, action, ORIGIN);
 
-			publisher.publish(event);
+			topicPublisher.publish(event);
 
-			verify(messagingTemplate).convertAndSend(eq(DESTINATION),
+			verify(publisher).send(eq(DESTINATION),
 					argThat((TopicEventDto dto) -> {
 						assertThat(dto.getTopicId()).isEqualTo(TOPIC_ID);
 						assertThat(dto.getOrigin())
@@ -108,9 +108,9 @@ class TopicPublisherTest {
 					"Updated");
 			final var event = new TopicEvent(topic, action, ORIGIN);
 
-			publisher.publish(event);
+			topicPublisher.publish(event);
 
-			verify(messagingTemplate).convertAndSend(eq(DESTINATION),
+			verify(publisher).send(eq(DESTINATION),
 					argThat((TopicEventDto dto) -> {
 						assertThat(dto.getTopicId()).isEqualTo(TOPIC_ID);
 						assertThat(dto.getOrigin())
@@ -132,9 +132,9 @@ class TopicPublisherTest {
 			final var action = new TopicAction.Delete();
 			final var event = new TopicEvent(topic, action, ORIGIN);
 
-			publisher.publish(event);
+			topicPublisher.publish(event);
 
-			verify(messagingTemplate).convertAndSend(eq(DESTINATION),
+			verify(publisher).send(eq(DESTINATION),
 					argThat((TopicEventDto dto) -> {
 						assertThat(dto.getTopicId()).isEqualTo(TOPIC_ID);
 						assertThat(dto.getOrigin())
@@ -148,7 +148,7 @@ class TopicPublisherTest {
 
 		@Test
 		void eventNull() {
-			assertThatThrownBy(() -> publisher.publish(null))
+			assertThatThrownBy(() -> topicPublisher.publish(null))
 					.isInstanceOf(NullPointerException.class);
 		}
 	}

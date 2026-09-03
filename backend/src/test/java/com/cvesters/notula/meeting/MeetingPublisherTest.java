@@ -11,10 +11,10 @@ import java.util.UUID;
 
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
-import org.springframework.messaging.simp.SimpMessagingTemplate;
 
 import com.cvesters.notula.common.domain.Origin;
 import com.cvesters.notula.common.dto.OriginDto;
+import com.cvesters.notula.common.messaging.TransactionalPublisher;
 import com.cvesters.notula.meeting.bdo.MeetingAction;
 import com.cvesters.notula.meeting.bdo.MeetingEvent;
 import com.cvesters.notula.meeting.dto.MeetingEventDto;
@@ -31,9 +31,9 @@ class MeetingPublisherTest {
 	private static final Origin ORIGIN = new Origin(SESSION.principal(),
 			CLIENT_ID);
 
-	private final SimpMessagingTemplate messagingTemplate = mock();
-	private final MeetingPublisher publisher = new MeetingPublisher(
-			messagingTemplate);
+	private final TransactionalPublisher publisher = mock();
+	private final MeetingPublisher meetingPublisher = new MeetingPublisher(
+			publisher);
 
 	@Nested
 	class Publish {
@@ -48,9 +48,9 @@ class MeetingPublisherTest {
 			final var action = new MeetingAction.Create("New");
 			final var event = new MeetingEvent(MEETING_ID, action, ORIGIN);
 
-			publisher.publish(event);
+			meetingPublisher.publish(event);
 
-			verify(messagingTemplate).convertAndSend(eq(DESTINATION),
+			verify(publisher).send(eq(DESTINATION),
 					argThat((MeetingEventDto dto) -> {
 						assertThat(dto.getMeetingId()).isEqualTo(MEETING_ID);
 						assertThat(dto.getOrigin())
@@ -70,9 +70,9 @@ class MeetingPublisherTest {
 			final var action = new MeetingAction.UpdateName(4, 12, "Updated");
 			final var event = new MeetingEvent(MEETING_ID, action, ORIGIN);
 
-			publisher.publish(event);
+			meetingPublisher.publish(event);
 
-			verify(messagingTemplate).convertAndSend(eq(DESTINATION),
+			verify(publisher).send(eq(DESTINATION),
 					argThat((MeetingEventDto dto) -> {
 						assertThat(dto.getMeetingId()).isEqualTo(MEETING_ID);
 						assertThat(dto.getMutation()).isInstanceOf(
@@ -93,9 +93,9 @@ class MeetingPublisherTest {
 					"Updated");
 			final var event = new MeetingEvent(MEETING_ID, action, ORIGIN);
 
-			publisher.publish(event);
+			meetingPublisher.publish(event);
 
-			verify(messagingTemplate).convertAndSend(eq(DESTINATION),
+			verify(publisher).send(eq(DESTINATION),
 					argThat((MeetingEventDto dto) -> {
 						assertThat(dto.getMeetingId()).isEqualTo(MEETING_ID);
 						assertThat(dto.getMutation()).isInstanceOf(
@@ -115,9 +115,9 @@ class MeetingPublisherTest {
 			final var action = new MeetingAction.Delete();
 			final var event = new MeetingEvent(MEETING_ID, action, ORIGIN);
 
-			publisher.publish(event);
+			meetingPublisher.publish(event);
 
-			verify(messagingTemplate).convertAndSend(eq(DESTINATION),
+			verify(publisher).send(eq(DESTINATION),
 					argThat((MeetingEventDto dto) -> {
 						assertThat(dto.getMeetingId()).isEqualTo(MEETING_ID);
 						assertThat(dto.getMutation())
@@ -128,7 +128,7 @@ class MeetingPublisherTest {
 
 		@Test
 		void eventNull() {
-			assertThatThrownBy(() -> publisher.publish(null))
+			assertThatThrownBy(() -> meetingPublisher.publish(null))
 					.isInstanceOf(NullPointerException.class);
 		}
 	}

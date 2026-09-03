@@ -15,7 +15,6 @@ import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
-import org.springframework.messaging.simp.SimpMessagingTemplate;
 
 import com.cvesters.notula.block.bdo.BlockAction;
 import com.cvesters.notula.block.bdo.BlockEvent;
@@ -25,6 +24,7 @@ import com.cvesters.notula.block.dto.BlockMutationDto;
 import com.cvesters.notula.common.domain.Origin;
 import com.cvesters.notula.common.dto.OriginDto;
 import com.cvesters.notula.common.exception.MissingEntityException;
+import com.cvesters.notula.common.messaging.TransactionalPublisher;
 import com.cvesters.notula.meeting.TestMeeting;
 import com.cvesters.notula.session.TestSession;
 import com.cvesters.notula.topic.TestTopic;
@@ -41,11 +41,11 @@ class BlockPublisherTest {
 	private static final Origin ORIGIN = new Origin(SESSION.principal(),
 			CLIENT_ID);
 
-	private final SimpMessagingTemplate messagingTemplate = mock();
+	private final TransactionalPublisher publisher = mock();
 	private final TopicStorageGateway topicStorage = mock();
 
-	private final BlockPublisher publisher = new BlockPublisher(
-			messagingTemplate, topicStorage);
+	private final BlockPublisher blockPublisher = new BlockPublisher(
+			publisher, topicStorage);
 
 	@Nested
 	class Publish {
@@ -79,9 +79,9 @@ class BlockPublisherTest {
 					BLOCK.getSequenceId());
 			final var event = new BlockEvent(block, action, ORIGIN);
 
-			publisher.publish(event);
+			blockPublisher.publish(event);
 
-			verify(messagingTemplate).convertAndSend(eq(DESTINATION),
+			verify(publisher).send(eq(DESTINATION),
 					argThat((BlockEventDto dto) -> {
 						assertThat(dto.getBlockId()).isEqualTo(BLOCK_ID);
 						assertThat(dto.getOrigin())
@@ -110,9 +110,9 @@ class BlockPublisherTest {
 			final var action = new BlockAction.Delete();
 			final var event = new BlockEvent(block, action, ORIGIN);
 
-			publisher.publish(event);
+			blockPublisher.publish(event);
 
-			verify(messagingTemplate).convertAndSend(eq(DESTINATION),
+			verify(publisher).send(eq(DESTINATION),
 					argThat((BlockEventDto dto) -> {
 						assertThat(dto.getBlockId()).isEqualTo(BLOCK_ID);
 						assertThat(dto.getOrigin())
@@ -131,15 +131,15 @@ class BlockPublisherTest {
 			final var action = new BlockAction.Delete();
 			final var event = new BlockEvent(block, action, ORIGIN);
 
-			assertThatThrownBy(() -> publisher.publish(event))
+			assertThatThrownBy(() -> blockPublisher.publish(event))
 					.isInstanceOf(MissingEntityException.class);
 
-			verifyNoInteractions(messagingTemplate);
+			verifyNoInteractions(publisher);
 		}
 
 		@Test
 		void eventNull() {
-			assertThatThrownBy(() -> publisher.publish(null))
+			assertThatThrownBy(() -> blockPublisher.publish(null))
 					.isInstanceOf(NullPointerException.class);
 		}
 	}
