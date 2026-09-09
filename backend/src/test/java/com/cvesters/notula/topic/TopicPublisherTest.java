@@ -57,7 +57,7 @@ class TopicPublisherTest {
 
 		@Test
 		void create() {
-			final var action = new TopicAction.Create(MEETING_ID, 3, "New");
+			final var action = new TopicAction.Create(3, "New");
 			final var event = new TopicEvent(topic, action, ORIGIN);
 
 			topicPublisher.publish(event);

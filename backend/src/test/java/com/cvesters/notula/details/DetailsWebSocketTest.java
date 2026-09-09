@@ -7,13 +7,16 @@ import static org.mockito.Mockito.when;
 
 import java.util.Collections;
 import java.util.List;
+import java.util.Optional;
 import java.util.concurrent.TimeUnit;
+import java.util.stream.Collectors;
 
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.springframework.messaging.simp.stomp.ConnectionLostException;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 
+import com.cvesters.notula.common.domain.Minutes;
 import com.cvesters.notula.common.domain.Principal;
 import com.cvesters.notula.common.exception.MissingEntityException;
 import com.cvesters.notula.details.bdo.MeetingDetails;
@@ -24,9 +27,6 @@ import com.cvesters.notula.test.FrameHandler;
 import com.cvesters.notula.test.WebSocketTest;
 import com.cvesters.notula.topic.TestTopic;
 
-import tools.jackson.databind.JsonNode;
-import tools.jackson.databind.ObjectMapper;
-
 public class DetailsWebSocketTest extends WebSocketTest {
 
 	private static final String DESTINATION_PREFIX = "/app/meetings/";
@@ -35,8 +35,6 @@ public class DetailsWebSocketTest extends WebSocketTest {
 	private static final Principal PRINCIPAL = SESSION.principal();
 	private static final TestMeeting MEETING = TestMeeting.SPORER_PROJECT;
 	private static final List<TestTopic> TOPICS = TestTopic.ofMeeting(MEETING);
-
-	private static final ObjectMapper MAPPER = new ObjectMapper();
 
 	@MockitoBean
 	private DetailsService detailsService;
@@ -66,26 +64,8 @@ public class DetailsWebSocketTest extends WebSocketTest {
 					.isNotNull()
 					.actual();
 
-			final JsonNode responseJson = MAPPER.readTree(response);
-
-			assertThat(responseJson.get("id").asLong())
-					.isEqualTo(MEETING.getId());
-			assertThat(responseJson.get("name").asString())
-					.isEqualTo(MEETING.getName());
-			assertThat(responseJson.get("description").asString())
-					.isEqualTo(MEETING.getDescription());
-			assertThat(responseJson.get("topics").size())
-					.isEqualTo(TOPICS.size());
-
-			for (int i = 0; i < TOPICS.size(); i++) {
-				final JsonNode topicJson = responseJson.get("topics").get(i);
-				assertThat(topicJson.get("id").asLong())
-						.isEqualTo(TOPICS.get(i).getId());
-				assertThat(topicJson.get("name").asString())
-						.isEqualTo(TOPICS.get(i).getName());
-				assertThat(topicJson.get("blocks").size()).isZero();
-				// TODO: add blocks!
-			}
+			assertThat(response)
+					.isEqualToIgnoringWhitespace(getResponse(MEETING, TOPICS));
 		}
 
 		@Test
@@ -94,13 +74,16 @@ public class DetailsWebSocketTest extends WebSocketTest {
 					.thenThrow(MissingEntityException.class);
 
 			connect(SESSION);
-			final FrameHandler errorFrameHandler = subscribeToErrors();
+			final FrameHandler rejections = subscribeToRejections();
 			subscribe(getDestination(MEETING.getId()));
 
-			assertThat(errorFrameHandler.getResponse())
+			assertThat(rejections.getResponse())
 					.succeedsWithin(WAIT_TIMEOUT.toSeconds(), TimeUnit.SECONDS)
 					.isNotNull()
-					.isEqualTo("Error");
+					.satisfies(rejected -> {
+						assertThat(rejected).contains("\"id\":null");
+						assertThat(rejected).doesNotContain("\"reason\":null");
+					});
 		}
 
 		@Test
@@ -117,5 +100,42 @@ public class DetailsWebSocketTest extends WebSocketTest {
 			return DESTINATION_PREFIX + meetingId;
 		}
 
+	}
+
+	private static String getResponse(final TestMeeting meeting,
+			final List<TestTopic> topics) {
+		final String topicsResponse = topics.stream()
+				.map(DetailsWebSocketTest::getResponse)
+				.collect(Collectors.joining(","));
+
+		return """
+				{
+					"description": "%s",
+					"id": %d,
+					"name": "%s",
+					"topics": [%s]
+				}
+				""".formatted(meeting.getDescription(), meeting.getId(),
+				meeting.getName(), topicsResponse);
+	}
+
+	private static String getResponse(final TestTopic topic) {
+		final String duration = Optional.ofNullable(topic.getDuration())
+				.map(Minutes::value)
+				.map(String::valueOf)
+				.orElse("null");
+
+		// TODO: add blocks!
+		return """
+				{
+					"blocks": [],
+					"description": "%s",
+					"duration": %s,
+					"id": %d,
+					"name": "%s",
+					"sequenceId": %d
+				}
+				""".formatted(topic.getDescription(), duration, topic.getId(),
+				topic.getName(), topic.getSequenceId());
 	}
 }

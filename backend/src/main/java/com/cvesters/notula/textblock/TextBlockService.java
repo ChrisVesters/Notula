@@ -33,22 +33,19 @@ public class TextBlockService {
 		this.textBlockPublisher = textBlockPublisher;
 	}
 
-	public TextBlockInfo update(final Origin origin, final long blockId,
-			final TextBlockAction.Update action) {
+	public TextBlockInfo update(final Origin origin, final long meetingId,
+			final long blockId, final TextBlockAction.Update action) {
 		Objects.requireNonNull(origin);
 		Objects.requireNonNull(action);
 
-		final long meetingId = blockService.getMeetingId(origin.principal(),
-				blockId);
-
 		return meetingLock.call(meetingId,
-				() -> doUpdate(origin, blockId, action));
+				() -> doUpdate(origin, meetingId, blockId, action));
 	}
 
-	private TextBlockInfo doUpdate(final Origin origin, final long blockId,
-			final TextBlockAction.Update action) {
+	private TextBlockInfo doUpdate(final Origin origin, final long meetingId,
+			final long blockId, final TextBlockAction.Update action) {
 		final BlockInfo blockInfo = blockService.getById(origin.principal(),
-				blockId);
+				meetingId, blockId);
 		if (blockInfo.getType() != BlockType.TEXT) {
 			throw new InvalidActionException();
 		}

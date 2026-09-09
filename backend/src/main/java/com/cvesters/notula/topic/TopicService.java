@@ -45,23 +45,29 @@ public class TopicService {
 				.orElseThrow(MissingEntityException::new);
 	}
 
-	public long getMeetingId(final Principal principal, final long topicId) {
-		return getById(principal, topicId).getMeetingId();
+	public TopicInfo getById(final Principal principal, final long meetingId,
+			final long topicId) {
+		final TopicInfo topic = getById(principal, topicId);
+		if (topic.getMeetingId() != meetingId) {
+			throw new MissingEntityException();
+		}
+
+		return topic;
 	}
 
-	public TopicInfo create(final Origin origin,
+	public TopicInfo create(final Origin origin, final long meetingId,
 			final TopicAction.Create action) {
 		Objects.requireNonNull(origin);
 		Objects.requireNonNull(action);
 
-		return meetingLock.call(action.getMeetingId(),
-				() -> doCreate(origin, action));
+		return meetingLock.call(meetingId,
+				() -> doCreate(origin, meetingId, action));
 	}
 
-	private TopicInfo doCreate(final Origin origin,
+	private TopicInfo doCreate(final Origin origin, final long meetingId,
 			final TopicAction.Create action) {
 		final MeetingInfo meeting = meetingService.getById(origin.principal(),
-				action.getMeetingId());
+				meetingId);
 
 		final List<TopicInfo> existingTopics = topicStorage
 				.findAllByMeetingId(meeting.getId());
@@ -92,20 +98,19 @@ public class TopicService {
 		return created;
 	}
 
-	public TopicInfo move(final Origin origin, final long topicId,
-			final TopicAction.Move action) {
+	public TopicInfo move(final Origin origin, final long meetingId,
+			final long topicId, final TopicAction.Move action) {
 		Objects.requireNonNull(origin);
 		Objects.requireNonNull(action);
 
-		final long meetingId = getMeetingId(origin.principal(), topicId);
-
 		return meetingLock.call(meetingId,
-				() -> doMove(origin, topicId, action));
+				() -> doMove(origin, meetingId, topicId, action));
 	}
 
-	private TopicInfo doMove(final Origin origin, final long topicId,
-			final TopicAction.Move action) {
-		final TopicInfo topic = getById(origin.principal(), topicId);
+	private TopicInfo doMove(final Origin origin, final long meetingId,
+			final long topicId, final TopicAction.Move action) {
+		final TopicInfo topic = getById(origin.principal(), meetingId,
+				topicId);
 		final int from = topic.getSequenceId();
 		final int to = action.getSequenceId();
 		final int direction = Integer.signum(to - from);
@@ -145,20 +150,19 @@ public class TopicService {
 		return topic;
 	}
 
-	public TopicInfo update(final Origin origin, final long topicId,
-			final TopicAction.Update action) {
+	public TopicInfo update(final Origin origin, final long meetingId,
+			final long topicId, final TopicAction.Update action) {
 		Objects.requireNonNull(origin);
 		Objects.requireNonNull(action);
 
-		final long meetingId = getMeetingId(origin.principal(), topicId);
-
 		return meetingLock.call(meetingId,
-				() -> doUpdate(origin, topicId, action));
+				() -> doUpdate(origin, meetingId, topicId, action));
 	}
 
-	private TopicInfo doUpdate(final Origin origin, final long topicId,
-			final TopicAction.Update action) {
-		final TopicInfo topicInfo = getById(origin.principal(), topicId);
+	private TopicInfo doUpdate(final Origin origin, final long meetingId,
+			final long topicId, final TopicAction.Update action) {
+		final TopicInfo topicInfo = getById(origin.principal(), meetingId,
+				topicId);
 		action.apply(topicInfo);
 		final TopicInfo updated = topicStorage.update(topicInfo);
 
@@ -168,16 +172,17 @@ public class TopicService {
 		return updated;
 	}
 
-	public void delete(final Origin origin, final long topicId) {
+	public void delete(final Origin origin, final long meetingId,
+			final long topicId) {
 		Objects.requireNonNull(origin);
 
-		final long meetingId = getMeetingId(origin.principal(), topicId);
-
-		meetingLock.run(meetingId, () -> doDelete(origin, topicId));
+		meetingLock.run(meetingId, () -> doDelete(origin, meetingId, topicId));
 	}
 
-	private void doDelete(final Origin origin, final long topicId) {
-		final TopicInfo topicInfo = getById(origin.principal(), topicId);
+	private void doDelete(final Origin origin, final long meetingId,
+			final long topicId) {
+		final TopicInfo topicInfo = getById(origin.principal(), meetingId,
+				topicId);
 		topicStorage.delete(topicInfo);
 
 		final var events = new ArrayList<TopicEvent>();

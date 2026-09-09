@@ -21,7 +21,7 @@ public class SessionOrder {
 
 	private final Map<String, Semaphore> sessions = new ConcurrentHashMap<>();
 
-	SessionOrder(@Value("${websocket.order.timeout}") final Duration timeout) {
+	public SessionOrder(@Value("${websocket.order.timeout}") final Duration timeout) {
 		Objects.requireNonNull(timeout);
 
 		this.timeout = timeout;
@@ -60,9 +60,5 @@ public class SessionOrder {
 		}
 
 		turn.release();
-	}
-
-	int tracked() {
-		return sessions.size();
 	}
 }

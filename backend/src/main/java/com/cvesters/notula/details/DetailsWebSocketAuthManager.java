@@ -24,7 +24,7 @@ public class DetailsWebSocketAuthManager extends WebSocketAuthManager {
 	}
 
 	@Override
-	public boolean hasAccess(final Principal principal,
+	protected boolean hasAccess(final Principal principal,
 			final MessageAuthorizationContext<?> context) {
 		return Optional.ofNullable(context.getVariables().get("id"))
 				.map(Long::parseLong)

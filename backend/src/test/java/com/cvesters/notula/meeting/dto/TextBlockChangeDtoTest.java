@@ -1,4 +1,4 @@
-package com.cvesters.notula.textblock.dto;
+package com.cvesters.notula.meeting.dto;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -9,20 +9,23 @@ import com.cvesters.notula.block.TestBlock;
 import com.cvesters.notula.textblock.TextBlockActionMatcher;
 import com.cvesters.notula.textblock.bdo.TextBlockAction;
 
-class TextBlockActionDtoTest {
+class TextBlockChangeDtoTest {
 
 	private static final TestBlock BLOCK = TestBlock.SPORER_PROJECT_BLOCKERS_FIRST;
 
 	@Nested
-	class UpdateContent {
+	class Edit {
+
+		private static final TextEditDto EDIT = new TextEditDto(4, 12,
+				"Updated");
 
 		@Test
 		void toBdo() {
-			final var dto = new TextBlockActionDto.Update.Content(BLOCK.getId(),
-					5, 2, "Updated");
-			final TextBlockAction.Update bdo = dto.toBdo();
+			final var dto = new TextBlockChangeDto.Edit(BLOCK.getId(), EDIT);
 
-			final var expected = new TextBlockAction.UpdateContent(5, 2,
+			final TextBlockAction.UpdateContent bdo = dto.toBdo();
+
+			final var expected = new TextBlockAction.UpdateContent(4, 12,
 					"Updated");
 			final var matcher = new TextBlockActionMatcher.UpdateContent(
 					expected);

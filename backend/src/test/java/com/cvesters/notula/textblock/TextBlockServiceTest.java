@@ -51,6 +51,8 @@ class TextBlockServiceTest {
 				CLIENT_ID);
 		private static final TestTextBlock TEXT_BLOCK = TestTextBlock.SPORER_PROJECT_BLOCKERS_FIRST;
 		private static final TestBlock BLOCK = TestBlock.SPORER_PROJECT_BLOCKERS_FIRST;
+		private static final long MEETING_ID = BLOCK.getTopic().getMeeting()
+				.getId();
 
 		@Test
 		void success() {
@@ -58,7 +60,7 @@ class TextBlockServiceTest {
 			final long blockId = BLOCK.getId();
 
 			final BlockInfo blockInfo = BLOCK.info();
-			when(blockService.getById(principal, blockId))
+			when(blockService.getById(principal, MEETING_ID, blockId))
 					.thenReturn(blockInfo);
 
 			final TextBlockInfo textBlockInfo = TEXT_BLOCK.info();
@@ -75,7 +77,7 @@ class TextBlockServiceTest {
 			final var action = new TextBlockAction.UpdateContent(0, 0,
 					"Project ");
 			final TextBlockInfo result = textBlockService.update(ORIGIN,
-					blockId, action);
+					MEETING_ID, blockId, action);
 
 			assertThat(result).isEqualTo(updated);
 
@@ -93,7 +95,7 @@ class TextBlockServiceTest {
 			final long blockId = BLOCK.getId();
 
 			final BlockInfo blockInfo = BLOCK.info();
-			when(blockService.getById(principal, blockId))
+			when(blockService.getById(principal, MEETING_ID, blockId))
 					.thenReturn(blockInfo);
 
 			when(textBlockStorageGateway.find(blockId))
@@ -109,7 +111,7 @@ class TextBlockServiceTest {
 			final var action = new TextBlockAction.UpdateContent(0, 0,
 					"Project");
 			final TextBlockInfo result = textBlockService.update(ORIGIN,
-					blockId, action);
+					MEETING_ID, blockId, action);
 
 			assertThat(result).isEqualTo(updated);
 
@@ -128,13 +130,14 @@ class TextBlockServiceTest {
 
 			final BlockInfo blockInfo = mock();
 			when(blockInfo.getType()).thenReturn(null);
-			when(blockService.getById(principal, blockId))
+			when(blockService.getById(principal, MEETING_ID, blockId))
 					.thenReturn(blockInfo);
 
 			final var action = new TextBlockAction.UpdateContent(0, 0,
 					"Project ");
 			assertThatThrownBy(
-					() -> textBlockService.update(ORIGIN, blockId, action))
+					() -> textBlockService.update(ORIGIN, MEETING_ID,
+							blockId, action))
 							.isInstanceOf(InvalidActionException.class);
 
 			verifyNoInteractions(textBlockStorageGateway);
@@ -149,7 +152,8 @@ class TextBlockServiceTest {
 					"Project ");
 
 			assertThatThrownBy(
-					() -> textBlockService.update(null, blockId, action))
+					() -> textBlockService.update(null, MEETING_ID,
+							blockId, action))
 							.isInstanceOf(NullPointerException.class);
 		}
 
@@ -158,24 +162,20 @@ class TextBlockServiceTest {
 			final long blockId = BLOCK.getId();
 
 			assertThatThrownBy(
-					() -> textBlockService.update(ORIGIN, blockId, null))
+					() -> textBlockService.update(ORIGIN, MEETING_ID,
+							blockId, null))
 							.isInstanceOf(NullPointerException.class);
 		}
 
 		@Test
 		void serialised() {
-			final long meetingId = 7L;
-
-			when(blockService.getMeetingId(ORIGIN.principal(), BLOCK.getId()))
-					.thenReturn(meetingId);
-
 			TestMeetingLock.withhold(meetingLock);
 
 			final var action = new TextBlockAction.UpdateContent(0, 0, "text");
 
-			textBlockService.update(ORIGIN, BLOCK.getId(), action);
+			textBlockService.update(ORIGIN, MEETING_ID, BLOCK.getId(), action);
 
-			verify(meetingLock).call(eq(meetingId), any());
+			verify(meetingLock).call(eq(MEETING_ID), any());
 			verifyNoInteractions(textBlockStorageGateway);
 		}
 	}

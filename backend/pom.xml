@@ -211,7 +211,9 @@
 					</dependency>
 				</dependencies>
 				<configuration>
-					<argLine>--enable-final-field-mutation=ALL-UNNAMED</argLine>
+					<parseSurefireConfig>false</parseSurefireConfig>
+					<argLine>--enable-final-field-mutation=ALL-UNNAMED
+						-javaagent:${org.mockito:mockito-core:jar}</argLine>
 				</configuration>
 			</plugin>
 		</plugins>

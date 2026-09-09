@@ -121,8 +121,8 @@ class WebSocketAuthManagerTest {
 		}
 
 		@Override
-		public boolean hasAccess(Principal principal,
-				MessageAuthorizationContext<?> context) {
+		protected boolean hasAccess(final Principal principal,
+				final MessageAuthorizationContext<?> context) {
 			return principal.userId() == TestUser.EDUARDO_CHRISTIANSEN.getId();
 		}
 	}

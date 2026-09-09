@@ -45,28 +45,27 @@ public class BlockService {
 				.orElseThrow(MissingEntityException::new);
 	}
 
-	public long getMeetingId(final Principal principal, final long blockId) {
+	public BlockInfo getById(final Principal principal, final long meetingId,
+			final long blockId) {
 		final BlockInfo block = getById(principal, blockId);
+		topicService.getById(principal, meetingId, block.getTopicId());
 
-		return topicService.getMeetingId(principal, block.getTopicId());
+		return block;
 	}
 
-	public BlockInfo create(final Origin origin,
+	public BlockInfo create(final Origin origin, final long meetingId,
 			final BlockAction.Create action) {
 		Objects.requireNonNull(origin);
 		Objects.requireNonNull(action);
 
-		final long meetingId = topicService.getMeetingId(origin.principal(),
-				action.getTopicId());
-
 		return meetingLock.call(meetingId,
-				() -> doCreate(origin, action));
+				() -> doCreate(origin, meetingId, action));
 	}
 
-	private BlockInfo doCreate(final Origin origin,
+	private BlockInfo doCreate(final Origin origin, final long meetingId,
 			final BlockAction.Create action) {
 		final TopicInfo topic = topicService.getById(origin.principal(),
-				action.getTopicId());
+				meetingId, action.getTopicId());
 
 		final List<BlockInfo> existingBlocks = blockStorage
 				.findAllByTopicId(topic.getId());
@@ -97,20 +96,19 @@ public class BlockService {
 		return created;
 	}
 
-	public BlockInfo move(final Origin origin, final long blockId,
-			final BlockAction.Move action) {
+	public BlockInfo move(final Origin origin, final long meetingId,
+			final long blockId, final BlockAction.Move action) {
 		Objects.requireNonNull(origin);
 		Objects.requireNonNull(action);
 
-		final long meetingId = getMeetingId(origin.principal(), blockId);
-
 		return meetingLock.call(meetingId,
-				() -> doMove(origin, blockId, action));
+				() -> doMove(origin, meetingId, blockId, action));
 	}
 
-	private BlockInfo doMove(final Origin origin, final long blockId,
-			final BlockAction.Move action) {
-		final BlockInfo block = getById(origin.principal(), blockId);
+	private BlockInfo doMove(final Origin origin, final long meetingId,
+			final long blockId, final BlockAction.Move action) {
+		final BlockInfo block = getById(origin.principal(), meetingId,
+				blockId);
 		final int from = block.getSequenceId();
 		final int to = action.getSequenceId();
 		final int direction = Integer.signum(to - from);
@@ -150,17 +148,18 @@ public class BlockService {
 		return block;
 	}
 
-	public void delete(final Origin origin, final long blockId) {
+	public void delete(final Origin origin, final long meetingId,
+			final long blockId) {
 		Objects.requireNonNull(origin);
 
-		final long meetingId = getMeetingId(origin.principal(), blockId);
-
 		meetingLock.run(meetingId,
-				() -> doDelete(origin, blockId));
+				() -> doDelete(origin, meetingId, blockId));
 	}
 
-	private void doDelete(final Origin origin, final long blockId) {
-		final BlockInfo blockInfo = getById(origin.principal(), blockId);
+	private void doDelete(final Origin origin, final long meetingId,
+			final long blockId) {
+		final BlockInfo blockInfo = getById(origin.principal(), meetingId,
+				blockId);
 		blockStorage.delete(blockInfo);
 
 		final var events = new ArrayList<BlockEvent>();

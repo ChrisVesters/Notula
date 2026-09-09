@@ -44,7 +44,7 @@ public abstract class WebSocketAuthManager
 		return null;
 	}
 
-	public abstract boolean hasAccess(final Principal principal,
+	protected abstract boolean hasAccess(final Principal principal,
 			final MessageAuthorizationContext<?> context);
 
 }

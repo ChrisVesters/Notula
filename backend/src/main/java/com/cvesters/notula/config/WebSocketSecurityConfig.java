@@ -31,7 +31,7 @@ public class WebSocketSecurityConfig {
 
 	@Bean
 	AuthorizationManager<Message<?>> messageAuthorizationManager(
-			MessageMatcherDelegatingAuthorizationManager.Builder messages) {
+			final MessageMatcherDelegatingAuthorizationManager.Builder messages) {
 
 		messages.simpTypeMatchers(SimpMessageType.CONNECT).permitAll();
 		messages.simpTypeMatchers(SimpMessageType.HEARTBEAT).permitAll();

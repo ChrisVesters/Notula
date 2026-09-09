@@ -18,7 +18,7 @@ import org.springframework.messaging.support.MessageBuilder;
 class SessionOrderInterceptorTest {
 
 	private static final String SESSION_ID = "session";
-	private static final String ACTION = "/app/topics/create";
+	private static final String ACTION = "/app/meetings/1/changes";
 	private static final String BROADCAST = "/topic/meetings/1";
 
 	private final SessionOrder order = mock();
@@ -44,7 +44,7 @@ class SessionOrderInterceptorTest {
 	class PreSend {
 
 		@Test
-		void actionWaitsForItsTurn() {
+		void success() {
 			final Message<?> message = action();
 
 			final Message<?> result = interceptor.preSend(message, channel);
@@ -55,43 +55,56 @@ class SessionOrderInterceptorTest {
 
 		@Test
 		void noSessionId() {
-			interceptor.preSend(message(StompCommand.SEND, null, ACTION),
-					channel);
+			final Message<?> message = message(StompCommand.SEND, null,
+					ACTION);
 
+			final Message<?> result = interceptor.preSend(message, channel);
+
+			assertThat(result).isEqualTo(message);
 			verifyNoInteractions(order);
 		}
 
 		@Test
-		void subscribeIsNotOrdered() {
-			interceptor.preSend(message(StompCommand.SUBSCRIBE, SESSION_ID,
-					BROADCAST), channel);
+		void subscribe() {
+			final Message<?> message = message(StompCommand.SUBSCRIBE,
+					SESSION_ID, BROADCAST);
 
+			final Message<?> result = interceptor.preSend(message, channel);
+
+			assertThat(result).isEqualTo(message);
 			verifyNoInteractions(order);
 		}
 
 		@Test
-		void broadcastDestinationIsNotOrdered() {
-			interceptor.preSend(
-					message(StompCommand.SEND, SESSION_ID, BROADCAST),
-					channel);
+		void broadcast() {
+			final Message<?> message = message(StompCommand.SEND, SESSION_ID,
+					BROADCAST);
 
+			final Message<?> result = interceptor.preSend(message, channel);
+
+			assertThat(result).isEqualTo(message);
 			verifyNoInteractions(order);
 		}
 
 		@Test
-		void missingDestinationIsNotOrdered() {
-			interceptor.preSend(message(StompCommand.SEND, SESSION_ID, null),
-					channel);
+		void noDestination() {
+			final Message<?> message = message(StompCommand.SEND, SESSION_ID,
+					null);
 
+			final Message<?> result = interceptor.preSend(message, channel);
+
+			assertThat(result).isEqualTo(message);
 			verifyNoInteractions(order);
 		}
 
 		@Test
-		void disconnectForgetsTheSession() {
-			interceptor.preSend(
-					message(StompCommand.DISCONNECT, SESSION_ID, null),
-					channel);
+		void disconnect() {
+			final Message<?> message = message(StompCommand.DISCONNECT,
+					SESSION_ID, null);
 
+			final Message<?> result = interceptor.preSend(message, channel);
+
+			assertThat(result).isEqualTo(message);
 			verify(order).forget(SESSION_ID);
 		}
 	}
@@ -102,14 +115,14 @@ class SessionOrderInterceptorTest {
 		private final SimpAnnotationMethodMessageHandler actions = mock();
 
 		@Test
-		void letsTheNextActionThrough() {
+		void success() {
 			interceptor.afterMessageHandled(action(), channel, actions, null);
 
 			verify(order).release(SESSION_ID);
 		}
 
 		@Test
-		void handedBackEvenWhenTheActionFailed() {
+		void failed() {
 			interceptor.afterMessageHandled(action(), channel, actions,
 					new IllegalStateException());
 
@@ -117,7 +130,7 @@ class SessionOrderInterceptorTest {
 		}
 
 		@Test
-		void otherHandlersDoNotHandItBack() {
+		void otherHandler() {
 			final MessageHandler broker = mock();
 
 			interceptor.afterMessageHandled(action(), channel, broker, null);
@@ -126,7 +139,7 @@ class SessionOrderInterceptorTest {
 		}
 
 		@Test
-		void broadcastDestinationDoesNotHandItBack() {
+		void broadcast() {
 			interceptor.afterMessageHandled(
 					message(StompCommand.SEND, SESSION_ID, BROADCAST), channel,
 					actions, null);

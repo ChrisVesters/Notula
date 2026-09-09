@@ -1,0 +1,29 @@
+package com.cvesters.notula.meeting.dto;
+
+import jakarta.validation.Valid;
+import jakarta.validation.constraints.NotNull;
+
+import com.fasterxml.jackson.annotation.JsonUnwrapped;
+
+import com.cvesters.notula.meeting.bdo.MeetingAction;
+
+public sealed interface MeetingChangeDto extends ChangeDto {
+
+	MeetingAction.Update toBdo();
+
+	record Rename(@NotNull @Valid @JsonUnwrapped TextEditDto edit)
+			implements MeetingChangeDto {
+		public MeetingAction.UpdateName toBdo() {
+			return new MeetingAction.UpdateName(edit.position(), edit.length(),
+					edit.value());
+		}
+	}
+
+	record Describe(@NotNull @Valid @JsonUnwrapped TextEditDto edit)
+			implements MeetingChangeDto {
+		public MeetingAction.UpdateDescription toBdo() {
+			return new MeetingAction.UpdateDescription(edit.position(),
+					edit.length(), edit.value());
+		}
+	}
+}

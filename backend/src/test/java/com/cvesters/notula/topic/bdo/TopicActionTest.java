@@ -19,16 +19,12 @@ class TopicActionTest {
 	@Nested
 	class Create {
 
-		private static final long MEETING_ID = 12L;
-
 		@Test
 		void success() {
 			final int sequenceId = 0;
 			final String name = "Name";
-			final var action = new TopicAction.Create(MEETING_ID, sequenceId,
-					name);
+			final var action = new TopicAction.Create(sequenceId, name);
 
-			assertThat(action.getMeetingId()).isEqualTo(MEETING_ID);
 			assertThat(action.getSequenceId()).isEqualTo(sequenceId);
 			assertThat(action.getName()).isEqualTo(name);
 		}
@@ -38,7 +34,7 @@ class TopicActionTest {
 			final int sequenceId = -1;
 			final String name = "Name";
 			assertThatThrownBy(
-					() -> new TopicAction.Create(MEETING_ID, sequenceId, name))
+					() -> new TopicAction.Create(sequenceId, name))
 							.isInstanceOf(IllegalArgumentException.class);
 		}
 
@@ -47,7 +43,7 @@ class TopicActionTest {
 			final int sequenceId = 0;
 			final String name = null;
 			assertThatThrownBy(
-					() -> new TopicAction.Create(MEETING_ID, sequenceId, name))
+					() -> new TopicAction.Create(sequenceId, name))
 							.isInstanceOf(NullPointerException.class);
 		}
 	}

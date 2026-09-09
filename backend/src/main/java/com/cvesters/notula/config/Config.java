@@ -27,7 +27,7 @@ public class Config {
 
 	@Bean
 	TaskScheduler webSocketTaskScheduler() {
-		ThreadPoolTaskScheduler scheduler = new ThreadPoolTaskScheduler();
+		final ThreadPoolTaskScheduler scheduler = new ThreadPoolTaskScheduler();
 		scheduler.setPoolSize(2);
 		scheduler.setThreadNamePrefix("ws-heartbeat-");
 		scheduler.initialize();

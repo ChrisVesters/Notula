@@ -26,6 +26,7 @@ class JwtAuthConverterTest {
 		assertThat(token.isAuthenticated()).isTrue();
 		assertThat(Long.parseLong(token.getName()))
 				.isEqualTo(session.getUser().getId());
+		assertThat(token.getCredentials()).isNull();
 		assertThat(token.getPrincipal()).isEqualTo(session.principal());
 		assertThat(token.getAuthorities())
 				.extracting(GrantedAuthority::getAuthority)
@@ -42,6 +43,7 @@ class JwtAuthConverterTest {
 		assertThat(token.isAuthenticated()).isTrue();
 		assertThat(Long.parseLong(token.getName()))
 				.isEqualTo(session.getUser().getId());
+		assertThat(token.getCredentials()).isNull();
 		assertThat(token.getPrincipal()).isEqualTo(session.principal());
 		assertThat(token.getAuthorities())
 				.extracting(GrantedAuthority::getAuthority)
@@ -58,6 +60,7 @@ class JwtAuthConverterTest {
 		assertThat(token.isAuthenticated()).isTrue();
 		assertThat(Long.parseLong(token.getName()))
 				.isEqualTo(session.getUser().getId());
+		assertThat(token.getCredentials()).isNull();
 		assertThat(token.getPrincipal()).isEqualTo(session.principal());
 		assertThat(token.getAuthorities())
 				.extracting(GrantedAuthority::getAuthority)

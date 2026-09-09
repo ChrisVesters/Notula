@@ -26,7 +26,7 @@ class TopicEventTest {
 		@Test
 		void success() {
 			final TopicInfo topic = mock();
-			final var action = new TopicAction.Create(12L, 0, "New");
+			final var action = new TopicAction.Create(0, "New");
 			final var event = new TopicEvent(topic, action, ORIGIN);
 
 			assertThat(event.topic()).isEqualTo(topic);
@@ -36,7 +36,7 @@ class TopicEventTest {
 
 		@Test
 		void topicNull() {
-			final var action = new TopicAction.Create(12L, 0, "New");
+			final var action = new TopicAction.Create(0, "New");
 
 			assertThatThrownBy(() -> new TopicEvent(null, action, ORIGIN))
 					.isInstanceOf(NullPointerException.class);
@@ -53,7 +53,7 @@ class TopicEventTest {
 		@Test
 		void originNull() {
 			final TopicInfo topic = mock();
-			final var action = new TopicAction.Create(12L, 0, "New");
+			final var action = new TopicAction.Create(0, "New");
 
 			assertThatThrownBy(() -> new TopicEvent(topic, action, null))
 					.isInstanceOf(NullPointerException.class);

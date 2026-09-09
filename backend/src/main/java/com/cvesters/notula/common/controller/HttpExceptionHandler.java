@@ -11,6 +11,7 @@ import org.springframework.web.bind.annotation.ExceptionHandler;
 
 import lombok.extern.slf4j.Slf4j;
 
+import com.cvesters.notula.common.exception.BusyEntityException;
 import com.cvesters.notula.common.exception.DuplicateEntityException;
 import com.cvesters.notula.common.exception.InvalidActionException;
 import com.cvesters.notula.common.exception.MissingEntityException;
@@ -56,6 +57,11 @@ public class HttpExceptionHandler { // extends ResponseEntityExceptionHandler {
 	public ResponseEntity<Void> handle(
 			final MethodArgumentNotValidException e) {
 		return ResponseEntity.badRequest().build();
+	}
+
+	@ExceptionHandler(BusyEntityException.class)
+	public ResponseEntity<Void> handle(final BusyEntityException e) {
+		return ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE).build();
 	}
 
 	@ExceptionHandler(Exception.class)

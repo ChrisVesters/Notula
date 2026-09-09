@@ -128,7 +128,7 @@ public class SessionService {
 		return new SessionTokens(session, accessToken, newToken);
 	}
 
-	public void delete(final Principal principal, long sessionId) {
+	public void delete(final Principal principal, final long sessionId) {
 		Objects.requireNonNull(principal);
 
 		final SessionInfo bdo = sessionStorage.findById(sessionId)

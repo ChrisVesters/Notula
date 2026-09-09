@@ -26,6 +26,8 @@ import org.springframework.transaction.PlatformTransactionManager;
 import org.springframework.transaction.support.SimpleTransactionStatus;
 import org.springframework.transaction.support.TransactionTemplate;
 
+import com.cvesters.notula.common.exception.BusyEntityException;
+
 class MeetingLockTest {
 
 	/** A ceiling on waiting for something that is supposed to happen. */
@@ -47,7 +49,7 @@ class MeetingLockTest {
 	class Call {
 
 		@Test
-		void returnsResult() {
+		void result() {
 			final String result = meetingLock.call(MEETING_ID, () -> "result");
 
 			assertThat(result).isEqualTo("result");
@@ -72,7 +74,7 @@ class MeetingLockTest {
 		}
 
 		@Test
-		void heldUntilCommitted() {
+		void duringCommit() {
 			final PlatformTransactionManager manager = mock();
 			when(manager.getTransaction(any()))
 					.thenReturn(new SimpleTransactionStatus());
@@ -102,7 +104,7 @@ class MeetingLockTest {
 		}
 
 		@Test
-		void releasedAfterFailure() throws Exception {
+		void failure() throws Exception {
 			assertThatThrownBy(() -> meetingLock.call(MEETING_ID, () -> {
 				throw new IllegalStateException("failed");
 			})).isInstanceOf(IllegalStateException.class);
@@ -127,7 +129,7 @@ class MeetingLockTest {
 						});
 
 						return true;
-					} catch (final IllegalStateException e) {
+					} catch (final BusyEntityException e) {
 						return false;
 					}
 				}).get(TIMEOUT.toSeconds(), TimeUnit.SECONDS);
@@ -141,7 +143,7 @@ class MeetingLockTest {
 	class Run {
 
 		@Test
-		void waitsItsTurn() throws Exception {
+		void sameMeeting() throws Exception {
 			final var applied = new CopyOnWriteArrayList<String>();
 
 			final var inside = new CountDownLatch(1);
@@ -180,7 +182,7 @@ class MeetingLockTest {
 		}
 
 		@Test
-		void otherMeetingsUnaffected() throws Exception {
+		void otherMeeting() throws Exception {
 			final var inFirst = new CountDownLatch(1);
 			final var inSecond = new CountDownLatch(1);
 
@@ -211,7 +213,22 @@ class MeetingLockTest {
 		}
 
 		@Test
-		void forgottenWhenDone() {
+		void interrupted() {
+			Thread.currentThread().interrupt();
+			try {
+				assertThatThrownBy(() -> meetingLock.run(MEETING_ID, () -> {
+					// never reached
+				})).isInstanceOf(BusyEntityException.class)
+						.hasMessageContaining("Interrupted");
+
+				assertThat(Thread.currentThread().isInterrupted()).isTrue();
+			} finally {
+				Thread.interrupted();
+			}
+		}
+
+		@Test
+		void forgotten() {
 			meetingLock.run(MEETING_ID,
 					() -> assertThat(meetingLock.claimed()).isEqualTo(1));
 			meetingLock.run(OTHER_MEETING_ID, () -> {
@@ -222,7 +239,7 @@ class MeetingLockTest {
 		}
 
 		@Test
-		void refusedWhenHeldTooLong() throws Exception {
+		void timeout() throws Exception {
 			final var impatient = new MeetingLock(transactions(), NEVER_WAITS);
 
 			final var held = new CountDownLatch(1);
@@ -238,7 +255,7 @@ class MeetingLockTest {
 
 				assertThatThrownBy(
 						() -> impatient.run(MEETING_ID, () -> { /* never */ }))
-						.isInstanceOf(IllegalStateException.class)
+						.isInstanceOf(BusyEntityException.class)
 						.hasMessageContaining("Timed out");
 			} finally {
 				release.countDown();

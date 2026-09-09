@@ -25,36 +25,6 @@ class MeetingActionDtoTest {
 		}
 	}
 
-	@Nested
-	class UpdateName {
 
-		@Test
-		void toBdo() {
-			final var dto = new MeetingActionDto.Update.Name(MEETING.getId(), 5,
-					2, "Updated");
-			final MeetingAction.Update bdo = dto.toBdo();
-
-			final var expected = new MeetingAction.UpdateName(5, 2, "Updated");
-			final var matcher = new MeetingActionMatcher.UpdateName(expected);
-			assertThat(bdo).is(matcher.equal());
-		}
-	}
-
-	@Nested
-	class UpdateDescription {
-
-		@Test
-		void toBdo() {
-			final var dto = new MeetingActionDto.Update.Description(
-					MEETING.getId(), 10, 3, "New description");
-			final MeetingAction.Update bdo = dto.toBdo();
-
-			final var expected = new MeetingAction.UpdateDescription(10, 3,
-					"New description");
-			final var matcher = new MeetingActionMatcher.UpdateDescription(
-					expected);
-			assertThat(bdo).is(matcher.equal());
-		}
-	}
 
 }

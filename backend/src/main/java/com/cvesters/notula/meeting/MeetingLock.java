@@ -12,6 +12,8 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.support.TransactionTemplate;
 
+import com.cvesters.notula.common.exception.BusyEntityException;
+
 // TODO: cleanup
 @Component
 public class MeetingLock {
@@ -82,13 +84,13 @@ public class MeetingLock {
 	private void lock(final ReentrantLock lock, final long meetingId) {
 		try {
 			if (!lock.tryLock(timeout.toMillis(), TimeUnit.MILLISECONDS)) {
-				throw new IllegalStateException(
+				throw new BusyEntityException(
 						"Timed out waiting for meeting " + meetingId);
 			}
 		} catch (final InterruptedException e) {
 			Thread.currentThread().interrupt();
 
-			throw new IllegalStateException(
+			throw new BusyEntityException(
 					"Interrupted waiting for meeting " + meetingId, e);
 		}
 	}

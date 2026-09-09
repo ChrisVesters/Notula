@@ -5,349 +5,264 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.timeout;
 import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
 import java.nio.charset.StandardCharsets;
+import java.util.UUID;
 import java.util.concurrent.TimeUnit;
-import java.util.stream.Stream;
 
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.params.ParameterizedTest;
-import org.junit.jupiter.params.provider.Arguments;
-import org.junit.jupiter.params.provider.MethodSource;
-import org.junit.jupiter.params.provider.ValueSource;
-import org.springframework.messaging.simp.stomp.ConnectionLostException;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 
+import com.cvesters.notula.block.BlockService;
 import com.cvesters.notula.common.domain.Origin;
+import com.cvesters.notula.common.domain.TextUpdate;
+import com.cvesters.notula.common.exception.BusyEntityException;
 import com.cvesters.notula.common.exception.MissingEntityException;
-import com.cvesters.notula.meeting.bdo.MeetingAction;
 import com.cvesters.notula.session.TestSession;
 import com.cvesters.notula.test.FrameHandler;
 import com.cvesters.notula.test.WebSocketTest;
+import com.cvesters.notula.textblock.TextBlockService;
+import com.cvesters.notula.topic.TopicService;
 
 class MeetingWebSocketTest extends WebSocketTest {
 
-	private static final String DESTINATION_PREFIX = "/app/meetings";
+	private static final TestSession SESSION =
+			TestSession.EDUARDO_CHRISTIANSEN_SPORER;
 
-	private static final TestSession SESSION = TestSession.EDUARDO_CHRISTIANSEN_SPORER;
 	private static final Origin ORIGIN = new Origin(SESSION.principal(),
 			CLIENT_ID);
+
 	private static final TestMeeting MEETING = TestMeeting.SPORER_PROJECT;
+
+	private static final String ENDPOINT =
+			"/app/meetings/" + MEETING.getId() + "/changes";
+
+	private static final UUID CHANGE_ID = UUID
+			.fromString("7c6f0d54-2f70-4a1e-9f5a-1d4c8b2e0a11");
+
+	@MockitoBean
+	private TopicService topicService;
+
+	@MockitoBean
+	private BlockService blockService;
+
+	@MockitoBean
+	private TextBlockService textBlockService;
 
 	@MockitoBean
 	private MeetingService meetingService;
 
-	@Nested
-	class UpdateName {
-
-		private static final String ENDPOINT = DESTINATION_PREFIX + "/update";
-
-		@ParameterizedTest
-		@ValueSource(strings = { "meet", "!@#$%^&*(){}[]|;'<>,.?/",
-				"Встреча: 你好 مرحبا" })
-		void success(final String name) throws Exception {
-			final byte[] payload = getRequestPayload(MEETING.getId(), name);
-
-			connect(SESSION);
-			send(ENDPOINT, payload);
-
-			final var expected = new MeetingAction.UpdateName(5, 2, name);
-			final var matcher = new MeetingActionMatcher.UpdateName(expected);
-			verify(meetingService, timeout(WAIT_TIMEOUT.toMillis())).update(
-					eq(ORIGIN), eq(MEETING.getId()),
-					argThat(matcher::matches));
-		}
-
-		@Test
-		void notFound() throws Exception {
-			final var meeting = TestMeeting.SPORER_PROJECT;
-			final byte[] payload = getRequestPayload(MEETING.getId(),
-					meeting.getName());
-
-			when(meetingService.update(any(), anyLong(), any()))
-					.thenThrow(new MissingEntityException());
-
-			connect(SESSION);
-			final FrameHandler errorFrameHandler = subscribeToErrors();
-			send(ENDPOINT, payload);
-
-			assertThat(errorFrameHandler.getResponse())
-					.succeedsWithin(WAIT_TIMEOUT.toSeconds(), TimeUnit.SECONDS)
-					.isNotNull()
-					.satisfies(
-							message -> assertThat(message).startsWith("Error"));
-		}
-
-		@Test
-		void unauthenticated() throws Exception {
-			final byte[] payload = getRequestPayload(MEETING.getId(),
-					"meeting");
-
-			connect();
-			send(ENDPOINT, payload);
-
-			assertThat(stompSessionHandler.getError())
-					.succeedsWithin(WAIT_TIMEOUT.toSeconds(), TimeUnit.SECONDS)
-					.isInstanceOf(ConnectionLostException.class);
-		}
-
-		@ParameterizedTest(name = "[{index}] {0}")
-		@MethodSource("invalidPayloadCases")
-		void invalidPayload(final String name, final String body)
-				throws Exception {
-			final byte[] payload = body.getBytes(StandardCharsets.UTF_8);
-
-			connect(SESSION);
-			final FrameHandler errorFrameHandler = subscribeToErrors();
-			send(ENDPOINT, payload);
-
-			assertThat(errorFrameHandler.getResponse())
-					.succeedsWithin(WAIT_TIMEOUT.toSeconds(), TimeUnit.SECONDS)
-					.isNotNull()
-					.satisfies(
-							message -> assertThat(message).startsWith("Error"));
-
-			verifyNoInteractions(meetingService);
-		}
-
-		private static Stream<Arguments> invalidPayloadCases() {
-			return Stream.of(Arguments.of("meetingId missing", """
-					{
-						"action": "UPDATE_NAME",
-						"position": 5,
-						"length": 2,
-						"value": "meeting"
-					}
-					"""), Arguments.of("position missing", """
-					{
-						"meetingId": 1,
-						"action": "UPDATE_NAME",
-						"length": 2,
-						"value": "meeting"
-					}
-					"""), Arguments.of("length missing", """
-					{
-						"meetingId": 1,
-						"action": "UPDATE_NAME",
-						"position": 5,
-						"value": "meeting"
-					}
-					"""), Arguments.of("value missing", """
-					{
-						"meetingId": 1,
-						"action": "UPDATE_NAME",
-						"position": 5,
-						"length": 2
-					}
-					"""), Arguments.of("meetingId null", """
-					{
-						"meetingId": null,
-						"action": "UPDATE_NAME",
-						"position": 5,
-						"length": 2,
-						"value": "meeting"
-					}
-					"""), Arguments.of("position negative", """
-					{
-						"meetingId": 1,
-						"action": "UPDATE_NAME",
-						"position": -1,
-						"length": 2,
-						"value": "meeting"
-					}
-					"""), Arguments.of("length negative", """
-					{
-						"meetingId": 1,
-						"action": "UPDATE_NAME",
-						"position": 5,
-						"length": -2,
-						"value": "meeting"
-					}
-					"""), Arguments.of("value null", """
-					{
-						"meetingId": 1,
-						"action": "UPDATE_NAME",
-						"position": 5,
-						"length": 2,
-						"value": null
-					}
-					"""));
-		}
-
-		private byte[] getRequestPayload(final long meetingId,
-				final String name) {
-			final String json = """
-					{
-						"meetingId": %d,
-						"action": "UPDATE_NAME",
-						"position": 5,
-						"length": 2,
-						"value": "%s"
-					}
-					""".formatted(meetingId, name);
-
-			return json.getBytes(StandardCharsets.UTF_8);
-		}
+	private static byte[] payload(final String change) {
+		return change.getBytes(StandardCharsets.UTF_8);
 	}
 
 	@Nested
-	class UpdateDescription {
-
-		private static final String ENDPOINT = DESTINATION_PREFIX + "/update";
-
-		@ParameterizedTest
-		@ValueSource(strings = { "meet", "!@#$%^&*(){}[]|;'<>,.?/",
-				"Встреча: 你好 مرحبا" })
-		void success(final String name) throws Exception {
-			final byte[] payload = getRequestPayload(MEETING.getId(), name);
-
-			connect(SESSION);
-			send(ENDPOINT, payload);
-
-			final var expected = new MeetingAction.UpdateDescription(5, 2,
-					name);
-			final var matcher = new MeetingActionMatcher.UpdateDescription(
-					expected);
-			verify(meetingService, timeout(WAIT_TIMEOUT.toMillis())).update(
-					eq(ORIGIN), eq(MEETING.getId()),
-					argThat(matcher::matches));
-		}
+	class Submit {
 
 		@Test
-		void notFound() throws Exception {
-			final var meeting = TestMeeting.SPORER_PROJECT;
-			final byte[] payload = getRequestPayload(MEETING.getId(),
-					meeting.getName());
-
-			when(meetingService.update(any(), anyLong(), any()))
-					.thenThrow(new MissingEntityException());
-
+		void addTopic() throws Exception {
 			connect(SESSION);
-			final FrameHandler errorFrameHandler = subscribeToErrors();
-			send(ENDPOINT, payload);
-
-			assertThat(errorFrameHandler.getResponse())
-					.succeedsWithin(WAIT_TIMEOUT.toSeconds(), TimeUnit.SECONDS)
-					.isNotNull()
-					.satisfies(
-							message -> assertThat(message).startsWith("Error"));
-		}
-
-		@Test
-		void unauthenticated() throws Exception {
-			final byte[] payload = getRequestPayload(MEETING.getId(),
-					"meeting");
-
-			connect();
-			send(ENDPOINT, payload);
-
-			assertThat(stompSessionHandler.getError())
-					.succeedsWithin(WAIT_TIMEOUT.toSeconds(), TimeUnit.SECONDS)
-					.isInstanceOf(ConnectionLostException.class);
-		}
-
-		@ParameterizedTest(name = "[{index}] {0}")
-		@MethodSource("invalidPayloadCases")
-		void invalidPayload(final String name, final String body)
-				throws Exception {
-			final byte[] payload = body.getBytes(StandardCharsets.UTF_8);
-
-			connect(SESSION);
-			final FrameHandler errorFrameHandler = subscribeToErrors();
-			send(ENDPOINT, payload);
-
-			assertThat(errorFrameHandler.getResponse())
-					.succeedsWithin(WAIT_TIMEOUT.toSeconds(), TimeUnit.SECONDS)
-					.isNotNull()
-					.satisfies(
-							message -> assertThat(message).startsWith("Error"));
-
-			verifyNoInteractions(meetingService);
-		}
-
-		private static Stream<Arguments> invalidPayloadCases() {
-			return Stream.of(Arguments.of("meetingId missing", """
+			send(ENDPOINT, CHANGE_ID, payload("""
 					{
-						"action": "UPDATE_DESCRIPTION",
-						"position": 5,
-						"length": 2,
-						"value": "meeting"
-					}
-					"""), Arguments.of("position missing", """
-					{
-						"meetingId": 1,
-						"action": "UPDATE_DESCRIPTION",
-						"length": 2,
-						"value": "meeting"
-					}
-					"""), Arguments.of("length missing", """
-					{
-						"meetingId": 1,
-						"action": "UPDATE_DESCRIPTION",
-						"position": 5,
-						"value": "meeting"
-					}
-					"""), Arguments.of("value missing", """
-					{
-						"meetingId": 1,
-						"action": "UPDATE_DESCRIPTION",
-						"position": 5,
-						"length": 2
-					}
-					"""), Arguments.of("meetingId null", """
-					{
-						"meetingId": null,
-						"action": "UPDATE_DESCRIPTION",
-						"position": 5,
-						"length": 2,
-						"value": "meeting"
-					}
-					"""), Arguments.of("position negative", """
-					{
-						"meetingId": 1,
-						"action": "UPDATE_DESCRIPTION",
-						"position": -1,
-						"length": 2,
-						"value": "meeting"
-					}
-					"""), Arguments.of("length negative", """
-					{
-						"meetingId": 1,
-						"action": "UPDATE_DESCRIPTION",
-						"position": 5,
-						"length": -2,
-						"value": "meeting"
-					}
-					"""), Arguments.of("value null", """
-					{
-						"meetingId": 1,
-						"action": "UPDATE_DESCRIPTION",
-						"position": 5,
-						"length": 2,
-						"value": null
+						"type": "ADD_TOPIC",
+						"sequenceId": 2,
+						"name": "Blockers"
 					}
 					"""));
+
+			verify(topicService, timeout(WAIT_TIMEOUT.toMillis()))
+					.create(eq(ORIGIN), eq(MEETING.getId()), argThat(action -> {
+						assertThat(action.getSequenceId()).isEqualTo(2);
+						assertThat(action.getName()).isEqualTo("Blockers");
+						return true;
+					}));
 		}
 
-		private byte[] getRequestPayload(final long meetingId,
-				final String name) {
-			final String json = """
+		@Test
+		void renameMeeting() throws Exception {
+			connect(SESSION);
+			send(ENDPOINT, CHANGE_ID, payload("""
 					{
-						"meetingId": %d,
-						"action": "UPDATE_DESCRIPTION",
-						"position": 5,
-						"length": 2,
-						"value": "%s"
+						"type": "RENAME_MEETING",
+						"position": 0,
+						"length": 3,
+						"value": "Renamed"
 					}
-					""".formatted(meetingId, name);
+					"""));
 
-			return json.getBytes(StandardCharsets.UTF_8);
+			verify(meetingService, timeout(WAIT_TIMEOUT.toMillis()))
+					.update(eq(ORIGIN), eq(MEETING.getId()), argThat(action -> {
+						final var update = (TextUpdate<?>) action;
+
+						assertThat(update.getPosition()).isEqualTo(0);
+						assertThat(update.getLength()).isEqualTo(3);
+						assertThat(update.getValue()).isEqualTo("Renamed");
+						return true;
+					}));
+		}
+
+		@Test
+		void editTextBlock() throws Exception {
+			connect(SESSION);
+			send(ENDPOINT, CHANGE_ID, payload("""
+					{
+						"type": "EDIT_TEXT_BLOCK",
+						"block": 61,
+						"position": 4,
+						"length": 2,
+						"value": "new"
+					}
+					"""));
+
+			verify(textBlockService, timeout(WAIT_TIMEOUT.toMillis()))
+					.update(eq(ORIGIN), eq(MEETING.getId()), eq(61L),
+							argThat(action -> {
+								final var splice = (TextUpdate<?>) action;
+
+								assertThat(splice.getPosition()).isEqualTo(4);
+								assertThat(splice.getLength()).isEqualTo(2);
+								assertThat(splice.getValue()).isEqualTo("new");
+								return true;
+							}));
+		}
+
+		@Test
+		void addBlock() throws Exception {
+			connect(SESSION);
+			send(ENDPOINT, CHANGE_ID, payload("""
+					{
+						"type": "ADD_BLOCK",
+						"topic": 32,
+						"blockType": "TEXT",
+						"sequenceId": 1
+					}
+					"""));
+
+			verify(blockService, timeout(WAIT_TIMEOUT.toMillis()))
+					.create(eq(ORIGIN), eq(MEETING.getId()), argThat(action -> {
+						assertThat(action.getTopicId()).isEqualTo(32L);
+						assertThat(action.getSequenceId()).isEqualTo(1);
+						return true;
+					}));
+		}
+
+		@Test
+		void missing() throws Exception {
+			doThrow(new MissingEntityException()).when(topicService)
+					.delete(any(), anyLong(), anyLong());
+
+			connect(SESSION);
+			final FrameHandler rejections =
+					subscribeToRejections();
+			send(ENDPOINT, CHANGE_ID, payload("""
+					{ "type": "REMOVE_TOPIC", "topic": 32 }
+					"""));
+
+			assertThat(rejections.getResponse())
+					.succeedsWithin(WAIT_TIMEOUT.toSeconds(), TimeUnit.SECONDS)
+					.isNotNull()
+					.satisfies(rejected -> {
+						assertThat(rejected).contains(CHANGE_ID.toString());
+						assertThat(rejected).contains("\"retryable\":false");
+						assertThat(rejected).doesNotContain("\"reason\":null");
+					});
+		}
+
+		@Test
+		void busy() throws Exception {
+			doThrow(new BusyEntityException("Timed out")).when(topicService)
+					.delete(any(), anyLong(), anyLong());
+
+			connect(SESSION);
+			final FrameHandler rejections =
+					subscribeToRejections();
+			send(ENDPOINT, CHANGE_ID, payload("""
+					{ "type": "REMOVE_TOPIC", "topic": 32 }
+					"""));
+
+			assertThat(rejections.getResponse())
+					.succeedsWithin(WAIT_TIMEOUT.toSeconds(), TimeUnit.SECONDS)
+					.isNotNull()
+					.satisfies(rejected -> assertThat(rejected)
+							.contains("\"retryable\":true"));
+		}
+
+		@Test
+		void success() throws Exception {
+			when(topicService.create(any(), anyLong(), any()))
+					.thenReturn(null);
+
+			connect(SESSION);
+			final FrameHandler rejections =
+					subscribeToRejections();
+			send(ENDPOINT, CHANGE_ID, payload("""
+					{
+						"type": "ADD_TOPIC",
+						"sequenceId": 0,
+						"name": "Blockers"
+					}
+					"""));
+
+			verify(topicService, timeout(WAIT_TIMEOUT.toMillis()))
+					.create(any(), anyLong(), any());
+
+			assertThat(rejections.getResponse()).isNotDone();
+		}
+
+		@Test
+		void invalid() throws Exception {
+			connect(SESSION);
+			final FrameHandler rejections = subscribeToRejections();
+			send(ENDPOINT, CHANGE_ID, payload("""
+					{ "type": "ADD_TOPIC", "sequenceId": -1, "name": "x" }
+					"""));
+
+			assertThat(rejections.getResponse())
+					.succeedsWithin(WAIT_TIMEOUT.toSeconds(), TimeUnit.SECONDS)
+					.isNotNull()
+					.satisfies(rejected -> {
+						assertThat(rejected).contains(CHANGE_ID.toString());
+						assertThat(rejected).contains("\"retryable\":false");
+					});
+		}
+
+		@Test
+		void unreadable() throws Exception {
+			connect(SESSION);
+			final FrameHandler rejections = subscribeToRejections();
+			send(ENDPOINT, CHANGE_ID, payload("""
+					{ "type": "NOT_A_CHANGE" }
+					"""));
+
+			assertThat(rejections.getResponse())
+					.succeedsWithin(WAIT_TIMEOUT.toSeconds(), TimeUnit.SECONDS)
+					.isNotNull()
+					.satisfies(rejected -> {
+						assertThat(rejected).contains(CHANGE_ID.toString());
+						assertThat(rejected).doesNotContain("\"reason\":null");
+					});
+		}
+
+		@Test
+		void unnamed() throws Exception {
+			connect(SESSION);
+			final FrameHandler rejections = subscribeToRejections();
+			send(ENDPOINT, payload("""
+					{ "type": "NOT_A_CHANGE" }
+					"""));
+
+			assertThat(rejections.getResponse())
+					.succeedsWithin(WAIT_TIMEOUT.toSeconds(), TimeUnit.SECONDS)
+					.isNotNull()
+					.satisfies(rejected -> {
+						assertThat(rejected).contains("\"id\":null");
+						assertThat(rejected).doesNotContain("\"reason\":null");
+					});
 		}
 	}
-
 }

@@ -13,7 +13,7 @@ public class SessionHandler extends StompSessionHandlerAdapter {
 
 	@Override
 	public void handleTransportError(final StompSession session,
-			Throwable exception) {
+			final Throwable exception) {
 		error.complete(exception);
 	}
 

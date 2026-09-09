@@ -13,7 +13,7 @@ ends.
 Notula is multi-tenant: users belong to one or more organisations, and all
 meetings, agendas and notes live inside an organisation.
 
-Where the project is heading is described in [ROADMAP.md](ROADMAP.md).
+Where the project is heading is described in [doc/ROADMAP.md](doc/ROADMAP.md).
 
 Features
 ==

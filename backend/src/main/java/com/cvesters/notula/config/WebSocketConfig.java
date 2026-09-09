@@ -28,6 +28,7 @@ public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
 	private final WebSocketChannelInterceptor channelInterceptor;
 	private final SessionOrderInterceptor sessionOrderInterceptor;
 	private final OriginArgumentResolver originArgumentResolver;
+	private final ChangeIdArgumentResolver changeIdArgumentResolver;
 	private final WebSocketSessionRegistry sessionRegistry;
 	private final String frontendUrl;
 
@@ -36,6 +37,7 @@ public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
 			final WebSocketChannelInterceptor interceptor,
 			final SessionOrderInterceptor sessionOrderInterceptor,
 			final OriginArgumentResolver originArgumentResolver,
+			final ChangeIdArgumentResolver changeIdArgumentResolver,
 			final WebSocketSessionRegistry sessionRegistry,
 			@Value("${frontend.url}") final String frontendUrl) {
 		this.scheduler = webSocketTaskScheduler;
@@ -43,6 +45,7 @@ public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
 		this.channelInterceptor = interceptor;
 		this.sessionOrderInterceptor = sessionOrderInterceptor;
 		this.originArgumentResolver = originArgumentResolver;
+		this.changeIdArgumentResolver = changeIdArgumentResolver;
 		this.sessionRegistry = sessionRegistry;
 		this.frontendUrl = frontendUrl;
 	}
@@ -78,5 +81,6 @@ public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
 	public void addArgumentResolvers(
 			final List<HandlerMethodArgumentResolver> argumentResolvers) {
 		argumentResolvers.add(originArgumentResolver);
+		argumentResolvers.add(changeIdArgumentResolver);
 	}
 }

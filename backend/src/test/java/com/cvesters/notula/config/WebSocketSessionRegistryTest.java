@@ -129,6 +129,8 @@ class WebSocketSessionRegistryTest {
 			runScheduled();
 
 			verify(session, never()).close(any());
+			verify(delegate).afterConnectionClosed(session,
+					CloseStatus.NORMAL);
 		}
 
 		@Test
@@ -150,7 +152,7 @@ class WebSocketSessionRegistryTest {
 					Instant.now().plusSeconds(60));
 			handler.handleMessage(session, mock());
 
-			doThrow(IOException.class).when(session).close();
+			doThrow(IOException.class).when(session).close(any());
 
 			verify(session, never()).close(any());
 

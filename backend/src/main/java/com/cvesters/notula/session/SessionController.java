@@ -34,7 +34,7 @@ public class SessionController extends BaseController {
 
 	private final SessionService sessionService;
 
-	public SessionController(SessionService sessionService) {
+	public SessionController(final SessionService sessionService) {
 		this.sessionService = sessionService;
 	}
 

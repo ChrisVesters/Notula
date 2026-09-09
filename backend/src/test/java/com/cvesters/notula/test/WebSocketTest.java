@@ -111,15 +111,23 @@ public abstract class WebSocketTest {
 		return frameHandler;
 	}
 
-	protected FrameHandler subscribeToErrors() {
-		return subscribe("/user/queue/errors");
+	protected FrameHandler subscribeToRejections() {
+		return subscribe("/user/queue/rejections");
 	}
 
-	protected void send(final String destination, final Object dto) {
+	protected void send(final String destination, final UUID changeId,
+			final Object dto) {
 		final var stompHeaders = new StompHeaders();
 		stompHeaders.setDestination(destination);
 		stompHeaders.add("client-id", CLIENT_ID.toString());
+		if (changeId != null) {
+			stompHeaders.add("change-id", changeId.toString());
+		}
 
 		stompSession.send(stompHeaders, dto);
+	}
+
+	protected void send(final String destination, final Object dto) {
+		send(destination, null, dto);
 	}
 }
