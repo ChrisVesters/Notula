@@ -11,14 +11,7 @@
 	import TextArea from "$lib/editor/TextArea.svelte";
 	import IconButton from "$lib/form/IconButton.svelte";
 
-	import type {
-		TopicDeleteAction,
-		TopicMoveAction,
-		TopicUpdateDescriptionAction,
-		TopicUpdateDurationAction,
-		TopicUpdateNameAction
-	} from "./TopicTypes";
-	import TopicWebSocketClient from "./TopicWebSocketClient";
+	import MeetingWebSocketClient from "$lib/meeting/MeetingWebSocketClient";
 
 	export type TopicAgendaViewProps = {
 		topic: Readonly<TopicDetails>;
@@ -30,12 +23,11 @@
 	let dropPosition: DropPosition | null = $state(null);
 
 	const handleMoveTopic = (sequenceId: number) => {
-		const request: TopicMoveAction = {
-			topicId: topic.id,
+		MeetingWebSocketClient.send({
+			type: "MOVE_TOPIC",
+			topic: topic.id,
 			sequenceId
-		};
-
-		TopicWebSocketClient.move(request);
+		});
 	};
 
 	const handleReorder = $derived(
@@ -48,46 +40,35 @@
 		})
 	);
 
-	const handleUpdateTopicName = (action: UpdateAction) => {
-		const request: TopicUpdateNameAction = {
-			topicId: topic.id,
-			action: "UPDATE_NAME",
-			position: action.position,
-			length: action.length,
-			value: action.value
-		};
-
-		TopicWebSocketClient.update(request);
+	const handleUpdateTopicName = (edit: UpdateAction) => {
+		MeetingWebSocketClient.send({
+			type: "RENAME_TOPIC",
+			topic: topic.id,
+			...edit
+		});
 	};
 
-	const handleUpdateTopicDescription = (action: UpdateAction) => {
-		const request: TopicUpdateDescriptionAction = {
-			topicId: topic.id,
-			action: "UPDATE_DESCRIPTION",
-			position: action.position,
-			length: action.length,
-			value: action.value
-		};
-
-		TopicWebSocketClient.update(request);
+	const handleUpdateTopicDescription = (edit: UpdateAction) => {
+		MeetingWebSocketClient.send({
+			type: "DESCRIBE_TOPIC",
+			topic: topic.id,
+			...edit
+		});
 	};
 
 	const handleUpdateTopicDuration = () => {
-		const request: TopicUpdateDurationAction = {
-			topicId: topic.id,
-			action: "UPDATE_DURATION",
-			duration: topic.duration
-		};
-
-		TopicWebSocketClient.update(request);
+		MeetingWebSocketClient.send({
+			type: "SCHEDULE_TOPIC",
+			topic: topic.id,
+			minutes: topic.duration
+		});
 	};
 
 	const handleDeleteTopic = () => {
-		const request: TopicDeleteAction = {
-			topicId: topic.id
-		};
-
-		TopicWebSocketClient.delete(request);
+		MeetingWebSocketClient.send({
+			type: "REMOVE_TOPIC",
+			topic: topic.id
+		});
 	};
 </script>
 

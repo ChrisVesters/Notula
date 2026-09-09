@@ -7,26 +7,21 @@
 	import FeedbackButton from "$lib/form/FeedbackButton.svelte";
 
 	import TopicAgendaView from "./TopicAgendaView.svelte";
-	import type {
-		TopicCreateAction
-	} from "./TopicTypes";
-	import TopicWebSocketClient from "./TopicWebSocketClient";
+	import MeetingWebSocketClient from "$lib/meeting/MeetingWebSocketClient";
 
 	export type TopicsAgendaViewProps = {
-		meetingId: Readonly<number>;
 		topics: Readonly<Array<TopicDetails>>;
 	};
 
-	let { meetingId, topics = $bindable() }: TopicsAgendaViewProps = $props();
+	let { topics = $bindable() }: TopicsAgendaViewProps = $props();
 
 	function addTopic(): Promise<void> {
-		const request: TopicCreateAction = {
-			meetingId,
+		MeetingWebSocketClient.send({
+			type: "ADD_TOPIC",
 			sequenceId: topics.length,
 			name: ""
-		};
+		});
 
-		TopicWebSocketClient.create(request);
 		return Promise.resolve();
 	}
 </script>

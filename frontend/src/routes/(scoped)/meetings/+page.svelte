@@ -29,7 +29,7 @@
 			// TODO: better error handling
 			alert("Creating meeting failed. Please try again.");
 		}
-	}
+	};
 
 	const deleteMeeting = async (meetingId: number): Promise<void> => {
 		try {
@@ -39,7 +39,7 @@
 			// TODO: better error handling
 			alert("Deleting meeting failed. Please try again.");
 		}
-	}
+	};
 </script>
 
 <!-- TODO: extract to component? -->

@@ -38,8 +38,8 @@
 
 		const request = {
 			name: organisation.name
-		}
-		
+		};
+
 		try {
 			organisation = await OrganisationClient.update(id, organisation);
 			edit = false;

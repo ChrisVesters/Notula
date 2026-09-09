@@ -3,16 +3,14 @@
 
 	import IconPlus from "$lib/assets/icons/IconPlus.svelte";
 
-	import { BlockType, type BlockCreateAction } from "$lib/block/BlockTypes";
+	import { BlockType } from "$lib/block/BlockTypes";
 	import BlockView from "$lib/block/BlockView.svelte";
-	import BlockWebSocketClient from "$lib/block/BlockWebSocketClient";
 	import type { TopicDetails } from "$lib/details/DetailTypes";
 	import type { UpdateAction } from "$lib/editor/ActionTypes";
 	import Input from "$lib/editor/Input.svelte";
 	import FeedbackButton from "$lib/form/FeedbackButton.svelte";
 
-	import type { TopicUpdateNameAction } from "./TopicTypes";
-	import TopicWebSocketClient from "./TopicWebSocketClient";
+	import MeetingWebSocketClient from "$lib/meeting/MeetingWebSocketClient";
 
 	export type TopicNoteViewProps = {
 		topic: Readonly<TopicDetails>;
@@ -24,26 +22,21 @@
 		topic.blocks.toSorted((a, b) => a.sequenceId - b.sequenceId)
 	);
 
-	const handleUpdateTopicName = (action: UpdateAction) => {
-		const request: TopicUpdateNameAction = {
-			topicId: topic.id,
-			action: "UPDATE_NAME",
-			position: action.position,
-			length: action.length,
-			value: action.value
-		};
-
-		TopicWebSocketClient.update(request);
+	const handleUpdateTopicName = (edit: UpdateAction) => {
+		MeetingWebSocketClient.send({
+			type: "RENAME_TOPIC",
+			topic: topic.id,
+			...edit
+		});
 	};
 
 	function addBlock(): Promise<void> {
-		const request: BlockCreateAction = {
-			topicId: topic.id,
-			type: BlockType.TEXT,
+		MeetingWebSocketClient.send({
+			type: "ADD_BLOCK",
+			topic: topic.id,
+			blockType: BlockType.TEXT,
 			sequenceId: topic.blocks.length
-		};
-
-		BlockWebSocketClient.create(request);
+		});
 
 		return Promise.resolve();
 	}

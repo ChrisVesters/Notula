@@ -13,21 +13,6 @@ export type BlockInfo = {
 	sequenceId: number;
 };
 
-export type BlockCreateAction = {
-	topicId: number;
-	type: BlockType;
-	sequenceId: number;
-};
-
-export type BlockMoveAction = {
-	blockId: number;
-	sequenceId: number;
-};
-
-export type BlockDeleteAction = {
-	blockId: number;
-};
-
 export type BlockEvent = {
 	target: "BLOCK";
 	blockId: number;

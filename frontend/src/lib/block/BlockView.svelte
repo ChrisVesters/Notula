@@ -7,12 +7,9 @@
 	import IconButton from "$lib/form/IconButton.svelte";
 	import TextBlockView from "$lib/textblock/TextBlockView.svelte";
 
-	import {
-		BlockType,
-		type BlockDeleteAction,
-		type BlockMoveAction
-	} from "./BlockTypes";
-	import BlockWebSocketClient from "./BlockWebSocketClient";
+	import MeetingWebSocketClient from "$lib/meeting/MeetingWebSocketClient";
+
+	import { BlockType } from "./BlockTypes";
 
 	export type BlockViewProps = {
 		block: BlockDetails;
@@ -24,12 +21,11 @@
 	let dropPosition: DropPosition | null = $state(null);
 
 	const handleMoveBlock = (sequenceId: number) => {
-		const request: BlockMoveAction = {
-			blockId: block.id,
+		MeetingWebSocketClient.send({
+			type: "MOVE_BLOCK",
+			block: block.id,
 			sequenceId
-		};
-
-		BlockWebSocketClient.move(request);
+		});
 	};
 
 	const handleReorder = $derived(
@@ -43,11 +39,10 @@
 	);
 
 	const handleDeleteBlock = (blockId: number) => {
-		const request: BlockDeleteAction = {
-			blockId
-		};
-
-		BlockWebSocketClient.delete(request);
+		MeetingWebSocketClient.send({
+			type: "REMOVE_BLOCK",
+			block: blockId
+		});
 	};
 </script>
 

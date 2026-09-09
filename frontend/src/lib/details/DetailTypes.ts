@@ -29,4 +29,3 @@ export type TextBlockContent = {
 	type: typeof BlockType.TEXT;
 	content: string;
 };
-

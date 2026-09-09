@@ -11,26 +11,6 @@ export type MeetingCreateAction = {
 	name: string;
 };
 
-export type MeetingUpdateAction =
-	| MeetingUpdateNameAction
-	| MeetingUpdateDescriptionAction;
-
-export type MeetingUpdateNameAction = {
-	meetingId: number;
-	action: "UPDATE_NAME";
-	position: number;
-	length: number;
-	value: string;
-};
-
-export type MeetingUpdateDescriptionAction = {
-	meetingId: number;
-	action: "UPDATE_DESCRIPTION";
-	position: number;
-	length: number;
-	value: string;
-};
-
 // TODO: move somewhere else?
 export type MeetingMessage = MeetingEvent | TopicEvent | BlockEvent;
 

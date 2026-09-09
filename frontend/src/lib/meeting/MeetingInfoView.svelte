@@ -6,10 +6,6 @@
 
 	import Input from "$lib/editor/Input.svelte";
 	import TextArea from "$lib/editor/TextArea.svelte";
-	import type {
-		MeetingUpdateDescriptionAction,
-		MeetingUpdateNameAction
-	} from "./MeetingTypes";
 	import MeetingWebSocketClient from "./MeetingWebSocketClient";
 
 	export type MeetingInfoViewProps = {
@@ -18,28 +14,12 @@
 
 	let { meeting = $bindable() }: MeetingInfoViewProps = $props();
 
-	const handleUpdateName = (action: UpdateAction) => {
-		const request: MeetingUpdateNameAction = {
-			meetingId: meeting.id,
-			action: "UPDATE_NAME",
-			position: action.position,
-			length: action.length,
-			value: action.value
-		};
-
-		MeetingWebSocketClient.update(request);
+	const handleUpdateName = (edit: UpdateAction) => {
+		MeetingWebSocketClient.send({ type: "RENAME_MEETING", ...edit });
 	};
 
-	const handleUpdateDescription = (action: UpdateAction) => {
-		const request: MeetingUpdateDescriptionAction = {
-			meetingId: meeting.id,
-			action: "UPDATE_DESCRIPTION",
-			position: action.position,
-			length: action.length,
-			value: action.value
-		};
-
-		MeetingWebSocketClient.update(request);
+	const handleUpdateDescription = (edit: UpdateAction) => {
+		MeetingWebSocketClient.send({ type: "DESCRIBE_MEETING", ...edit });
 	};
 </script>
 

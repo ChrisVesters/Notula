@@ -7,44 +7,44 @@
 	import type { BlockMutation } from "$lib/block/BlockTypes";
 	import { BlockType } from "$lib/block/BlockTypes";
 	import Loading from "$lib/common/Loading.svelte";
-	import type {
-		MeetingDetails
-	} from "$lib/details/DetailTypes";
+	import type { MeetingDetails } from "$lib/details/DetailTypes";
 	import MeetingInfoView from "$lib/meeting/MeetingInfoView.svelte";
 	import type {
 		MeetingMessage,
 		MeetingMutation
 	} from "$lib/meeting/MeetingTypes";
+	import type { Rejected } from "$lib/meeting/change/ChangeTypes";
 	import MeetingWebSocketClient from "$lib/meeting/MeetingWebSocketClient";
 	import TopicsAgendaView from "$lib/topic/TopicsAgendaView.svelte";
 	import TopicsNoteView from "$lib/topic/TopicsNoteView.svelte";
-	import type {
-		TopicMutation
-	} from "$lib/topic/TopicTypes";
+	import type { TopicMutation } from "$lib/topic/TopicTypes";
 
 	const id = $derived(Number(page.params.id));
 
 	let meeting: MeetingDetails | undefined = $state();
-	let topics = $derived(meeting?.topics?.toSorted((a, b) => a.sequenceId - b.sequenceId) ?? []);
+	let topics = $derived(
+		meeting?.topics?.toSorted((a, b) => a.sequenceId - b.sequenceId) ?? []
+	);
 
 	onMount(async () => {
 		MeetingWebSocketClient.connect(id, {
 			onLoad,
-			onError,
-			onEvent
+			onEvent,
+			onRejected
 		});
 	});
 
 	onDestroy(() => {
-		MeetingWebSocketClient.disconnect(id);
+		MeetingWebSocketClient.disconnect();
 	});
 
 	const onLoad = (data: MeetingDetails) => {
 		meeting = data;
 	};
 
-	const onError = (message: string) => {
-		window.alert(message);
+	const onRejected = (rejected: Rejected) => {
+		console.warn("Change refused:", rejected);
+		window.alert(rejected.reason);
 	};
 
 	const onEvent = (event: MeetingMessage) => {
@@ -90,7 +90,9 @@
 					topic.duration = mutation.duration;
 				}
 			} else if (mutation.action === "DELETE") {
-				const index = meeting?.topics.findIndex(t => t.id === event.topicId);
+				const index = meeting?.topics.findIndex(
+					t => t.id === event.topicId
+				);
 				if (index !== undefined && index >= 0) {
 					meeting?.topics.splice(index, 1);
 				}
@@ -98,7 +100,9 @@
 		} else if (event.target === "BLOCK") {
 			const mutation: BlockMutation = event.mutation;
 			if (mutation.action === "CREATE") {
-				const topic = meeting?.topics.find(t => t.id === mutation.topicId);
+				const topic = meeting?.topics.find(
+					t => t.id === mutation.topicId
+				);
 				// TODO: what if topic does not exist? Out of sync?
 				if (!topic) {
 					console.error("Topic does not exist");
@@ -140,16 +144,13 @@
 			}
 		}
 	};
-
-
-
 </script>
 
 {#if meeting}
 	<MeetingInfoView bind:meeting />
 
-	<TopicsAgendaView meetingId={meeting.id} bind:topics={topics} />
-	<TopicsNoteView bind:topics={topics} />
+	<TopicsAgendaView bind:topics />
+	<TopicsNoteView bind:topics />
 {:else}
 	<Loading />
 {/if}

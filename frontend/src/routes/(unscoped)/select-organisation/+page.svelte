@@ -20,15 +20,16 @@
 
 	const selectOrganisation = async (organisationId: number) => {
 		try {
-		const session = await SessionClient.update(Session.getId(), { organisationId });
-		Session.update(session);
-		goto("/meetings");
-	} catch (error) {
-
-				// TODO: better error handling
-				alert("Switching organisation failed. Please try again.");
-			}
-	}
+			const session = await SessionClient.update(Session.getId(), {
+				organisationId
+			});
+			Session.update(session);
+			goto("/meetings");
+		} catch (error) {
+			// TODO: better error handling
+			alert("Switching organisation failed. Please try again.");
+		}
+	};
 
 	const createOrganisation = async (event: SubmitEvent) => {
 		event.preventDefault();
