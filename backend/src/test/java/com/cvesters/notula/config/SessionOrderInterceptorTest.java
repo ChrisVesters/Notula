@@ -22,8 +22,8 @@ class SessionOrderInterceptorTest {
 	private static final String BROADCAST = "/topic/meetings/1";
 
 	private final SessionOrder order = mock();
-	private final SessionOrderInterceptor interceptor =
-			new SessionOrderInterceptor(order);
+	private final SessionOrderInterceptor interceptor = new SessionOrderInterceptor(
+			order);
 
 	private final MessageChannel channel = mock();
 
@@ -55,8 +55,7 @@ class SessionOrderInterceptorTest {
 
 		@Test
 		void noSessionId() {
-			final Message<?> message = message(StompCommand.SEND, null,
-					ACTION);
+			final Message<?> message = message(StompCommand.SEND, null, ACTION);
 
 			final Message<?> result = interceptor.preSend(message, channel);
 
@@ -110,6 +109,50 @@ class SessionOrderInterceptorTest {
 	}
 
 	@Nested
+	class AfterSendCompletion {
+
+		@Test
+		void dropped() {
+			interceptor.afterSendCompletion(action(), channel, false, null);
+
+			verify(order).release(SESSION_ID);
+		}
+
+		@Test
+		void failed() {
+			interceptor.afterSendCompletion(action(), channel, false,
+					new IllegalStateException());
+
+			verify(order).release(SESSION_ID);
+		}
+
+		@Test
+		void sent() {
+			interceptor.afterSendCompletion(action(), channel, true, null);
+
+			verifyNoInteractions(order);
+		}
+
+		@Test
+		void broadcast() {
+			interceptor.afterSendCompletion(
+					message(StompCommand.SEND, SESSION_ID, BROADCAST), channel,
+					false, null);
+
+			verifyNoInteractions(order);
+		}
+
+		@Test
+		void noSessionId() {
+			interceptor.afterSendCompletion(
+					message(StompCommand.SEND, null, ACTION), channel, false,
+					null);
+
+			verifyNoInteractions(order);
+		}
+	}
+
+	@Nested
 	class AfterMessageHandled {
 
 		private final SimpAnnotationMethodMessageHandler actions = mock();
@@ -131,9 +174,9 @@ class SessionOrderInterceptorTest {
 
 		@Test
 		void otherHandler() {
-			final MessageHandler broker = mock();
+			final MessageHandler other = mock();
 
-			interceptor.afterMessageHandled(action(), channel, broker, null);
+			interceptor.afterMessageHandled(action(), channel, other, null);
 
 			verifyNoInteractions(order);
 		}

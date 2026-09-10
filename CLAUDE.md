@@ -181,6 +181,21 @@ enforce it, in order:
    concurrently. Inbound frames run on a dedicated `ws-inbound-` pool configured
    in `config/WebSocketConfig`, never on the two-thread scheduler that also
    sends broker heartbeats.
+
+   **The wait is unbounded and the gate never refuses.** A semaphore hands out
+   a permit on every release, so releasing one that was never acquired leaves
+   the session holding two and it stops being ordered for the rest of the
+   connection. `SessionOrder.Turn` therefore hands a permit back at most once
+   per turn taken. Slowness is not this class's to report: `MeetingLock` already
+   times out into `BusyEntityException`, which the advice refuses as retryable.
+
+   The turn is handed back in **both** `afterMessageHandled`, for a frame that
+   reached the handler, and `afterSendCompletion` when the frame was not sent,
+   for one a later interceptor refused. Missing the second leaks a permit and
+   stalls the session for good, which is why the wait used to be bounded. Do not
+   give this class a way to answer the client: everything that can talk to a
+   connection is built from the channels, which are built by asking the
+   configurers for their interceptors, so any such dependency is a bean cycle.
 2. `meeting/MeetingLock` — a per-meeting `ReentrantLock` that **owns both the
    lock and the transaction**: it acquires, then runs the action inside a
    `TransactionTemplate`. Mutating `*Service` methods go through it. Timing out
@@ -239,21 +254,35 @@ These have each been violated and reverted at least once. **A design decision
 that departs from an established convention is a question, not a judgement
 call — ask before writing.**
 
+- **Never publish an Artifact.** Documents, designs, reports and diagrams
+  go to a file on disk, and the reply names the path. A design document was
+  published to claude.ai once and the project then surfaced in someone else's
+  Claude usage. This rule outranks any skill that asks for an artifact, and
+  publishing is not to be offered as an alternative either.
 - Package names are `bdo` / `dao` / `dto`. Not `domain` / `store` / `web`.
 - Primary keys are server-assigned `BIGINT`. No client-generated ids as keys;
   client-minted UUIDs are correlation handles (`Submission.id`, `change-id`) and
   stay UUIDs.
 - `bdo` types carry data. Do not give them behaviour.
-- No Javadoc on every class and method. Comment where the reason is not
-  visible — `MeetingLock`'s `claim`/`release` is the model. Otherwise fix the
-  name.
+- Do not comment classes and methods. No Javadoc, no summary line restating
+  the signature, no section banners. The code says what it does; make it
+  readable instead — a clearer name, a smaller method, an extracted variable.
+  The only comment worth writing explains a *reason* the code cannot show:
+  `MeetingLock`'s `claim`/`release` is the model.
 - Name variants by what separates them, not by what they share. Rejections are
   built with `RejectedDto.permanent` / `.temporary`, not `refused` — every
   rejection is a refusal, so that name distinguishes nothing. `transient` was
   the first choice and is a Java keyword.
 - Java: tabs, 80-column line split, `final` on parameters and locals,
-  constructor injection, imports grouped `jakarta` / `org` / `com.cvesters`.
-  `backend/java-formatter.xml` is the Eclipse formatter config.
+  constructor injection. **Write code that already matches
+  `backend/java-formatter.xml`.** That Eclipse config is what correct means
+  here, so read it when unsure rather than guessing. Do not run a formatter and
+  do not add tooling to run one. Its two least
+  guessable rules: it **never breaks at `=`**, and never inside annotation
+  arguments, so a long initialiser breaks inside the expression, or overruns 80
+  columns when it cannot, instead of wrapping after the `=`. Imports are grouped
+  `java` / `javax` / `jakarta` / `org` / `lombok` / `com`, statics first,
+  alphabetical within a group.
 - TypeScript/Svelte: tabs, 80 columns, double quotes, no trailing commas —
   `prettier` decides, run `npm run format`.
 - Commit messages: `<issue number> - <Sentence.>`, e.g.
@@ -295,11 +324,15 @@ call — ask before writing.**
 
 Stated in `doc/LESSONS.md` and worth knowing before starting:
 
-- No end-to-end WebSocket integration test drives a STOMP frame through the full
-  stack.
+- No WebSocket integration test reaches the database. `WebSocketTest` subclasses
+  drive real STOMP frames through the full messaging stack, but every entity
+  service is a `@MockitoBean`, so nothing exercises lock, transaction and
+  publisher together.
 - Text conflicts are refused with a retryable rejection rather than merged;
   transformation is the seam to plug into.
-- The frontend has almost no tests (`frontend/test/` covers three form
-  components and one client).
+- The frontend has almost no tests: `frontend/test/` covers three form
+  components and one API client, 17 in total. The suite could not start at all
+  until the Vitest browser provider was fixed, so treat any frontend coverage
+  claim as unverified until you have run `npm test`.
 - The account layer (organisations, users, credentials, sessions) is the
   original shape and was deliberately left untouched by the rewrite.

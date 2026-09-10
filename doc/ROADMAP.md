@@ -58,6 +58,18 @@ These want an answer before the phases they sit in.
   people typing in one meeting see nothing of each other until a reload.
   Everything about conflict resolution is theoretical until this is closed:
   there is currently no conflict, only silent divergence.
+- **Only the inbound half of the wire is one envelope.** Changes arrive on one
+  destination as one sealed `ChangeDto`, but events still leave as four
+  per-entity `*MutationDto` types under four `*EventDto` wrappers, keyed on a
+  two-level `target` plus `action` discriminator, and the frontend mirrors that
+  with a type file per entity. Adding a cross-cutting field to an event still
+  touches about a dozen files, which is the cost the inbound rewrite existed to
+  remove. They are also Lombok getter beans, so they serialise alphabetically
+  rather than in declaration order like the records inbound. The seam is
+  `ChangeDto` and `frontend/src/lib/meeting/change/ChangeTypes.ts`: an outbound
+  envelope should be the same shape, and it should land before versioning adds
+  a field to every event.
+
 - **Concurrent edits to the same text can corrupt each other.**
   `common/domain/TextUpdate` applies an incoming edit as a raw
   `position`/`length` splice against current server state, and nothing carries
@@ -82,9 +94,10 @@ These want an answer before the phases they sit in.
   notes under it for everybody, immediately, with no undo. Trash arrives in
   Phase 2; until then the risk is worth knowing.
 - **Nothing runs the tests but a person.** There is no `.github/workflows`.
-  The backend suite is 1018 tests and there are four frontend test files, so
-  the ratio of confidence between the two halves is not what the numbers
-  suggest.
+  The backend suite is 1011 tests; the frontend is 17 across four files, and it
+  could not start at all until the Vitest browser provider was fixed, so ten of
+  those had silently rotted against components that had moved on. A gate that
+  nobody runs is how that happened.
 
 Phase 1 — A meeting is a real event
 ==

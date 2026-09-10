@@ -1,8 +1,10 @@
-import { render, fireEvent, screen } from "@testing-library/svelte";
-import { describe, test, expect } from "vitest";
-import TextField from "../../../src/lib/form/TextField.svelte";
+import { cleanup, fireEvent, render, screen } from "@testing-library/svelte";
+import { afterEach, describe, expect, test } from "vitest";
 
-// TODO: proper testing
+import TextField from "$lib/form/TextField.svelte";
+
+afterEach(cleanup);
+
 describe("TextField component", () => {
 	test("renders label and required asterisk", () => {
 		render(TextField, {
@@ -37,22 +39,11 @@ describe("TextField component", () => {
 			}
 		});
 
-		// find the input by role or id
 		const input = screen.getByRole("textbox") as HTMLInputElement;
-		// fallback if getByRole doesn't match (for non-text inputs)
-		if (!input) {
-			const fallback = document.getElementById(
-				"email"
-			) as HTMLInputElement;
-			expect(fallback).toBeTruthy();
-			expect(fallback.value).toBe("hello");
-			expect(fallback.getAttribute("type")).toBe("email");
-			expect(fallback.getAttribute("autocomplete")).toBe("email");
-		} else {
-			expect(input.value).toBe("hello");
-			expect(input.type).toBe("email");
-			expect(input.getAttribute("autocomplete")).toBe("email");
-		}
+
+		expect(input.value).toBe("hello");
+		expect(input.type).toBe("email");
+		expect(input.getAttribute("autocomplete")).toBe("email");
 	});
 
 	test("updates value on user input", async () => {

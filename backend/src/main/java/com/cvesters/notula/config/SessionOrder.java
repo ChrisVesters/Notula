@@ -1,41 +1,22 @@
 package com.cvesters.notula.config;
 
-import java.time.Duration;
 import java.util.Map;
-import java.util.Objects;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Semaphore;
-import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
 
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
-import lombok.extern.slf4j.Slf4j;
-
-// TODO: cleanup
-@Slf4j
 @Component
 public class SessionOrder {
 
-	private final Duration timeout;
-
-	private final Map<String, Semaphore> sessions = new ConcurrentHashMap<>();
-
-	public SessionOrder(@Value("${websocket.order.timeout}") final Duration timeout) {
-		Objects.requireNonNull(timeout);
-
-		this.timeout = timeout;
-	}
+	private final Map<String, Turn> sessions = new ConcurrentHashMap<>();
 
 	public void acquire(final String sessionId) {
-		final Semaphore turn = sessions.computeIfAbsent(sessionId,
-				id -> new Semaphore(1));
+		final Turn turn = sessions.computeIfAbsent(sessionId, id -> new Turn());
 
 		try {
-			if (!turn.tryAcquire(timeout.toMillis(), TimeUnit.MILLISECONDS)) {
-				log.warn("Session {} timed out waiting for its previous action",
-						sessionId);
-			}
+			turn.take();
 		} catch (final InterruptedException e) {
 			Thread.currentThread().interrupt();
 
@@ -45,20 +26,37 @@ public class SessionOrder {
 	}
 
 	public void release(final String sessionId) {
-		final Semaphore turn = sessions.get(sessionId);
+		final Turn turn = sessions.get(sessionId);
 		if (turn == null) {
 			return;
 		}
 
-		turn.release();
+		turn.handBack();
 	}
 
 	public void forget(final String sessionId) {
-		final Semaphore turn = sessions.remove(sessionId);
+		final Turn turn = sessions.remove(sessionId);
 		if (turn == null) {
 			return;
 		}
 
-		turn.release();
+		turn.handBack();
+	}
+
+	private static final class Turn {
+
+		private final Semaphore permit = new Semaphore(1);
+		private final AtomicBoolean taken = new AtomicBoolean();
+
+		private void take() throws InterruptedException {
+			permit.acquire();
+			taken.set(true);
+		}
+
+		private void handBack() {
+			if (taken.compareAndSet(true, false)) {
+				permit.release();
+			}
+		}
 	}
 }

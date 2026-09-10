@@ -14,7 +14,6 @@ import org.springframework.transaction.support.TransactionTemplate;
 
 import com.cvesters.notula.common.exception.BusyEntityException;
 
-// TODO: cleanup
 @Component
 public class MeetingLock {
 
@@ -57,10 +56,6 @@ public class MeetingLock {
 		}
 	}
 
-	/**
-	 * Hands out the meeting's lock, creating it for the first action to want
-	 * it, and records that one more is using it.
-	 */
 	private Holder claim(final long meetingId) {
 		return locks.compute(meetingId, (id, holder) -> {
 			final Holder claimed = holder == null ? new Holder() : holder;
@@ -70,12 +65,6 @@ public class MeetingLock {
 		});
 	}
 
-	/**
-	 * Forgets the lock once nothing holds or waits for it, so the map does not
-	 * keep an entry for every meeting the instance has ever served. It cannot
-	 * be dropped on unlock instead: a thread queued on the lock would then be
-	 * waiting on one that the next arrival no longer gets given.
-	 */
 	private void release(final long meetingId) {
 		locks.compute(meetingId,
 				(id, holder) -> --holder.users == 0 ? null : holder);
@@ -93,10 +82,6 @@ public class MeetingLock {
 			throw new BusyEntityException(
 					"Interrupted waiting for meeting " + meetingId, e);
 		}
-	}
-
-	int claimed() {
-		return locks.size();
 	}
 
 	private static final class Holder {

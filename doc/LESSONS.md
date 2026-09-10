@@ -175,3 +175,65 @@ Still open, and stated plainly rather than buried:
   better than silent corruption, and it is not the transformation the product
   needs. It is the seam that one plugs into.
 - **The frontend has no tests at all.**
+
+A timeout that logs is a timeout that lies
+==
+
+`SessionOrder.acquire` waited on a per-session semaphore. When the wait ran out
+it logged a warning and returned, exactly as though it had the permit. Two
+things followed, and the second is the expensive one.
+
+The frame ran unordered, which is the guarantee the class exists to provide. And
+the interceptor afterwards called `release`, because from where it stood the
+frame had been handled normally. A semaphore hands out a permit on every
+release without checking who held one, so the session went from one permit to
+two, and from then on its frames ran two at a time. One slow change disabled
+ordering for the rest of that connection, silently and permanently.
+
+None of this showed up. `SessionOrderTest` covered acquire, release, forget,
+multiple actions and multiple sessions. It had no case for the timeout, and one
+test asserted the broken shape directly: acquire twice on an impatient lock,
+release once, expect the next acquire to succeed. It did succeed. That is the
+leak, written down as the expected result.
+
+What it cost to find: nothing, once someone ran it. A twenty-line probe against
+the real class showed two threads inside the critical section at once. Reading
+the method had not shown it, because the method looks fine in isolation — the
+bug lives in the pair, between a caller that did not acquire and a caller that
+released anyway.
+
+- **Test the timeout branch of anything that has one.** It is the branch that
+  runs when the system is already in trouble, which is the worst time to
+  discover it is wrong.
+- **A method that can fail must say so** — or be given no way to fail. `acquire`
+  returned a boolean for a while, so the caller released only what it took. It
+  is `void` again because the wait is now unbounded and taking the turn cannot
+  fail, and `Turn` hands a permit back at most once per turn rather than
+  trusting the caller.
+- **Watch for tests that encode the bug.** `multipleAquires` passed for the
+  whole life of the defect. A test that documents current behaviour rather than
+  intended behaviour will defend a bug as loyally as it defends a feature.
+- **The gate should not be refusing at all.** A frame dropped in `preSend` never
+  reaches a handler, so `@MessageExceptionHandler` cannot report it and the
+  interceptor has to answer the client itself. It cannot: `SimpMessagingTemplate`
+  needs `clientInboundChannel`, which asks the configurers for their
+  interceptors, which builds `WebSocketConfig`, which needs this interceptor.
+  Confirmed by deleting the `@Lazy` and reading the failure,
+  `brokerMessagingTemplate: Requested bean is currently in creation`. Two ways
+  round it were written and thrown away, a collaborator holding the template and
+  an application event with a listener; the first only moves the proxy and the
+  second only hides the edge. The bounded wait existed to survive a permit that
+  was never handed back, so closing that leak removes the refusal instead of
+  rehoming it. `ChannelInterceptorChain.applyPreSend` triggers
+  `afterSendCompletion` on every interceptor that already ran when a later one
+  returns null, which is the missing hand-back.
+- **Do not throw out of `preSend` instead.** It is the obvious tidier-looking
+  move — let `acquire` throw and let the advice answer — and it disconnects the
+  client. `preSend` runs inside `clientInboundChannel.send`, and
+  `StompSubProtocolHandler.handleMessageFromClient` catches everything that
+  escapes that call and routes it to `handleError`, which writes a STOMP ERROR
+  frame and then `session.close(PROTOCOL_ERROR)`. One slow change would take the
+  whole tab's connection down. The acquire cannot move into the handler either,
+  where the advice would reach it: `preSend` is the last point that still sees a
+  session's frames in arrival order, which is the whole reason the gate lives
+  there.

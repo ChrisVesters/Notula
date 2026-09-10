@@ -161,13 +161,12 @@ class MeetingLockTest {
 
 				await(inside);
 
-				final Future<?> second = executor.submit(
-						() -> meetingLock.run(MEETING_ID,
-								() -> applied.add("second entered")));
+				final Future<?> second = executor.submit(() -> meetingLock
+						.run(MEETING_ID, () -> applied.add("second entered")));
 
 				assertThatThrownBy(() -> second.get(BRIEFLY.toMillis(),
 						TimeUnit.MILLISECONDS))
-						.isInstanceOf(TimeoutException.class);
+								.isInstanceOf(TimeoutException.class);
 				assertThat(applied).containsExactly("first entered");
 
 				release.countDown();
@@ -228,14 +227,42 @@ class MeetingLockTest {
 		}
 
 		@Test
-		void forgotten() {
-			meetingLock.run(MEETING_ID,
-					() -> assertThat(meetingLock.claimed()).isEqualTo(1));
-			meetingLock.run(OTHER_MEETING_ID, () -> {
-				// the action
+		void reused() throws Exception {
+			meetingLock.run(MEETING_ID, () -> {
+				// a whole cycle, so the lock is dropped again
 			});
 
-			assertThat(meetingLock.claimed()).isZero();
+			final var inside = new CountDownLatch(1);
+			final var release = new CountDownLatch(1);
+			final var applied = new CopyOnWriteArrayList<String>();
+
+			final ExecutorService executor = Executors.newFixedThreadPool(2);
+			try {
+				executor.submit(() -> meetingLock.run(MEETING_ID, () -> {
+					applied.add("first entered");
+					inside.countDown();
+					awaitQuietly(release);
+				}));
+
+				await(inside);
+
+				final Future<?> second = executor.submit(() -> meetingLock
+						.run(MEETING_ID, () -> applied.add("second entered")));
+
+				assertThatThrownBy(() -> second.get(BRIEFLY.toMillis(),
+						TimeUnit.MILLISECONDS))
+								.isInstanceOf(TimeoutException.class);
+				assertThat(applied).containsExactly("first entered");
+
+				release.countDown();
+				second.get(TIMEOUT.toSeconds(), TimeUnit.SECONDS);
+			} finally {
+				release.countDown();
+				executor.shutdownNow();
+			}
+
+			assertThat(applied).containsExactly("first entered",
+					"second entered");
 		}
 
 		@Test
@@ -253,10 +280,9 @@ class MeetingLockTest {
 
 				await(held);
 
-				assertThatThrownBy(
-						() -> impatient.run(MEETING_ID, () -> { /* never */ }))
-						.isInstanceOf(BusyEntityException.class)
-						.hasMessageContaining("Timed out");
+				assertThatThrownBy(() -> impatient.run(MEETING_ID, () -> {
+					/* never */ })).isInstanceOf(BusyEntityException.class)
+							.hasMessageContaining("Timed out");
 			} finally {
 				release.countDown();
 				executor.shutdownNow();

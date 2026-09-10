@@ -1,13 +1,19 @@
-import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
-import UserClient from "@/lib/user/UserClient";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-const request: CreateUserRequest = {
+import UserClient from "$lib/user/UserClient";
+import type { UserCreateRequest, UserInfo } from "$lib/user/UserTypes";
+
+const request: UserCreateRequest = {
 	email: "carol@example.com",
 	password: "pw"
 };
-const response: UserInfo = { id: "123", email: "carol@example.com" };
 
-// TODO: proper testing.
+const response: UserInfo = { id: 123, email: "carol@example.com" };
+
+function respondWith(body: Partial<Response>) {
+	globalThis.fetch = vi.fn(() => Promise.resolve(body as Response));
+}
+
 describe("UserClient.create", () => {
 	const originalFetch = globalThis.fetch;
 
@@ -19,23 +25,18 @@ describe("UserClient.create", () => {
 		globalThis.fetch = originalFetch;
 	});
 
-	it("sends a POST with JSON body and returns parsed JSON on success", async () => {
-		globalThis.fetch = vi.fn(() =>
-			Promise.resolve({ json: () => Promise.resolve(response) })
-		);
+	it("posts the request as JSON and returns the parsed body", async () => {
+		respondWith({ status: 201, json: () => Promise.resolve(response) });
 
 		const result = await UserClient.create(request);
 
 		expect(globalThis.fetch).toHaveBeenCalledTimes(1);
 		expect(globalThis.fetch).toHaveBeenCalledWith(expect.any(String), {
 			method: "POST",
-			headers: {
-				"Content-Type": "application/json"
-			},
-			body: JSON.stringify(req)
+			headers: { "Content-Type": "application/json" },
+			body: JSON.stringify(request)
 		});
-
-		expect(result).toEqual(fakeResponse);
+		expect(result).toEqual(response);
 	});
 
 	it("rejects when fetch fails", async () => {
@@ -43,24 +44,28 @@ describe("UserClient.create", () => {
 			Promise.reject(new Error("network error"))
 		);
 
-		const req = { email: "bob@example.com", password: "pw" };
-
-		await expect(UserClient.create(req as any)).rejects.toThrow(
+		await expect(UserClient.create(request)).rejects.toThrow(
 			"network error"
 		);
 	});
 
-	it("propagates JSON parse errors", async () => {
-		// simulate fetch resolving but json() throwing
-		globalThis.fetch = vi.fn(() =>
-			Promise.resolve({
-				json: () => Promise.reject(new Error("invalid json"))
-			} as any)
-		);
+	it("rejects when the status is not created", async () => {
+		respondWith({
+			status: 409,
+			statusText: "Conflict",
+			json: () => Promise.resolve(response)
+		});
 
-		const req = { email: "carol@example.com", password: "pw" };
+		await expect(UserClient.create(request)).rejects.toThrow("Conflict");
+	});
 
-		await expect(UserClient.create(req as any)).rejects.toThrow(
+	it("propagates a body that will not parse", async () => {
+		respondWith({
+			status: 201,
+			json: () => Promise.reject(new Error("invalid json"))
+		});
+
+		await expect(UserClient.create(request)).rejects.toThrow(
 			"invalid json"
 		);
 	});

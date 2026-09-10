@@ -33,9 +33,14 @@ Four separate problems are tangled together underneath that.
   so every action was already competing with the heartbeats for them.
   `@Transactional` gives isolation, not ordering: the read-modify-write of
   `sequence_id` across sibling rows in `TopicService.move` can interleave with
-  another action on the same meeting. The client-side throttle in
-  `common/ActionWebSocketClient` is currently the only thing preventing this,
-  which is far too much weight on a queue that lives in the browser.
+  another action on the same meeting. Nothing on the client prevented this:
+  `common/ActionWebSocketClient` was a pass-through that added a `client-id`
+  header and had no queue or throttle at all.
+
+  **Solved.** `config/SessionOrder` now serialises a session's frames and
+  `meeting/MeetingLock` serialises a meeting's, both on the server. A frame
+  whose turn never comes is refused with a retryable rejection rather than run
+  out of order.
 - **Clients cannot tell that they missed something.** Events carry
   `{target, id, mutation, origin}` and nothing else. Every *out of sync?* TODO
   in the meeting page is this gap; today the answer is `console.error` and carry
@@ -231,18 +236,32 @@ runs on the session's own receive thread, in arrival order, which makes it the
 one place a session's actions can be ordered honestly.
 
 `config/SessionOrder` is that gate: one `Semaphore(1)` per session id, taken in
-`preSend` by `SessionOrderInterceptor` and handed back in `afterMessageHandled`.
-Holding the receive thread stops the second frame being dispatched at all, so
-the order falls out of one thread acquiring in arrival order rather than being
-reconstructed from stamped positions. Only `/app` destinations wait, so a slow
-action does not delay the CONNECT, SUBSCRIBE and heartbeat frames sharing its
-session; and the hand-back is filtered to `SimpAnnotationMethodMessageHandler`,
-because every subscriber of the inbound channel is given the message on a task
-of its own. A permit that is never handed back — a frame rejected by Spring
-Security after it took its turn, say, since that interceptor runs after this one
-— would stall the session for good, so the wait is bounded by
-`websocket.order.timeout` and gives up by taking the lost permit over rather
-than by failing the action.
+`preSend` by `SessionOrderInterceptor` and handed back once the frame is done
+with. Holding the receive thread stops the second frame being dispatched at all,
+so the order falls out of one thread acquiring in arrival order rather than
+being reconstructed from stamped positions. Only `/app` destinations wait, so a
+slow action does not delay the CONNECT, SUBSCRIBE and heartbeat frames sharing
+its session.
+
+Done with means one of two things, and both have to hand the turn back. A frame
+that reached the handler comes back through `afterMessageHandled`, filtered to
+`SimpAnnotationMethodMessageHandler` because every subscriber of the inbound
+channel is given the message on a task of its own. A frame that never got there
+— refused by Spring Security after it took its turn, say, since that interceptor
+runs after this one — comes back through `afterSendCompletion` with `sent`
+false, which `ChannelInterceptorChain.applyPreSend` triggers on every
+interceptor that already ran. Miss that second path and the permit is lost and
+the session stalls for good.
+
+The wait is therefore **unbounded, and the gate never refuses a frame**. An
+earlier design bounded it and refused on timeout, which put the interceptor in
+the business of answering a client. That is a job it cannot hold honestly:
+everything that can send to a connection is built from the channels, and the
+channels are built by asking the configurers for their interceptors, so the
+dependency is a bean cycle however it is dressed up. Slowness has an owner
+already — `MeetingLock` times out into `BusyEntityException` and the advice
+refuses it as retryable, from a handler, with the client's `change-id` attached.
+The gate's only job is order.
 
 The cruder answer is a single-threaded inbound channel, which does give total
 order but serialises every meeting, and every CONNECT, SUBSCRIBE and heartbeat
@@ -294,7 +313,7 @@ forget to acknowledge, for the same reason it cannot forget its `Origin`. This
 also closes both TODOs in `WebSocketExceptionHandler` about letting the client
 identify which request failed.
 
-`ActionWebSocketClient` then subscribes to that queue itself and needs no help
+`MeetingWebSocketClient` then subscribes to that queue itself and needs no help
 from any page: it releases the in-flight action on a matching acknowledgement
 and drops the queue on a failure. Because the queue destination belongs to the
 session rather than to a meeting, it can also notice that `Session` handed it a
@@ -397,9 +416,10 @@ The client half is the standard operational-transformation loop:
     on remote operation -> transform pending and buffer against it,
                            then apply it locally
 
-The throttle built in `ActionWebSocketClient` is already the send discipline of
-that loop, so it carries forward rather than being replaced. What it is missing
-is the transform and the buffer.
+No client currently has the send discipline that loop needs.
+`MeetingWebSocketClient` sends every change immediately and returns its
+`change-id`, so the pending slot, the buffer, the transform and the throttle all
+still have to be built.
 
 Two edits to the *same* field still collide once writes are disjoint, and that
 is what the version is for. Worth noting the scope is wider than `text_blocks`:

@@ -41,13 +41,24 @@ public class SessionOrderInterceptor implements ExecutorChannelInterceptor {
 	}
 
 	@Override
+	public void afterSendCompletion(final Message<?> message,
+			final MessageChannel channel, final boolean sent,
+			final Exception ex) {
+		if (!sent) {
+			release(message);
+		}
+	}
+
+	@Override
 	public void afterMessageHandled(final Message<?> message,
 			final MessageChannel channel, final MessageHandler handler,
 			final Exception ex) {
-		if (!(handler instanceof SimpAnnotationMethodMessageHandler)) {
-			return;
+		if (handler instanceof SimpAnnotationMethodMessageHandler) {
+			release(message);
 		}
+	}
 
+	private void release(final Message<?> message) {
 		final MessageHeaders headers = message.getHeaders();
 
 		final String sessionId = SimpMessageHeaderAccessor

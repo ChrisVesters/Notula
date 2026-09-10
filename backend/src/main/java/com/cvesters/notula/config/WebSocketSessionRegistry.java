@@ -38,7 +38,8 @@ public class WebSocketSessionRegistry
 		private static final CloseStatus EXPIRED = CloseStatus.POLICY_VIOLATION
 				.withReason("Access token expired");
 
-		private final Map<String, WebSocketSession> sessions = new ConcurrentHashMap<>();
+		private final Map<String, WebSocketSession> sessions =
+				new ConcurrentHashMap<>();
 
 		private SessionTracker(final WebSocketHandler delegate) {
 			super(delegate);

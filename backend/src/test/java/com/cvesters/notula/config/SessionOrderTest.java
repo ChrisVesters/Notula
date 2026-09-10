@@ -3,7 +3,6 @@ package com.cvesters.notula.config;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
-import java.time.Duration;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 
@@ -14,9 +13,8 @@ class SessionOrderTest {
 
 	private static final String SESSION_ID = "session";
 	private static final String OTHER_SESSION_ID = "other";
-	private static final Duration TIMEOUT = Duration.ofSeconds(5);
 
-	private final SessionOrder order = new SessionOrder(TIMEOUT);
+	private final SessionOrder order = new SessionOrder();
 
 	private CountDownLatch acquireElsewhere(final String sessionId)
 			throws InterruptedException {
@@ -80,22 +78,16 @@ class SessionOrderTest {
 	class Release {
 
 		@Test
-		void multipleAquires() throws Exception {
-			final var impatient = new SessionOrder(Duration.ofMillis(50));
+		void twice() throws Exception {
+			order.acquire(SESSION_ID);
 
-			impatient.acquire(SESSION_ID);
-			impatient.acquire(SESSION_ID);
-			impatient.release(SESSION_ID);
+			order.release(SESSION_ID);
+			order.release(SESSION_ID);
 
-			final var acquired = new CountDownLatch(1);
-			final var thread = new Thread(() -> {
-				impatient.acquire(SESSION_ID);
-				acquired.countDown();
-			});
-			thread.setDaemon(true);
-			thread.start();
+			order.acquire(SESSION_ID);
+			final CountDownLatch acquired = acquireElsewhere(SESSION_ID);
 
-			assertThat(acquired.await(1, TimeUnit.SECONDS)).isTrue();
+			assertThat(acquired.await(100, TimeUnit.MILLISECONDS)).isFalse();
 		}
 
 		@Test
