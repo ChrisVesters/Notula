@@ -21,6 +21,7 @@
 		"@sveltejs/vite-plugin-svelte": "^6.2.1",
 		"@testing-library/svelte": "^5.2.9",
 		"@vitest/browser": "^4.0.15",
+		"@vitest/browser-playwright": "^4.0.15",
 		"playwright": "^1.57.0",
 		"prettier": "^3.7.4",
 		"prettier-plugin-svelte": "^3.4.0",

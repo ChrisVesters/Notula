@@ -331,8 +331,10 @@ Stated in `doc/LESSONS.md` and worth knowing before starting:
 - Text conflicts are refused with a retryable rejection rather than merged;
   transformation is the seam to plug into.
 - The frontend has almost no tests: `frontend/test/` covers three form
-  components and one API client, 17 in total. The suite could not start at all
-  until the Vitest browser provider was fixed, so treat any frontend coverage
-  claim as unverified until you have run `npm test`.
+  components and one API client, 17 in total. `vite.config.ts` has twice
+  stopped the suite from running, so treat any frontend coverage claim as
+  unverified until you have run `npm test` and read the file count it prints:
+  its `include` globs must point at `test/`, not `src/`, and a run that
+  collects nothing still exits zero.
 - The account layer (organisations, users, credentials, sessions) is the
   original shape and was deliberately left untouched by the rewrite.
