@@ -307,15 +307,24 @@ Carrying it on an event is now one field on `meeting/dto/EventDto`, which is
 why the outbound envelope was built first rather than adding the same field to
 four event types and four frontend type files.
 
-Actions carry an `action-id` native header alongside `client-id`, resolved the
-same way `OriginArgumentResolver` resolves the client id. An
-`ExecutorChannelInterceptor` registered in `WebSocketConfig` acknowledges it:
+There is no header to add. A change already carries `change-id`, minted by
+`MeetingWebSocketClient` and resolved by `config/ChangeIdArgumentResolver`
+exactly as `OriginArgumentResolver` resolves the client id, so an
+acknowledgement names the change the client is already holding. An
+`ExecutorChannelInterceptor` registered in `WebSocketConfig` sends it:
 `afterMessageHandled` fires once per handled message, filtered to
-`SimpAnnotationMethodMessageHandler`, and sends `{actionId, revision, status}`
-to the sending session on `/user/queue/acks`. A new `@MessageMapping` cannot
-forget to acknowledge, for the same reason it cannot forget its `Origin`. This
-also closes both TODOs in `WebSocketExceptionHandler` about letting the client
-identify which request failed.
+`SimpAnnotationMethodMessageHandler`, and sends `{changeId, revision}` to the
+sending session on `/user/queue/acks`. A new `@MessageMapping` cannot forget to
+acknowledge, for the same reason it cannot forget its `Origin`.
+
+**The acknowledgement means success and carries no status.** An earlier draft
+gave it one, to tell "try again" from "this will never work". Failure has its
+own channel now: `common/controller/WebSocketExceptionHandler` answers on
+`/user/queue/rejections` with the same `change-id`, and
+`RejectedDto.permanent` / `.temporary` is that distinction. The two TODOs this
+step was going to close are closed. What is left for step 4 is the positive
+half — which change committed, and at what revision — and that is the one new
+destination this step introduces.
 
 `MeetingWebSocketClient` then subscribes to that queue itself and needs no help
 from any page: it releases the in-flight action on a matching acknowledgement
@@ -327,37 +336,32 @@ The meeting page tracks the last revision it applied. A jump means it missed
 something, and it resubscribes to `/app/meetings/{id}` for a fresh snapshot
 instead of continuing on a diverged view.
 
-Two things step 2 left behind belong in the same header work. **The meeting id
-should travel with the action**, resolved by an argument resolver next to
-`Origin` exactly as `client-id` is. Today every action that names a topic or a
-block walks up the tree to find its meeting — two lookups for a topic action,
-three for a block or text one, before the action has done anything — purely to
-pick a lock key. The client always knows the meeting; it is the page it is on.
-The server then has to check the element belongs to the meeting it was told,
-which is a field comparison on an entity the action loads anyway, not another
-query. (Denormalising `meeting_id` onto `blocks` is not the answer — the column
-existed once and was removed.)
+**The meeting id is not part of this work.** An earlier draft put it on the
+action, resolved by an argument resolver next to `Origin`, to spare the walk up
+the tree for a lock key. It was settled the other way instead: the id is a
+`@DestinationVariable` on `/app/meetings/{id}/changes` and travels down as a
+parameter — `topics.move(origin, meetingId, topicId, action)` — so the lock is
+taken before anything is read and the client never states the same fact twice.
+Do not reintroduce it as a header, and do not denormalise `meeting_id` onto
+`blocks`; both have been tried and removed. The walk that remains is the
+authorisation check inside `getById`.
 
-*Done, in part:* the publishers no longer pay that walk. `BlockPublisher` and
+The publishers no longer pay a walk either. `BlockPublisher` and
 `TextBlockPublisher` each re-read the topic on *every* published event — so a
 move paid one lookup per shifted sibling — purely to work out the destination.
 The four publishers are now one `meeting/EventPublisher` taking the meeting id
-as a parameter, sourced from the destination like the lock key. The walk that
-remains is the authorisation check inside `getById`.
-
-**And the acknowledgement should carry why an action failed.** A lock that times
-out throws, and `WebSocketExceptionHandler` turns that into the same opaque
-`Error` as a missing entity, so a client cannot tell "try again" from "this will
-never work". The `status` in the acknowledgement is where that distinction
-belongs.
+as a parameter, sourced from the destination like the lock key.
 
 *Why here:* it turns divergence from invisible into detectable, which is the
 precondition for trusting anything below. It also replaces the current
 acknowledgement signal, which is an echoed broadcast event that belongs to the
 meeting page and does not correspond one-to-one with actions.
 
-*Done when:* a client that misses an event reloads instead of drifting, and the
-meeting page contains no throttle code at all.
+*Done when:* a client that misses an event reloads instead of drifting, and an
+in-flight change is released by its own acknowledgement rather than by an
+echoed broadcast. The throttle this was going to remove is already gone — the
+meeting page holds no queue or timer today, which is why the release has
+nothing to hook into yet.
 
 Step 5 — Fractional ranks instead of dense sequence ids (M)
 --

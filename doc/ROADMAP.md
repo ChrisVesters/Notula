@@ -88,11 +88,11 @@ These want an answer before the phases they sit in.
   notes under it for everybody, immediately, with no undo. Trash arrives in
   Phase 2; until then the risk is worth knowing.
 - **Nothing runs the tests but a person.** There is no `.github/workflows`.
-  The backend suite is 1014 tests; the frontend is 17 across four files. The
-  frontend suite has now broken twice on its own configuration — first a stale
-  Vitest browser provider, then a config that pointed at `src/**` while the
-  tests live in `test/`, which collects nothing and still exits green. A gate
-  that nobody runs is how that keeps happening.
+  The backend suite is substantial; the frontend one is thin. The frontend
+  suite has now broken twice on its own configuration — first a stale Vitest
+  browser provider, then a config that pointed at `src/**` while the tests
+  live in `test/`, which collects nothing and still exits green. A gate that
+  nobody runs is how that keeps happening.
 
 Phase 1 — A meeting is a real event
 ==
