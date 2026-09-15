@@ -4,11 +4,11 @@ import type WebSocketClient from "$lib/common/WebSocketClient";
 import type { MeetingDetails } from "$lib/details/DetailTypes";
 
 import type { Change, Rejected } from "./change/ChangeTypes";
-import type { MeetingMessage } from "./MeetingTypes";
+import type { MeetingEvent } from "./event/EventTypes";
 
 export type MeetingEventHandler = {
 	onLoad: (data: MeetingDetails) => void;
-	onEvent: (event: MeetingMessage) => void;
+	onEvent: (event: MeetingEvent) => void;
 	onRejected: (rejected: Rejected) => void;
 };
 

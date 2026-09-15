@@ -22,6 +22,7 @@ import java.util.UUID;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
+import org.mockito.ArgumentMatcher;
 import org.mockito.InOrder;
 
 import com.cvesters.notula.block.bdo.BlockAction;
@@ -30,6 +31,7 @@ import com.cvesters.notula.block.bdo.BlockInfo;
 import com.cvesters.notula.common.domain.Origin;
 import com.cvesters.notula.common.domain.Principal;
 import com.cvesters.notula.common.exception.MissingEntityException;
+import com.cvesters.notula.meeting.EventPublisher;
 import com.cvesters.notula.meeting.MeetingLock;
 import com.cvesters.notula.meeting.TestMeeting;
 import com.cvesters.notula.meeting.TestMeetingLock;
@@ -51,10 +53,10 @@ class BlockServiceTest {
 	private final MeetingLock meetingLock = TestMeetingLock.passThrough();
 
 	private final BlockStorageGateway blockStorageGateway = mock();
-	private final BlockPublisher blockPublisher = mock();
+	private final EventPublisher eventPublisher = mock();
 
 	private final BlockService blockService = new BlockService(topicService,
-			meetingLock, blockStorageGateway, blockPublisher);
+			meetingLock, blockStorageGateway, eventPublisher);
 
 	@Nested
 	class GetById {
@@ -187,12 +189,14 @@ class BlockServiceTest {
 			final var expectedAction = new BlockAction.Create(TOPIC.getId(),
 					BLOCK.getType(), BLOCK.getSequenceId());
 			final var matcher = new BlockActionMatcher.Create(expectedAction);
-			verify(blockPublisher).publish(argThat(event -> {
-				assertThat(event.origin()).isEqualTo(ORIGIN);
-				assertThat(event.block()).isEqualTo(created);
-				assertThat(event.action()).is(matcher.equal());
+			final ArgumentMatcher<BlockEvent> event = e -> {
+				assertThat(e.origin()).isEqualTo(ORIGIN);
+				assertThat(e.block()).isEqualTo(created);
+				assertThat(e.action()).is(matcher.equal());
 				return true;
-			}));
+			};
+
+			verify(eventPublisher).publish(eq(MEETING_ID), argThat(event));
 
 			final InOrder inOrder = inOrder(blockStorageGateway);
 			verify(blockStorageGateway, never()).update(any());
@@ -240,12 +244,14 @@ class BlockServiceTest {
 			final var expectedAction = new BlockAction.Create(TOPIC.getId(),
 					BLOCK.getType(), sequenceId);
 			final var matcher = new BlockActionMatcher.Create(expectedAction);
-			verify(blockPublisher).publish(argThat(event -> {
-				assertThat(event.origin()).isEqualTo(ORIGIN);
-				assertThat(event.block()).isEqualTo(created);
-				assertThat(event.action()).is(matcher.equal());
+			final ArgumentMatcher<BlockEvent> event = e -> {
+				assertThat(e.origin()).isEqualTo(ORIGIN);
+				assertThat(e.block()).isEqualTo(created);
+				assertThat(e.action()).is(matcher.equal());
 				return true;
-			}));
+			};
+
+			verify(eventPublisher).publish(eq(MEETING_ID), argThat(event));
 
 			verify(blockStorageGateway, never()).update(any());
 			verify(blockStorageGateway).create(any());
@@ -312,8 +318,8 @@ class BlockServiceTest {
 			final ArgumentCaptor<BlockEvent> events = ArgumentCaptor
 					.forClass(BlockEvent.class);
 
-			verify(blockPublisher, times(blocks.size() + 1))
-					.publish(events.capture());
+			verify(eventPublisher, times(blocks.size() + 1))
+					.publish(eq(MEETING_ID), events.capture());
 
 			final List<BlockEvent> blockEvents = events.getAllValues();
 
@@ -361,7 +367,7 @@ class BlockServiceTest {
 					() -> blockService.create(ORIGIN, MEETING_ID, action))
 							.isInstanceOf(IllegalArgumentException.class);
 
-			verifyNoInteractions(blockPublisher);
+			verifyNoInteractions(eventPublisher);
 			verify(blockStorageGateway, never()).update(any());
 			verify(blockStorageGateway, never()).create(any());
 		}
@@ -470,8 +476,8 @@ class BlockServiceTest {
 			final ArgumentCaptor<BlockEvent> events = ArgumentCaptor
 					.forClass(BlockEvent.class);
 
-			verify(blockPublisher, times(moved.size()))
-					.publish(events.capture());
+			verify(eventPublisher, times(moved.size()))
+					.publish(eq(MEETING_ID), events.capture());
 
 			final List<BlockEvent> blockEvents = events.getAllValues();
 
@@ -561,8 +567,8 @@ class BlockServiceTest {
 			final var moved = List.of(result, second, first);
 			final ArgumentCaptor<BlockEvent> events = ArgumentCaptor
 					.forClass(BlockEvent.class);
-			verify(blockPublisher, times(moved.size()))
-					.publish(events.capture());
+			verify(eventPublisher, times(moved.size()))
+					.publish(eq(MEETING_ID), events.capture());
 
 			final List<BlockEvent> blockEvents = events.getAllValues();
 
@@ -641,8 +647,8 @@ class BlockServiceTest {
 			final var moved = List.of(neighbour, result);
 			final ArgumentCaptor<BlockEvent> events = ArgumentCaptor
 					.forClass(BlockEvent.class);
-			verify(blockPublisher, times(moved.size()))
-					.publish(events.capture());
+			verify(eventPublisher, times(moved.size()))
+					.publish(eq(MEETING_ID), events.capture());
 
 			final List<BlockEvent> blockEvents = events.getAllValues();
 
@@ -677,7 +683,7 @@ class BlockServiceTest {
 					blockId, action);
 
 			assertThat(result).isEqualTo(block);
-			verifyNoInteractions(blockPublisher);
+			verifyNoInteractions(eventPublisher);
 			verify(blockStorageGateway, never()).update(any());
 			verify(blockStorageGateway, never()).findAllByTopicId(anyLong());
 		}
@@ -703,7 +709,7 @@ class BlockServiceTest {
 					blockId, action))
 							.isInstanceOf(IllegalArgumentException.class);
 
-			verifyNoInteractions(blockPublisher);
+			verifyNoInteractions(eventPublisher);
 			verify(blockStorageGateway, never()).update(any());
 		}
 
@@ -720,7 +726,7 @@ class BlockServiceTest {
 					blockId, action))
 							.isInstanceOf(MissingEntityException.class);
 
-			verifyNoInteractions(blockPublisher);
+			verifyNoInteractions(eventPublisher);
 			verify(blockStorageGateway, never()).update(any());
 		}
 
@@ -738,7 +744,7 @@ class BlockServiceTest {
 					blockId, action))
 							.isInstanceOf(MissingEntityException.class);
 
-			verifyNoInteractions(blockPublisher);
+			verifyNoInteractions(eventPublisher);
 			verify(blockStorageGateway, never()).update(any());
 		}
 
@@ -803,13 +809,15 @@ class BlockServiceTest {
 			blockService.delete(ORIGIN, MEETING_ID, blockId);
 
 			verify(blockStorageGateway).delete(blockInfo);
-			verify(blockPublisher).publish(argThat(event -> {
-				assertThat(event.origin()).isEqualTo(ORIGIN);
-				assertThat(event.block()).isEqualTo(blockInfo);
-				assertThat(event.action())
+			final ArgumentMatcher<BlockEvent> event = e -> {
+				assertThat(e.origin()).isEqualTo(ORIGIN);
+				assertThat(e.block()).isEqualTo(blockInfo);
+				assertThat(e.action())
 						.isInstanceOf(BlockAction.Delete.class);
 				return true;
-			}));
+			};
+
+			verify(eventPublisher).publish(eq(MEETING_ID), argThat(event));
 
 			verify(blockStorageGateway, never()).update(any());
 		}
@@ -862,8 +870,8 @@ class BlockServiceTest {
 			final ArgumentCaptor<BlockEvent> events = ArgumentCaptor
 					.forClass(BlockEvent.class);
 
-			verify(blockPublisher, times(movedBlocks.size() + 1))
-					.publish(events.capture());
+			verify(eventPublisher, times(movedBlocks.size() + 1))
+					.publish(eq(MEETING_ID), events.capture());
 
 			final List<BlockEvent> blockEvents = events.getAllValues();
 
@@ -915,12 +923,14 @@ class BlockServiceTest {
 			blockService.delete(ORIGIN, MEETING_ID, blockId);
 
 			verify(blockStorageGateway).delete(blockInfo);
-			verify(blockPublisher).publish(argThat(event -> {
-				assertThat(event.origin()).isEqualTo(ORIGIN);
-				assertThat(event.action())
+			final ArgumentMatcher<BlockEvent> event = e -> {
+				assertThat(e.origin()).isEqualTo(ORIGIN);
+				assertThat(e.action())
 						.isInstanceOf(BlockAction.Delete.class);
 				return true;
-			}));
+			};
+
+			verify(eventPublisher).publish(eq(MEETING_ID), argThat(event));
 
 			verify(blockStorageGateway, never()).update(any());
 		}
@@ -941,7 +951,7 @@ class BlockServiceTest {
 							.isInstanceOf(MissingEntityException.class);
 
 			verify(blockStorageGateway, never()).delete(any());
-			verifyNoInteractions(blockPublisher);
+			verifyNoInteractions(eventPublisher);
 		}
 
 		@Test

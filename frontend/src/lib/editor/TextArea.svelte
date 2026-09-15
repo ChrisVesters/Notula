@@ -1,7 +1,9 @@
 <script lang="ts">
+	import { onMount } from "svelte";
+
 	import { trim } from "$lib/common/NameUtils";
 	import type { UpdateAction } from "./ActionTypes";
-	import { onMount } from "svelte";
+	import { keepCaret } from "./Caret";
 	import { compositionHandler } from "./CompositionHandler";
 	import { focusHandler } from "./FocusHandler";
 
@@ -22,6 +24,8 @@
 	let textarea: HTMLTextAreaElement;
 
 	onMount(autoResize);
+
+	$effect.pre(() => keepCaret(textarea, value, autoResize));
 
 	const handleFocus = focusHandler({
 		onFocusChange: (value: boolean) => (focused = value)

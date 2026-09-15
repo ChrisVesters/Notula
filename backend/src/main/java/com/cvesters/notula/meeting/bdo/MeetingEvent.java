@@ -4,9 +4,7 @@ import java.util.Objects;
 
 import com.cvesters.notula.common.domain.Origin;
 
-// TODO: include MeetingInfo instead!
-public record MeetingEvent(long meetingId, MeetingAction action,
-		Origin origin) {
+public record MeetingEvent(MeetingAction action, Origin origin) {
 
 	public MeetingEvent {
 		Objects.requireNonNull(action);

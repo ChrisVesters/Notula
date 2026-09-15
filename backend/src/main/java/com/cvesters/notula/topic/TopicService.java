@@ -9,6 +9,7 @@ import org.springframework.stereotype.Service;
 import com.cvesters.notula.common.domain.Origin;
 import com.cvesters.notula.common.domain.Principal;
 import com.cvesters.notula.common.exception.MissingEntityException;
+import com.cvesters.notula.meeting.EventPublisher;
 import com.cvesters.notula.meeting.MeetingLock;
 import com.cvesters.notula.meeting.MeetingService;
 import com.cvesters.notula.meeting.bdo.MeetingInfo;
@@ -23,16 +24,16 @@ public class TopicService {
 	private final MeetingLock meetingLock;
 
 	private final TopicStorageGateway topicStorage;
-	private final TopicPublisher topicPublisher;
+	private final EventPublisher eventPublisher;
 
 	public TopicService(final MeetingService meetingService,
 			final MeetingLock meetingLock,
 			final TopicStorageGateway topicStorage,
-			final TopicPublisher topicPublisher) {
+			final EventPublisher eventPublisher) {
 		this.meetingService = meetingService;
 		this.meetingLock = meetingLock;
 		this.topicStorage = topicStorage;
-		this.topicPublisher = topicPublisher;
+		this.eventPublisher = eventPublisher;
 	}
 
 	public TopicInfo getById(final Principal principal, final long topicId) {
@@ -93,7 +94,7 @@ public class TopicService {
 		final TopicInfo created = topicStorage.create(topic);
 		events.add(new TopicEvent(created, action, origin));
 
-		events.forEach(topicPublisher::publish);
+		events.forEach(e -> eventPublisher.publish(meetingId, e));
 
 		return created;
 	}
@@ -145,7 +146,7 @@ public class TopicService {
 			events.add(new TopicEvent(updatedTopic, move, origin));
 		}
 
-		events.forEach(topicPublisher::publish);
+		events.forEach(e -> eventPublisher.publish(meetingId, e));
 
 		return topic;
 	}
@@ -167,7 +168,7 @@ public class TopicService {
 		final TopicInfo updated = topicStorage.update(topicInfo);
 
 		final var event = new TopicEvent(updated, action, origin);
-		topicPublisher.publish(event);
+		eventPublisher.publish(meetingId, event);
 
 		return updated;
 	}
@@ -202,7 +203,7 @@ public class TopicService {
 			events.add(new TopicEvent(updatedTopic, move, origin));
 		}
 
-		events.forEach(topicPublisher::publish);
+		events.forEach(e -> eventPublisher.publish(meetingId, e));
 	}
 
 }

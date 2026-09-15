@@ -12,6 +12,7 @@ import com.cvesters.notula.block.bdo.BlockInfo;
 import com.cvesters.notula.common.domain.Origin;
 import com.cvesters.notula.common.domain.Principal;
 import com.cvesters.notula.common.exception.MissingEntityException;
+import com.cvesters.notula.meeting.EventPublisher;
 import com.cvesters.notula.meeting.MeetingLock;
 import com.cvesters.notula.topic.TopicService;
 import com.cvesters.notula.topic.bdo.TopicInfo;
@@ -23,16 +24,16 @@ public class BlockService {
 	private final MeetingLock meetingLock;
 
 	private final BlockStorageGateway blockStorage;
-	private final BlockPublisher blockPublisher;
+	private final EventPublisher eventPublisher;
 
 	public BlockService(final TopicService topicService,
 			final MeetingLock meetingLock,
 			final BlockStorageGateway blockStorage,
-			final BlockPublisher blockPublisher) {
+			final EventPublisher eventPublisher) {
 		this.topicService = topicService;
 		this.meetingLock = meetingLock;
 		this.blockStorage = blockStorage;
-		this.blockPublisher = blockPublisher;
+		this.eventPublisher = eventPublisher;
 	}
 
 	public BlockInfo getById(final Principal principal, final long blockId) {
@@ -91,7 +92,7 @@ public class BlockService {
 		final BlockInfo created = blockStorage.create(block);
 		events.add(new BlockEvent(created, action, origin));
 
-		events.forEach(blockPublisher::publish);
+		events.forEach(e -> eventPublisher.publish(meetingId, e));
 
 		return created;
 	}
@@ -143,7 +144,7 @@ public class BlockService {
 			events.add(new BlockEvent(updatedBlock, move, origin));
 		}
 
-		events.forEach(blockPublisher::publish);
+		events.forEach(e -> eventPublisher.publish(meetingId, e));
 
 		return block;
 	}
@@ -180,6 +181,6 @@ public class BlockService {
 			events.add(new BlockEvent(updatedBlock, move, origin));
 		}
 
-		events.forEach(blockPublisher::publish);
+		events.forEach(e -> eventPublisher.publish(meetingId, e));
 	}
 }

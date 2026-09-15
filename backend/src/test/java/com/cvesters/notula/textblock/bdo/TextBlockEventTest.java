@@ -1,4 +1,4 @@
-package com.cvesters.notula.textblock.dao;
+package com.cvesters.notula.textblock.bdo;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -12,7 +12,6 @@ import org.junit.jupiter.api.Test;
 import com.cvesters.notula.block.bdo.BlockInfo;
 import com.cvesters.notula.common.domain.Origin;
 import com.cvesters.notula.session.TestSession;
-import com.cvesters.notula.textblock.bdo.TextBlockAction;
 
 class TextBlockEventTest {
 

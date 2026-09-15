@@ -22,11 +22,13 @@ import java.util.UUID;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
+import org.mockito.ArgumentMatcher;
 import org.mockito.InOrder;
 
 import com.cvesters.notula.common.domain.Origin;
 import com.cvesters.notula.common.domain.Principal;
 import com.cvesters.notula.common.exception.MissingEntityException;
+import com.cvesters.notula.meeting.EventPublisher;
 import com.cvesters.notula.meeting.MeetingLock;
 import com.cvesters.notula.meeting.MeetingService;
 import com.cvesters.notula.meeting.TestMeetingLock;
@@ -46,10 +48,10 @@ class TopicServiceTest {
 	private final MeetingLock meetingLock = TestMeetingLock.passThrough();
 
 	private final TopicStorageGateway topicStorageGateway = mock();
-	private final TopicPublisher topicPublisher = mock();
+	private final EventPublisher eventPublisher = mock();
 
 	private final TopicService topicService = new TopicService(meetingService,
-			meetingLock, topicStorageGateway, topicPublisher);
+			meetingLock, topicStorageGateway, eventPublisher);
 
 	@Nested
 	class GetById {
@@ -183,12 +185,14 @@ class TopicServiceTest {
 			final var expectedAction = new TopicAction.Create(
 					TOPIC_SEQUENCE_ID, TOPIC_NAME);
 			final var matcher = new TopicActionMatcher.Create(expectedAction);
-			verify(topicPublisher).publish(argThat(event -> {
-				assertThat(event.origin()).isEqualTo(ORIGIN);
-				assertThat(event.topic()).isEqualTo(created);
-				assertThat(event.action()).is(matcher.equal());
+			final ArgumentMatcher<TopicEvent> event = e -> {
+				assertThat(e.origin()).isEqualTo(ORIGIN);
+				assertThat(e.topic()).isEqualTo(created);
+				assertThat(e.action()).is(matcher.equal());
 				return true;
-			}));
+			};
+
+			verify(eventPublisher).publish(eq(MEETING_ID), argThat(event));
 		}
 
 		@Test
@@ -231,12 +235,14 @@ class TopicServiceTest {
 			final var expectedAction = new TopicAction.Create(sequenceId,
 					TOPIC_NAME);
 			final var matcher = new TopicActionMatcher.Create(expectedAction);
-			verify(topicPublisher).publish(argThat(event -> {
-				assertThat(event.origin()).isEqualTo(ORIGIN);
-				assertThat(event.topic()).isEqualTo(created);
-				assertThat(event.action()).is(matcher.equal());
+			final ArgumentMatcher<TopicEvent> event = e -> {
+				assertThat(e.origin()).isEqualTo(ORIGIN);
+				assertThat(e.topic()).isEqualTo(created);
+				assertThat(e.action()).is(matcher.equal());
 				return true;
-			}));
+			};
+
+			verify(eventPublisher).publish(eq(MEETING_ID), argThat(event));
 
 			verify(topicStorageGateway, never()).update(any());
 			verify(topicStorageGateway).create(any());
@@ -303,8 +309,8 @@ class TopicServiceTest {
 			final ArgumentCaptor<TopicEvent> events = ArgumentCaptor
 					.forClass(TopicEvent.class);
 
-			verify(topicPublisher, times(topics.size() + 1))
-					.publish(events.capture());
+			verify(eventPublisher, times(topics.size() + 1))
+					.publish(eq(MEETING_ID), events.capture());
 
 			final List<TopicEvent> topicEvents = events.getAllValues();
 
@@ -349,7 +355,7 @@ class TopicServiceTest {
 					() -> topicService.create(ORIGIN, MEETING_ID, action))
 							.isInstanceOf(IllegalArgumentException.class);
 
-			verifyNoInteractions(topicPublisher);
+			verifyNoInteractions(eventPublisher);
 			verify(topicStorageGateway, never()).update(any());
 			verify(topicStorageGateway, never()).create(any());
 		}
@@ -459,8 +465,8 @@ class TopicServiceTest {
 			final ArgumentCaptor<TopicEvent> events = ArgumentCaptor
 					.forClass(TopicEvent.class);
 
-			verify(topicPublisher, times(moved.size()))
-					.publish(events.capture());
+			verify(eventPublisher, times(moved.size()))
+					.publish(eq(MEETING_ID), events.capture());
 
 			final List<TopicEvent> topicEvents = events.getAllValues();
 
@@ -550,8 +556,8 @@ class TopicServiceTest {
 			final var moved = List.of(result, second, first);
 			final ArgumentCaptor<TopicEvent> events = ArgumentCaptor
 					.forClass(TopicEvent.class);
-			verify(topicPublisher, times(moved.size()))
-					.publish(events.capture());
+			verify(eventPublisher, times(moved.size()))
+					.publish(eq(MEETING_ID), events.capture());
 
 			final List<TopicEvent> topicEvents = events.getAllValues();
 
@@ -630,8 +636,8 @@ class TopicServiceTest {
 			final var moved = List.of(neighbour, result);
 			final ArgumentCaptor<TopicEvent> events = ArgumentCaptor
 					.forClass(TopicEvent.class);
-			verify(topicPublisher, times(moved.size()))
-					.publish(events.capture());
+			verify(eventPublisher, times(moved.size()))
+					.publish(eq(MEETING_ID), events.capture());
 
 			final List<TopicEvent> topicEvents = events.getAllValues();
 
@@ -665,7 +671,7 @@ class TopicServiceTest {
 					topicId, action);
 
 			assertThat(result).isEqualTo(topic);
-			verifyNoInteractions(topicPublisher);
+			verifyNoInteractions(eventPublisher);
 			verify(topicStorageGateway, never()).update(any());
 			verify(topicStorageGateway, never()).findAllByMeetingId(anyLong());
 		}
@@ -691,7 +697,7 @@ class TopicServiceTest {
 					topicId, action))
 							.isInstanceOf(IllegalArgumentException.class);
 
-			verifyNoInteractions(topicPublisher);
+			verifyNoInteractions(eventPublisher);
 			verify(topicStorageGateway, never()).update(any());
 		}
 
@@ -707,7 +713,7 @@ class TopicServiceTest {
 					topicId, action))
 							.isInstanceOf(MissingEntityException.class);
 
-			verifyNoInteractions(topicPublisher);
+			verifyNoInteractions(eventPublisher);
 			verify(topicStorageGateway, never()).update(any());
 		}
 
@@ -727,7 +733,7 @@ class TopicServiceTest {
 					topicId, action))
 							.isInstanceOf(MissingEntityException.class);
 
-			verifyNoInteractions(topicPublisher);
+			verifyNoInteractions(eventPublisher);
 			verify(topicStorageGateway, never()).update(any());
 		}
 
@@ -805,12 +811,14 @@ class TopicServiceTest {
 
 			assertThat(result).isEqualTo(updated);
 
-			verify(topicPublisher).publish(argThat(event -> {
-				assertThat(event.origin()).isEqualTo(ORIGIN);
-				assertThat(event.topic()).isEqualTo(updated);
-				assertThat(event.action()).isEqualTo(action);
+			final ArgumentMatcher<TopicEvent> event = e -> {
+				assertThat(e.origin()).isEqualTo(ORIGIN);
+				assertThat(e.topic()).isEqualTo(updated);
+				assertThat(e.action()).isEqualTo(action);
 				return true;
-			}));
+			};
+
+			verify(eventPublisher).publish(eq(MEETING_ID), argThat(event));
 		}
 
 		@Test
@@ -829,7 +837,7 @@ class TopicServiceTest {
 							.isInstanceOf(MissingEntityException.class);
 
 			verify(topicStorageGateway, never()).update(any());
-			verifyNoInteractions(topicPublisher);
+			verifyNoInteractions(eventPublisher);
 		}
 
 		@Test
@@ -892,13 +900,15 @@ class TopicServiceTest {
 			topicService.delete(ORIGIN, MEETING_ID, topicId);
 
 			verify(topicStorageGateway).delete(topicInfo);
-			verify(topicPublisher).publish(argThat(event -> {
-				assertThat(event.origin()).isEqualTo(ORIGIN);
-				assertThat(event.topic()).isEqualTo(topicInfo);
-				assertThat(event.action())
+			final ArgumentMatcher<TopicEvent> event = e -> {
+				assertThat(e.origin()).isEqualTo(ORIGIN);
+				assertThat(e.topic()).isEqualTo(topicInfo);
+				assertThat(e.action())
 						.isInstanceOf(TopicAction.Delete.class);
 				return true;
-			}));
+			};
+
+			verify(eventPublisher).publish(eq(MEETING_ID), argThat(event));
 
 			verify(topicStorageGateway, never()).update(any());
 		}
@@ -951,8 +961,8 @@ class TopicServiceTest {
 			final ArgumentCaptor<TopicEvent> events = ArgumentCaptor
 					.forClass(TopicEvent.class);
 
-			verify(topicPublisher, times(movedTopics.size() + 1))
-					.publish(events.capture());
+			verify(eventPublisher, times(movedTopics.size() + 1))
+					.publish(eq(MEETING_ID), events.capture());
 
 			final List<TopicEvent> topicEvents = events.getAllValues();
 
@@ -1002,13 +1012,15 @@ class TopicServiceTest {
 			topicService.delete(ORIGIN, MEETING_ID, topicId);
 
 			verify(topicStorageGateway).delete(topicInfo);
-			verify(topicPublisher).publish(argThat(event -> {
-				assertThat(event.origin()).isEqualTo(ORIGIN);
-				assertThat(event.topic()).isEqualTo(topicInfo);
-				assertThat(event.action())
+			final ArgumentMatcher<TopicEvent> event = e -> {
+				assertThat(e.origin()).isEqualTo(ORIGIN);
+				assertThat(e.topic()).isEqualTo(topicInfo);
+				assertThat(e.action())
 						.isInstanceOf(TopicAction.Delete.class);
 				return true;
-			}));
+			};
+
+			verify(eventPublisher).publish(eq(MEETING_ID), argThat(event));
 
 			verify(topicStorageGateway, never()).update(any());
 		}
@@ -1025,7 +1037,7 @@ class TopicServiceTest {
 							.isInstanceOf(MissingEntityException.class);
 
 			verify(topicStorageGateway, never()).delete(any());
-			verifyNoInteractions(topicPublisher);
+			verifyNoInteractions(eventPublisher);
 		}
 
 		@Test

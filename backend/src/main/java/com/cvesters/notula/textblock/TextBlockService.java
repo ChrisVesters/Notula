@@ -9,10 +9,11 @@ import com.cvesters.notula.block.bdo.BlockInfo;
 import com.cvesters.notula.block.bdo.BlockType;
 import com.cvesters.notula.common.domain.Origin;
 import com.cvesters.notula.common.exception.InvalidActionException;
+import com.cvesters.notula.meeting.EventPublisher;
 import com.cvesters.notula.meeting.MeetingLock;
 import com.cvesters.notula.textblock.bdo.TextBlockAction;
+import com.cvesters.notula.textblock.bdo.TextBlockEvent;
 import com.cvesters.notula.textblock.bdo.TextBlockInfo;
-import com.cvesters.notula.textblock.dao.TextBlockEvent;
 
 @Service
 public class TextBlockService {
@@ -21,16 +22,16 @@ public class TextBlockService {
 	private final MeetingLock meetingLock;
 
 	private final TextBlockStorageGateway textBlockStorage;
-	private final TextBlockPublisher textBlockPublisher;
+	private final EventPublisher eventPublisher;
 
 	public TextBlockService(final BlockService blockService,
 			final MeetingLock meetingLock,
 			final TextBlockStorageGateway textBlockStorage,
-			final TextBlockPublisher textBlockPublisher) {
+			final EventPublisher eventPublisher) {
 		this.blockService = blockService;
 		this.meetingLock = meetingLock;
 		this.textBlockStorage = textBlockStorage;
-		this.textBlockPublisher = textBlockPublisher;
+		this.eventPublisher = eventPublisher;
 	}
 
 	public TextBlockInfo update(final Origin origin, final long meetingId,
@@ -58,7 +59,7 @@ public class TextBlockService {
 				.update(textBlockInfo);
 
 		final var event = new TextBlockEvent(blockInfo, action, origin);
-		textBlockPublisher.publish(event);
+		eventPublisher.publish(meetingId, event);
 
 		return updated;
 	}

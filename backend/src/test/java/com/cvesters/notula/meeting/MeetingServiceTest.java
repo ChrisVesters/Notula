@@ -16,6 +16,7 @@ import java.util.UUID;
 
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
+import org.mockito.ArgumentMatcher;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.MethodSource;
 
@@ -23,6 +24,7 @@ import com.cvesters.notula.common.domain.Origin;
 import com.cvesters.notula.common.domain.Principal;
 import com.cvesters.notula.common.exception.MissingEntityException;
 import com.cvesters.notula.meeting.bdo.MeetingAction;
+import com.cvesters.notula.meeting.bdo.MeetingEvent;
 import com.cvesters.notula.meeting.bdo.MeetingInfo;
 import com.cvesters.notula.organisation.TestOrganisation;
 import com.cvesters.notula.session.TestSession;
@@ -35,10 +37,10 @@ class MeetingServiceTest {
 	private final MeetingLock meetingLock = TestMeetingLock.passThrough();
 
 	private final MeetingStorageGateway meetingStorageGateway = mock();
-	private final MeetingPublisher meetingPublisher = mock();
+	private final EventPublisher eventPublisher = mock();
 
 	private final MeetingService meetingService = new MeetingService(
-			meetingLock, meetingStorageGateway, meetingPublisher);
+			meetingLock, meetingStorageGateway, eventPublisher);
 
 	@Nested
 	class GetById {
@@ -219,12 +221,13 @@ class MeetingServiceTest {
 
 			assertThat(result).isEqualTo(updated);
 
-			verify(meetingPublisher).publish(argThat(event -> {
-				assertThat(event.meetingId()).isEqualTo(MEETING.getId());
-				assertThat(event.action()).isEqualTo(action);
-				assertThat(event.origin()).isEqualTo(ORIGIN);
+			final ArgumentMatcher<MeetingEvent> event = e -> {
+				assertThat(e.action()).isEqualTo(action);
+				assertThat(e.origin()).isEqualTo(ORIGIN);
 				return true;
-			}));
+			};
+
+			verify(eventPublisher).publish(eq(meetingId), argThat(event));
 		}
 
 		@Test
@@ -293,12 +296,13 @@ class MeetingServiceTest {
 
 			verify(meetingStorageGateway).delete(meetingInfo);
 
-			verify(meetingPublisher).publish(argThat(event -> {
-				assertThat(event.meetingId()).isEqualTo(MEETING.getId());
-				assertThat(event.action()).isInstanceOf(MeetingAction.Delete.class);
-				assertThat(event.origin()).isEqualTo(ORIGIN);
+			final ArgumentMatcher<MeetingEvent> event = e -> {
+				assertThat(e.action()).isInstanceOf(MeetingAction.Delete.class);
+				assertThat(e.origin()).isEqualTo(ORIGIN);
 				return true;
-			}));
+			};
+
+			verify(eventPublisher).publish(eq(meetingId), argThat(event));
 		}
 
 		@Test

@@ -110,13 +110,35 @@ Two applications behind one nginx origin: a Spring Boot 4 / Java 25 backend
     Success is never reported here; it arrives as an event on the topic like
     anyone else's.
 
-### One change envelope
+### One envelope each way
 
 `meeting/dto/ChangeDto` is a sealed interface over `MeetingChangeDto`,
 `TopicChangeDto`, `BlockChangeDto` and `TextBlockChangeDto`, each with nested
 records per operation, carrying the Jackson `@JsonSubTypes` keyed on a `type`
 discriminator (`RENAME_MEETING`, `ADD_TOPIC`, `EDIT_TEXT_BLOCK`, …), matched by
 `frontend/src/lib/meeting/change/ChangeTypes.ts`.
+
+Events mirror it. `meeting/dto/EventDto` is the envelope — `origin` and a
+`MutationDto` — and `MutationDto` is the same shape of sealed union over
+`MeetingMutationDto`, `TopicMutationDto`, `BlockMutationDto` and
+`TextBlockMutationDto`, in the same package, keyed on the same `type`
+vocabulary, matched by `frontend/src/lib/meeting/event/EventTypes.ts`. An event
+is named after the change that caused it, so `RENAME_TOPIC` is one word on both
+halves of the wire; the two with no inbound counterpart are `ADD_MEETING` and
+`REMOVE_MEETING`, because meetings are created and deleted over REST.
+
+**A cross-cutting field goes on `EventDto`, not on the mutations.** That is the
+whole point of the envelope: step 4's `revision` is one record, not fourteen.
+Four per-entity `*EventDto` wrappers over four `*MutationDto` hierarchies,
+keyed on a two-level `target` plus `action`, is what this replaced. They were
+Lombok getter beans and so serialised alphabetically, where records serialise
+in declaration order; everything outbound is a record now, so the expected JSON
+in a test is written in declaration order like the inbound half.
+
+A mutation carries its own entity's id and nothing above it — `RENAME_TOPIC`
+carries `topic`, `ADD_BLOCK` carries `block` and `topic`, and the meeting
+mutations carry no id at all, because the destination already named the
+meeting.
 
 **There is no `Change` in `bdo`.** A change DTO converts straight to the
 entity's `*Action` — `TopicChangeDto.Rename.toBdo()` returns a
@@ -169,7 +191,16 @@ operation is a new record plus a `@Type` entry, not a new destination.
 
 Flow: `MeetingWebSocket` (dispatches on the sealed DTO, converts to the
 entity's `*Action`) → per-entity `*Service` → `*StorageGateway` → Spring Data
-repository. `*Publisher` classes emit the events.
+repository. `meeting/EventPublisher` emits the events.
+
+**One publisher, overloaded per event type.** `EventPublisher.publish` takes
+`(meetingId, event)` with an overload per `*Event` record, so the four `bdo`
+event types stay unrelated — the only union is `MutationDto`, on the `dto` side.
+Four per-entity `*Publisher` classes were what this replaced: each held the same
+destination constant and the same envelope construction, and `BlockPublisher`
+and `TextBlockPublisher` each re-read the topic *after* the write to recover a
+meeting id the caller already had. The id is a parameter here for the same
+reason it is one on `MeetingLock`.
 
 ### Ordering and consistency
 
@@ -248,6 +279,17 @@ WebSocket client and views per domain. `MeetingWebSocketClient` is the single
 entry point for meeting traffic; it mints a `change-id` per change and returns
 it.
 
+The meeting page applies every event to its state, and `editor/Input.svelte`
+and `editor/TextArea.svelte` are bound to that state, so someone else's edit
+reaches an editor as a new `value`. Svelte then writes it to the element, which
+puts the caret at the end. Both editors therefore compare the element's current
+text with the incoming value in `$effect.pre`: equal means the user typed it
+and the DOM is already right, different means it came from elsewhere and the
+caret is moved across the change by `editor/TextEdit.moved` after a `tick`.
+Text events for our *own* origin are skipped by the page, because the editor
+already applied them; structural events are not, since create, move and delete
+still rely on the echo.
+
 ## Conventions
 
 These have each been violated and reverted at least once. **A design decision
@@ -269,6 +311,12 @@ call — ask before writing.**
   readable instead — a clearer name, a smaller method, an extracted variable.
   The only comment worth writing explains a *reason* the code cannot show:
   `MeetingLock`'s `claim`/`release` is the model.
+- **An identifier is named `<thing>Id`, never `<thing>`.** A `long topic` is a
+  topic id, not a topic, and the name has to say so — on a record component, a
+  parameter, a local and the JSON field it serialises to. `TopicMutationDto`'s
+  `topic` / `block` components are the old shape and are wrong; name new ones
+  `topicId` / `blockId`. Only a field holding the entity itself gets the bare
+  name.
 - Name variants by what separates them, not by what they share. Rejections are
   built with `RejectedDto.permanent` / `.temporary`, not `refused` — every
   rejection is a refusal, so that name distinguishes nothing. `transient` was
@@ -306,6 +354,11 @@ call — ask before writing.**
   behaviour the state produces instead. `SessionOrder.tracked()` was exactly
   this and was removed.
 - Seed data for repository tests lives in `src/test/resources/db/*.sql`.
+- A serialisation test lives in the test class of the type it serialises.
+  `EventDtoTest` asserts the *envelope* — `origin` plus one representative
+  mutation — and each `*MutationDtoTest` has a `Serialise` nested class for its
+  own records. Fifteen per-mutation envelope tests once sat in `EventDtoTest`;
+  they moved out.
 - Serialisation tests assert on the JSON **string**, not on a parsed tree.
   `assertThat(json).isEqualToIgnoringWhitespace("""…""")` against a text
   block — never `readTree` and walk `JsonNode`s. Field names, nesting and

@@ -49,12 +49,13 @@ Four separate problems are tangled together underneath that.
   are contiguous integers, so inserting or moving one row rewrites every row
   between the old and the new position, and publishes an event for each. Two
   concurrent moves scramble the list.
-- **Remote text edits are never applied.** `TextBlockPublisher` broadcasts
-  `TEXT_BLOCK` events to `/topic/meetings/{id}`, but the frontend's
-  `MeetingMessage` union does not include `TextBlockEvent` and the page has no
-  branch for that target. Two people typing in the same block do not see each
-  other at all until a reload. Conflict resolution is moot until this is fixed —
-  there is currently no conflict, only silent divergence.
+- **Remote text edits corrupt each other rather than being ignored.**
+
+  **Changed.** The meeting page now applies name, description and content
+  edits from other people, and the editors keep the caret across them. So the
+  divergence this section used to describe is gone, and what is left is the
+  real conflict: two edits composed against the same base, spliced in the order
+  they arrive. That is step 6.
 
 Where versions belong
 ==
@@ -220,12 +221,11 @@ order matches apply order rather than merely resembling it. An action that rolls
 back now broadcasts nothing at all. Step 4 cannot do without this — a `revision`
 that has not committed cannot be sent out on an event claiming it.
 
-Only the send is deferred, not the whole publish. `BlockPublisher` and
-`TextBlockPublisher` walk up the tree to find their meeting, and that read
-belongs inside the transaction that produced the event. The alternative —
-handing the events back out of `MeetingLock.call` for the caller to publish
-afterwards — moves those reads after the commit and, worse, outside the lock,
-where two actions race to broadcast and lose the order the lock just imposed.
+Only the send is deferred, not the whole publish. Publishing still happens
+inside `MeetingLock.call`. The alternative — handing the events back out of
+`MeetingLock.call` for the caller to publish afterwards — moves the work outside
+the lock, where two actions race to broadcast and lose the order the lock just
+imposed.
 
 **Order a single session's actions.** The lock gives mutual exclusion, not
 order. Two SEND frames from one client are handed to the inbound pool before
@@ -303,6 +303,10 @@ transaction as any mutation to the meeting or anything beneath it. Every
 published event carries it, and so does the initial load from
 `/app/meetings/{id}`, so the snapshot and the stream are comparable.
 
+Carrying it on an event is now one field on `meeting/dto/EventDto`, which is
+why the outbound envelope was built first rather than adding the same field to
+four event types and four frontend type files.
+
 Actions carry an `action-id` native header alongside `client-id`, resolved the
 same way `OriginArgumentResolver` resolves the client id. An
 `ExecutorChannelInterceptor` registered in `WebSocketConfig` acknowledges it:
@@ -331,10 +335,15 @@ three for a block or text one, before the action has done anything — purely to
 pick a lock key. The client always knows the meeting; it is the page it is on.
 The server then has to check the element belongs to the meeting it was told,
 which is a field comparison on an entity the action loads anyway, not another
-query. `BlockPublisher` and `TextBlockPublisher` pay the same walk on *every*
-published event to work out the destination, so a move publishes one per shifted
-sibling. (Denormalising `meeting_id` onto `blocks` is not the answer — the
-column existed once and was removed.)
+query. (Denormalising `meeting_id` onto `blocks` is not the answer — the column
+existed once and was removed.)
+
+*Done, in part:* the publishers no longer pay that walk. `BlockPublisher` and
+`TextBlockPublisher` each re-read the topic on *every* published event — so a
+move paid one lookup per shifted sibling — purely to work out the destination.
+The four publishers are now one `meeting/EventPublisher` taking the meeting id
+as a parameter, sourced from the destination like the lock key. The walk that
+remains is the authorisation check inside `getById`.
 
 **And the acknowledgement should carry why an action failed.** A lock that times
 out throws, and `WebSocketExceptionHandler` turns that into the same opaque
@@ -395,11 +404,12 @@ Step 6 — Operation log, per-block version, transformation (L)
 This is the roadmap's Phase 3 entry, and the only place a transformation is
 needed.
 
-Start by applying remote text events at all: add `TextBlockEvent` to the
-`MeetingMessage` union and a `TEXT_BLOCK` branch to the page's handler. Until
-that exists there is nothing to make conflict-safe.
+Applying remote text events at all — the precondition, since until it existed
+there was nothing to make conflict-safe — is done: the page has a branch per
+text mutation, skipping events from its own origin because the editor applied
+them already, and `editor/TextEdit` holds the splice.
 
-Then add `text_blocks.version BIGINT`, bumped only by edits to that block, and a
+Add `text_blocks.version BIGINT`, bumped only by edits to that block, and a
 log of text operations keyed by `(block_id, version)` written in the same
 transaction. Clients send the version their edit was written against. If it
 matches, apply directly; if not, fetch the operations since that version and

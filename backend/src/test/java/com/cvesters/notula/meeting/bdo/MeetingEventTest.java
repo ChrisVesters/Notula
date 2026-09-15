@@ -25,16 +25,15 @@ class MeetingEventTest {
 		@Test
 		void success() {
 			final var action = new MeetingAction.Create("New");
-			final var event = new MeetingEvent(1L, action, ORIGIN);
+			final var event = new MeetingEvent(action, ORIGIN);
 
-			assertThat(event.meetingId()).isEqualTo(1L);
 			assertThat(event.action()).isEqualTo(action);
 			assertThat(event.origin()).isEqualTo(ORIGIN);
 		}
 
 		@Test
 		void actionNull() {
-			assertThatThrownBy(() -> new MeetingEvent(1L, null, ORIGIN))
+			assertThatThrownBy(() -> new MeetingEvent(null, ORIGIN))
 					.isInstanceOf(NullPointerException.class);
 		}
 
@@ -42,7 +41,7 @@ class MeetingEventTest {
 		void originNull() {
 			final var action = new MeetingAction.Create("New");
 
-			assertThatThrownBy(() -> new MeetingEvent(1L, action, null))
+			assertThatThrownBy(() -> new MeetingEvent(action, null))
 					.isInstanceOf(NullPointerException.class);
 		}
 	}

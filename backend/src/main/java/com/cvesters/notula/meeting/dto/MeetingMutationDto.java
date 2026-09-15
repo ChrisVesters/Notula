@@ -2,73 +2,38 @@ package com.cvesters.notula.meeting.dto;
 
 import java.util.Objects;
 
-import lombok.Getter;
-
 import com.cvesters.notula.meeting.bdo.MeetingAction;
-import com.fasterxml.jackson.annotation.JsonSubTypes;
-import com.fasterxml.jackson.annotation.JsonSubTypes.Type;
-import com.fasterxml.jackson.annotation.JsonTypeInfo;
+import com.cvesters.notula.meeting.bdo.MeetingEvent;
+import com.fasterxml.jackson.annotation.JsonUnwrapped;
 
-@JsonTypeInfo(use = JsonTypeInfo.Id.NAME, include = JsonTypeInfo.As.PROPERTY, property = "action")
-@JsonSubTypes({ @Type(value = MeetingMutationDto.Create.class, name = "CREATE"),
-		@Type(value = MeetingMutationDto.UpdateName.class, name = "UPDATE_NAME"),
-		@Type(value = MeetingMutationDto.UpdateDescription.class, name = "UPDATE_DESCRIPTION"),
-		@Type(value = MeetingMutationDto.Delete.class, name = "DELETE") })
-public sealed interface MeetingMutationDto {
+public sealed interface MeetingMutationDto extends MutationDto {
 
-	static MeetingMutationDto of(final MeetingAction action) {
-		Objects.requireNonNull(action);
+	static MeetingMutationDto of(final MeetingEvent event) {
+		Objects.requireNonNull(event);
 
-		return switch (action) {
-			case MeetingAction.Create create -> new Create(create);
-			case MeetingAction.UpdateName updateName -> new UpdateName(
-					updateName);
-			case MeetingAction.UpdateDescription updateDescription -> new UpdateDescription(
-					updateDescription);
-			case MeetingAction.Delete _ -> new Delete();
+		return switch (event.action()) {
+			case MeetingAction.Create action -> new Add(action.getName());
+			case MeetingAction.UpdateName action -> new Rename(
+					new TextEditDto(action.getPosition(), action.getLength(),
+							action.getValue()));
+			case MeetingAction.UpdateDescription action -> new Describe(
+					new TextEditDto(action.getPosition(), action.getLength(),
+							action.getValue()));
+			case MeetingAction.Delete _ -> new Remove();
 		};
 	}
 
-	@Getter
-	final class Create implements MeetingMutationDto {
-
-		private final String name;
-
-		private Create(final MeetingAction.Create create) {
-			this.name = create.getName();
-		}
+	record Add(String name) implements MeetingMutationDto {
 	}
 
-	@Getter
-	final class UpdateName implements MeetingMutationDto {
-
-		private final int position;
-		private final int length;
-		private final String value;
-
-		private UpdateName(final MeetingAction.UpdateName action) {
-			this.position = action.getPosition();
-			this.length = action.getLength();
-			this.value = action.getValue();
-		}
+	record Rename(@JsonUnwrapped TextEditDto edit)
+			implements MeetingMutationDto {
 	}
 
-	@Getter
-	final class UpdateDescription implements MeetingMutationDto {
-
-		private final int position;
-		private final int length;
-		private final String value;
-
-		private UpdateDescription(
-				final MeetingAction.UpdateDescription action) {
-			this.position = action.getPosition();
-			this.length = action.getLength();
-			this.value = action.getValue();
-		}
+	record Describe(@JsonUnwrapped TextEditDto edit)
+			implements MeetingMutationDto {
 	}
 
-	@Getter
-	final class Delete implements MeetingMutationDto {
+	record Remove() implements MeetingMutationDto {
 	}
 }

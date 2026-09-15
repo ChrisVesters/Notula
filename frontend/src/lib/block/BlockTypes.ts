@@ -1,5 +1,3 @@
-import type { EventOrigin } from "$lib/common/EventTypes";
-
 export const BlockType = {
 	TEXT: "TEXT"
 } as const;
@@ -11,32 +9,4 @@ export type BlockInfo = {
 	topicId: number;
 	type: BlockType;
 	sequenceId: number;
-};
-
-export type BlockEvent = {
-	target: "BLOCK";
-	blockId: number;
-	mutation: BlockMutation;
-	origin: EventOrigin;
-};
-
-export type BlockMutation =
-	| BlockMutationCreate
-	| BlockMutationMove
-	| BlockMutationDelete;
-
-export type BlockMutationCreate = {
-	action: "CREATE";
-	topicId: number;
-	type: BlockType;
-	sequenceId: number;
-};
-
-export type BlockMutationMove = {
-	action: "MOVE";
-	sequenceId: number;
-};
-
-export type BlockMutationDelete = {
-	action: "DELETE";
 };

@@ -17,15 +17,15 @@ public class MeetingService {
 
 	private final MeetingLock meetingLock;
 
-	private final MeetingPublisher meetingPublisher;
+	private final EventPublisher eventPublisher;
 	private final MeetingStorageGateway meetingStorage;
 
 	public MeetingService(final MeetingLock meetingLock,
 			final MeetingStorageGateway meetingStorageGateway,
-			final MeetingPublisher meetingPublisher) {
+			final EventPublisher eventPublisher) {
 		this.meetingLock = meetingLock;
 		this.meetingStorage = meetingStorageGateway;
-		this.meetingPublisher = meetingPublisher;
+		this.eventPublisher = eventPublisher;
 	}
 
 	public MeetingInfo getById(final Principal principal, final long id) {
@@ -71,8 +71,8 @@ public class MeetingService {
 		action.apply(meetingInfo);
 		final MeetingInfo updated = meetingStorage.update(meetingInfo);
 
-		final var event = new MeetingEvent(id, action, origin);
-		meetingPublisher.publish(event);
+		final var event = new MeetingEvent(action, origin);
+		eventPublisher.publish(id, event);
 
 		return updated;
 	}
@@ -90,7 +90,7 @@ public class MeetingService {
 		meetingStorage.delete(meetingInfo);
 
 		final var action = new MeetingAction.Delete();
-		final var event = new MeetingEvent(id, action, origin);
-		meetingPublisher.publish(event);
+		final var event = new MeetingEvent(action, origin);
+		eventPublisher.publish(id, event);
 	}
 }

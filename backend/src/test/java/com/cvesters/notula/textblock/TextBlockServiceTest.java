@@ -15,6 +15,7 @@ import java.util.UUID;
 
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
+import org.mockito.ArgumentMatcher;
 
 import com.cvesters.notula.block.BlockService;
 import com.cvesters.notula.block.TestBlock;
@@ -22,10 +23,12 @@ import com.cvesters.notula.block.bdo.BlockInfo;
 import com.cvesters.notula.common.domain.Origin;
 import com.cvesters.notula.common.domain.Principal;
 import com.cvesters.notula.common.exception.InvalidActionException;
+import com.cvesters.notula.meeting.EventPublisher;
 import com.cvesters.notula.meeting.MeetingLock;
 import com.cvesters.notula.meeting.TestMeetingLock;
 import com.cvesters.notula.session.TestSession;
 import com.cvesters.notula.textblock.bdo.TextBlockAction;
+import com.cvesters.notula.textblock.bdo.TextBlockEvent;
 import com.cvesters.notula.textblock.bdo.TextBlockInfo;
 
 class TextBlockServiceTest {
@@ -37,11 +40,11 @@ class TextBlockServiceTest {
 	private final MeetingLock meetingLock = TestMeetingLock.passThrough();
 
 	private final TextBlockStorageGateway textBlockStorageGateway = mock();
-	private final TextBlockPublisher textBlockPublisher = mock();
+	private final EventPublisher eventPublisher = mock();
 
 	private final TextBlockService textBlockService = new TextBlockService(
 			blockService, meetingLock, textBlockStorageGateway,
-			textBlockPublisher);
+			eventPublisher);
 
 	@Nested
 	class Update {
@@ -81,12 +84,14 @@ class TextBlockServiceTest {
 
 			assertThat(result).isEqualTo(updated);
 
-			verify(textBlockPublisher).publish(argThat(event -> {
-				assertThat(event.origin()).isEqualTo(ORIGIN);
-				assertThat(event.block()).isEqualTo(blockInfo);
-				assertThat(event.action()).isEqualTo(action);
+			final ArgumentMatcher<TextBlockEvent> event = e -> {
+				assertThat(e.origin()).isEqualTo(ORIGIN);
+				assertThat(e.block()).isEqualTo(blockInfo);
+				assertThat(e.action()).isEqualTo(action);
 				return true;
-			}));
+			};
+
+			verify(eventPublisher).publish(eq(MEETING_ID), argThat(event));
 		}
 
 		@Test
@@ -115,12 +120,14 @@ class TextBlockServiceTest {
 
 			assertThat(result).isEqualTo(updated);
 
-			verify(textBlockPublisher).publish(argThat(event -> {
-				assertThat(event.origin()).isEqualTo(ORIGIN);
-				assertThat(event.block()).isEqualTo(blockInfo);
-				assertThat(event.action()).isEqualTo(action);
+			final ArgumentMatcher<TextBlockEvent> event = e -> {
+				assertThat(e.origin()).isEqualTo(ORIGIN);
+				assertThat(e.block()).isEqualTo(blockInfo);
+				assertThat(e.action()).isEqualTo(action);
 				return true;
-			}));
+			};
+
+			verify(eventPublisher).publish(eq(MEETING_ID), argThat(event));
 		}
 
 		@Test
@@ -141,7 +148,7 @@ class TextBlockServiceTest {
 							.isInstanceOf(InvalidActionException.class);
 
 			verifyNoInteractions(textBlockStorageGateway);
-			verifyNoInteractions(textBlockPublisher);
+			verifyNoInteractions(eventPublisher);
 		}
 
 		@Test

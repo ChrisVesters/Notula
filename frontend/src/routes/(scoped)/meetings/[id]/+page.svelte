@@ -4,20 +4,21 @@
 	import { goto } from "$app/navigation";
 	import { page } from "$app/state";
 
-	import type { BlockMutation } from "$lib/block/BlockTypes";
 	import { BlockType } from "$lib/block/BlockTypes";
 	import Loading from "$lib/common/Loading.svelte";
-	import type { MeetingDetails } from "$lib/details/DetailTypes";
-	import MeetingInfoView from "$lib/meeting/MeetingInfoView.svelte";
+	import { isOwnEvent } from "$lib/common/EventTypes";
 	import type {
-		MeetingMessage,
-		MeetingMutation
-	} from "$lib/meeting/MeetingTypes";
+		BlockDetails,
+		MeetingDetails,
+		TopicDetails
+	} from "$lib/details/DetailTypes";
+	import { applied } from "$lib/editor/TextEdit";
+	import MeetingInfoView from "$lib/meeting/MeetingInfoView.svelte";
 	import type { Rejected } from "$lib/meeting/change/ChangeTypes";
+	import type { MeetingEvent } from "$lib/meeting/event/EventTypes";
 	import MeetingWebSocketClient from "$lib/meeting/MeetingWebSocketClient";
 	import TopicsAgendaView from "$lib/topic/TopicsAgendaView.svelte";
 	import TopicsNoteView from "$lib/topic/TopicsNoteView.svelte";
-	import type { TopicMutation } from "$lib/topic/TopicTypes";
 
 	const id = $derived(Number(page.params.id));
 
@@ -47,100 +48,169 @@
 		window.alert(rejected.reason);
 	};
 
-	const onEvent = (event: MeetingMessage) => {
-		// Events caused by our own actions can be recognised with
-		// isOwnEvent(event.origin). They are not filtered out yet: creating,
-		// moving and deleting topics and blocks currently relies on the echo
-		// to update the view. Filtering can only be turned on once those are
-		// applied locally first.
+	const findTopic = (id: number): TopicDetails | undefined => {
+		const topic = meeting?.topics.find(t => t.id === id);
+		if (!topic) {
+			// TODO: out of sync?
+			console.error("Topic does not exist");
+		}
+
+		return topic;
+	};
+
+	const findBlock = (id: number): BlockDetails | undefined => {
+		const block = meeting?.topics
+			.flatMap(t => t.blocks)
+			.find(b => b.id === id);
+		if (!block) {
+			// TODO: out of sync?
+			console.error("Block does not exist");
+		}
+
+		return block;
+	};
+
+	const onEvent = (event: MeetingEvent) => {
+		// Our own changes come back too. Creating, moving and deleting topics
+		// and blocks still relies on that echo to update the view, so they are
+		// applied whoever caused them. Text is the exception: the editor
+		// already applied it locally, and applying the echo would splice the
+		// same edit in twice.
 		// TODO: what if initial data is not yet loaded?
 		// TODO: keep in queue and apply once loaded.
-		// TODO: swich case?
-		// TODO: extract this logic into handlers? Or at least separate functions
 		console.debug("Received event:", event);
-		if (event.target == "MEETING") {
-			const mutation: MeetingMutation = event.mutation;
-			if (mutation.action === "DELETE") {
+
+		const mutation = event.mutation;
+		const remote = !isOwnEvent(event.origin);
+
+		switch (mutation.type) {
+			case "ADD_MEETING":
+				break;
+			case "RENAME_MEETING":
+				if (meeting && remote) {
+					meeting.name = applied(meeting.name, mutation);
+				}
+				break;
+			case "DESCRIBE_MEETING":
+				if (meeting && remote) {
+					meeting.description = applied(
+						meeting.description,
+						mutation
+					);
+				}
+				break;
+			case "REMOVE_MEETING":
 				// TODO: show message saying the meeting was deleted/no longer exists.
 				goto("/meetings");
-			}
-		} else if (event.target == "TOPIC") {
-			const mutation: TopicMutation = event.mutation;
-			if (mutation.action === "CREATE") {
+				break;
+
+			case "ADD_TOPIC":
 				meeting?.topics.push({
-					id: event.topicId,
+					id: mutation.topic,
 					sequenceId: mutation.sequenceId,
 					name: mutation.name,
 					description: "",
 					duration: null,
 					blocks: []
 				});
-			} else if (mutation.action === "MOVE") {
-				const topic = meeting?.topics.find(t => t.id === event.topicId);
-				// TODO: what if topic does not exist? Out of sync?
-				if (!topic) {
-					console.error("Topic does not exist");
-					return;
+				break;
+			case "MOVE_TOPIC": {
+				const topic = findTopic(mutation.topic);
+				if (topic) {
+					topic.sequenceId = mutation.sequenceId;
+				}
+				break;
+			}
+			case "RENAME_TOPIC": {
+				if (!remote) {
+					break;
 				}
 
-				topic.sequenceId = mutation.sequenceId;
-			} else if (mutation.action === "UPDATE_DURATION") {
-				const topic = meeting?.topics.find(t => t.id === event.topicId);
+				const topic = findTopic(mutation.topic);
 				if (topic) {
-					topic.duration = mutation.duration;
+					topic.name = applied(topic.name, mutation);
 				}
-			} else if (mutation.action === "DELETE") {
-				const index = meeting?.topics.findIndex(
-					t => t.id === event.topicId
-				);
-				if (index !== undefined && index >= 0) {
+				break;
+			}
+			case "DESCRIBE_TOPIC": {
+				if (!remote) {
+					break;
+				}
+
+				const topic = findTopic(mutation.topic);
+				if (topic) {
+					topic.description = applied(topic.description, mutation);
+				}
+				break;
+			}
+			case "SCHEDULE_TOPIC": {
+				const topic = findTopic(mutation.topic);
+				if (topic) {
+					topic.duration = mutation.minutes;
+				}
+				break;
+			}
+			case "REMOVE_TOPIC": {
+				const index =
+					meeting?.topics.findIndex(t => t.id === mutation.topic) ??
+					-1;
+				if (index >= 0) {
 					meeting?.topics.splice(index, 1);
 				}
+				break;
 			}
-		} else if (event.target === "BLOCK") {
-			const mutation: BlockMutation = event.mutation;
-			if (mutation.action === "CREATE") {
-				const topic = meeting?.topics.find(
-					t => t.id === mutation.topicId
-				);
-				// TODO: what if topic does not exist? Out of sync?
+
+			case "ADD_BLOCK": {
+				const topic = findTopic(mutation.topic);
 				if (!topic) {
-					console.error("Topic does not exist");
-					return;
+					break;
 				}
 
-				if (mutation.type === BlockType.TEXT) {
+				if (mutation.blockType === BlockType.TEXT) {
 					topic.blocks.push({
-						id: event.blockId,
-						type: mutation.type,
+						id: mutation.block,
+						type: mutation.blockType,
 						sequenceId: mutation.sequenceId,
 						content: ""
 					});
 				} else {
-					console.error("Unhandled block type:", mutation.type);
+					console.error("Unhandled block type:", mutation.blockType);
 				}
-			} else if (mutation.action === "MOVE") {
-				const block = meeting?.topics
-					.flatMap(t => t.blocks)
-					.find(b => b.id === event.blockId);
-				// TODO: what if block does not exist? Out of sync?
-				if (!block) {
-					console.error("Block does not exist");
-					return;
+				break;
+			}
+			case "MOVE_BLOCK": {
+				const block = findBlock(mutation.block);
+				if (block) {
+					block.sequenceId = mutation.sequenceId;
 				}
-
-				block.sequenceId = mutation.sequenceId;
-			} else if (mutation.action === "DELETE") {
+				break;
+			}
+			case "REMOVE_BLOCK": {
 				const topic = meeting?.topics.find(t =>
-					t.blocks.some(b => b.id === event.blockId)
+					t.blocks.some(b => b.id === mutation.block)
 				);
-				// TODO: what if block does not exist? Out of sync?
 				if (!topic) {
+					// TODO: out of sync?
 					console.error("Block does not exist");
-					return;
+					break;
 				}
 
-				topic.blocks = topic.blocks.filter(b => b.id !== event.blockId);
+				topic.blocks = topic.blocks.filter(
+					b => b.id !== mutation.block
+				);
+				break;
+			}
+
+			case "EDIT_TEXT_BLOCK": {
+				if (!remote) {
+					break;
+				}
+
+				const block = findBlock(mutation.block);
+				if (block?.type === BlockType.TEXT) {
+					block.content = applied(block.content, mutation);
+				}
+				break;
 			}
 		}
 	};

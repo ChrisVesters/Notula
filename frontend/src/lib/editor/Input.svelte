@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { trim } from "$lib/common/NameUtils";
 	import type { UpdateAction } from "./ActionTypes";
+	import { keepCaret } from "./Caret";
 	import { compositionHandler } from "./CompositionHandler";
 	import { focusHandler } from "./FocusHandler";
 
@@ -18,6 +19,9 @@
 		onAction
 	}: InputProps = $props();
 	let focused: boolean = $state(false);
+	let input: HTMLInputElement;
+
+	$effect.pre(() => keepCaret(input, value));
 
 	const handleFocus = focusHandler({
 		onFocusChange: (value: boolean) => (focused = value)
@@ -92,6 +96,7 @@
 </script>
 
 <input
+	bind:this={input}
 	class={className}
 	{@attach handleComposition}
 	{@attach handleFocus}

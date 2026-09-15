@@ -40,6 +40,14 @@ Checked against the code, not against the commit messages.
   them. The old `// TODO: publish move action/event!!` is gone.
 - **Drag-and-drop reordering.** `common/ReorderHandler` with `IconDrag` in
   `TopicAgendaView` and `BlockView`, sending `MOVE_TOPIC` / `MOVE_BLOCK`.
+- **One event envelope.** Events leave as `meeting/dto/EventDto` — `origin`
+  plus a sealed `MutationDto` on one `type` discriminator — mirroring
+  `ChangeDto` and matched by `frontend/src/lib/meeting/event/EventTypes.ts`.
+  A cross-cutting field on an event is now one record rather than a dozen
+  files, which is what step 4 needs.
+- **Remote edits are rendered.** The meeting page applies name, description
+  and block-content edits from other people, and the editors keep the caret
+  where the user put it rather than jumping to the end.
 - **The socket survives a token refresh.** `WebSocketClient.reconnect` keeps
   the subscription map; `config/WebSocketSessionRegistry` closes a connection
   whose token has expired.
@@ -49,26 +57,12 @@ Known risks and open decisions
 
 These want an answer before the phases they sit in.
 
-- **Other people's typing is never rendered.** This is the headline claim of
-  the product and it does not work end to end. The backend publishes text
-  edits, but `frontend/src/lib/meeting/MeetingTypes.ts` has no `TEXT_BLOCK`
-  member in the `MeetingMessage` union, and the meeting page's `onEvent`
-  handles only `CREATE` / `MOVE` / `UPDATE_DURATION` / `DELETE` — there is no
-  branch for `UPDATE_NAME`, `UPDATE_DESCRIPTION` or a block's content. Two
-  people typing in one meeting see nothing of each other until a reload.
-  Everything about conflict resolution is theoretical until this is closed:
-  there is currently no conflict, only silent divergence.
-- **Only the inbound half of the wire is one envelope.** Changes arrive on one
-  destination as one sealed `ChangeDto`, but events still leave as four
-  per-entity `*MutationDto` types under four `*EventDto` wrappers, keyed on a
-  two-level `target` plus `action` discriminator, and the frontend mirrors that
-  with a type file per entity. Adding a cross-cutting field to an event still
-  touches about a dozen files, which is the cost the inbound rewrite existed to
-  remove. They are also Lombok getter beans, so they serialise alphabetically
-  rather than in declaration order like the records inbound. The seam is
-  `ChangeDto` and `frontend/src/lib/meeting/change/ChangeTypes.ts`: an outbound
-  envelope should be the same shape, and it should land before versioning adds
-  a field to every event.
+- **Nothing drives the whole path.** Remote edits are applied by the meeting
+  page and the envelope is pinned by tests on both sides, but no test carries
+  one change from a STOMP frame through the services to what a second
+  subscriber receives, so the two halves agree by construction rather than by
+  demonstration. Same gap as *An end-to-end test* under Quality, now with more
+  riding on it.
 
 - **Concurrent edits to the same text can corrupt each other.**
   `common/domain/TextUpdate` applies an incoming edit as a raw
@@ -106,11 +100,6 @@ Phase 1 — A meeting is a real event
 Closes the functional dead ends and gives a meeting the fields the rest of the
 roadmap depends on.
 
-- **Render remote edits** (M) — add the text-block event to `MeetingMessage`,
-  and handle name, description and content mutations in the meeting page's
-  `onEvent`. Bug fix, and the thing that makes the product's core claim true.
-  Apply it to the existing editors without stealing the caret; that constraint
-  is what makes it an M rather than an S.
 - **Invitation and credential flow** (L) — invite token, invitation mail,
   set-password on accept. Fixes the dead end in `OrganisationUserService`.
   Touches `credentials`, a new invitations table, and needs mail delivery,
@@ -351,15 +340,13 @@ Presentation
 - More languages. The `sveltekit-i18n` scaffolding is in place with only `en`
   populated.
 
-If you only do four things
+If you only do three things
 ==
 
-**Render remote edits**, because without it the product does not do the one
-thing it says it does, and every real-time item behind it is unobservable.
 **Meeting date and attendees**, because they unblock a whole tier of later
 work. **The invitation and password flow**, because adding a colleague to an
 organisation currently produces an account that cannot log in. **Action items
 as a block type**, the highest user value and a clean fit for the existing
 model.
 
-The live topic timer is the fifth, and still the cheapest thing on the list.
+The live topic timer is the fourth, and still the cheapest thing on the list.
