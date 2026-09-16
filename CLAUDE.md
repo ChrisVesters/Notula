@@ -396,7 +396,24 @@ call — ask before writing.**
 
 - `test/ControllerTest`, `test/RepositoryTest` and `test/WebSocketTest` are the
   base classes; `WebSocketTest` drives real STOMP frames against a random port
-  with a mocked `JwtDecoder`.
+  with a mocked `JwtDecoder`. `connect` returns the `StompSession` and may be
+  called more than once, so a test can watch what a *second* subscriber
+  receives; `subscribe` and `send` take a session, or default to the first one
+  connected. `FrameHandler.getResponse` is the first frame only — use
+  `await(count, timeout)` for a sequence, since one change can publish several
+  events. It returns what arrived rather than throwing, so assert on the size.
+- **Nothing orders frames across two connections.** A test that subscribes on
+  one session and sends on another must know the subscription is registered
+  before it sends, or the broadcast goes to nobody and the test fails only on a
+  slower machine. There is no receipt to wait on: the simple broker sends no
+  `RECEIPT` for a `SUBSCRIBE`, so `addReceiptTask` never fires — verified, after
+  configuring the `TaskScheduler` its absence otherwise complains about.
+  `MeetingChangeWebSocketTest.observing` is the pattern: subscribe, then ask the
+  same session for the `/app/meetings/{id}` snapshot and wait for the reply, a
+  round trip the earlier subscription cannot still be behind.
+- A WebSocket test that touches the database seeds with `@Sql` and must list
+  `/db/clean.sql` first: `@SpringBootTest` does not roll back, so without the
+  truncate the second test method fails on a duplicate key.
 - Test names are **short identifiers, not descriptions**. A `@Nested` class
   names the method under test; each `@Test` names the case in a word or two —
   `success`, `value`, `unnamed`, `otherMeeting`, `timeout`. Not
@@ -432,10 +449,12 @@ call — ask before writing.**
 
 Stated in `doc/LESSONS.md` and worth knowing before starting:
 
-- No WebSocket integration test reaches the database. `WebSocketTest` subclasses
-  drive real STOMP frames through the full messaging stack, but every entity
-  service is a `@MockitoBean`, so nothing exercises lock, transaction and
-  publisher together.
+- One WebSocket test reaches the database, and only one.
+  `MeetingChangeWebSocketTest` mocks nothing below the web layer and drives a
+  topic move and a schedule to a second subscriber, so lock, transaction,
+  publisher and revision are exercised together for those two. Every other
+  `WebSocketTest` subclass still makes each entity service a `@MockitoBean`, so
+  no other operation is covered end to end.
 - Text conflicts are refused with a retryable rejection rather than merged;
   transformation is the seam to plug into.
 - The frontend has almost no tests: `frontend/test/` covers a few form

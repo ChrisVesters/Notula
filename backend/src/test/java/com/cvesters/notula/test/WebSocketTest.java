@@ -6,6 +6,8 @@ import static org.mockito.Mockito.when;
 
 import java.time.Duration;
 import java.time.Instant;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
@@ -52,6 +54,7 @@ public abstract class WebSocketTest {
 	private String url;
 
 	private WebSocketStompClient stompClient;
+	private final List<StompSession> sessions = new ArrayList<>();
 	private StompSession stompSession;
 
 	protected final SessionHandler stompSessionHandler = new SessionHandler();
@@ -65,17 +68,19 @@ public abstract class WebSocketTest {
 
 	@AfterEach
 	void teardown() {
-		if (stompSession != null && stompSession.isConnected()) {
-			stompSession.disconnect();
-		}
+		sessions.stream()
+				.filter(StompSession::isConnected)
+				.forEach(StompSession::disconnect);
+		sessions.clear();
+		stompSession = null;
 	}
 
-	protected void connect(final TestSession session) throws Exception {
-		connect(session, Instant.now().plus(ACCESS_EXPIRATION));
+	protected StompSession connect(final TestSession session) throws Exception {
+		return connect(session, Instant.now().plus(ACCESS_EXPIRATION));
 	}
 
-	protected void connect(final TestSession session, final Instant expiresAt)
-			throws Exception {
+	protected StompSession connect(final TestSession session,
+			final Instant expiresAt) throws Exception {
 		final String token = "token";
 		final Jwt jwt = mock();
 		when(jwtDecoder.decode(token)).thenReturn(jwt);
@@ -84,39 +89,55 @@ public abstract class WebSocketTest {
 		final var authToken = session.getAuthToken();
 		when(authManager.convert(jwt)).thenReturn(authToken);
 
-		final var httpHeaders = new WebSocketHttpHeaders();
 		final var stompHeaders = new StompHeaders();
 		stompHeaders.add("Authorization", "Bearer " + token);
 
-		final CompletableFuture<StompSession> future = stompClient.connectAsync(
-				url, httpHeaders, stompHeaders, stompSessionHandler);
-
-		stompSession = future.get(WAIT_TIMEOUT.toSeconds(), TimeUnit.SECONDS);
-		assertThat(stompSession.isConnected()).isTrue();
+		return open(stompHeaders);
 	}
 
-	protected void connect() throws Exception {
+	protected StompSession connect() throws Exception {
+		return open(new StompHeaders());
+	}
+
+	private StompSession open(final StompHeaders stompHeaders)
+			throws Exception {
 		final var httpHeaders = new WebSocketHttpHeaders();
-		final var stompHeaders = new StompHeaders();
 		final CompletableFuture<StompSession> future = stompClient.connectAsync(
 				url, httpHeaders, stompHeaders, stompSessionHandler);
 
-		stompSession = future.get(WAIT_TIMEOUT.toSeconds(), TimeUnit.SECONDS);
-		assertThat(stompSession.isConnected()).isTrue();
+		final StompSession session = future.get(WAIT_TIMEOUT.toSeconds(),
+				TimeUnit.SECONDS);
+		assertThat(session.isConnected()).isTrue();
+
+		sessions.add(session);
+		if (stompSession == null) {
+			stompSession = session;
+		}
+
+		return session;
 	}
 
-	protected FrameHandler subscribe(final String destination) {
+	protected FrameHandler subscribe(final StompSession session,
+			final String destination) {
 		final FrameHandler frameHandler = new FrameHandler();
-		stompSession.subscribe(destination, frameHandler);
+		session.subscribe(destination, frameHandler);
 		return frameHandler;
 	}
 
-	protected FrameHandler subscribeToRejections() {
-		return subscribe("/user/queue/rejections");
+	protected FrameHandler subscribe(final String destination) {
+		return subscribe(stompSession, destination);
 	}
 
-	protected void send(final String destination, final UUID changeId,
-			final Object dto) {
+	protected FrameHandler subscribeToRejections(final StompSession session) {
+		return subscribe(session, "/user/queue/rejections");
+	}
+
+	protected FrameHandler subscribeToRejections() {
+		return subscribeToRejections(stompSession);
+	}
+
+	protected void send(final StompSession session, final String destination,
+			final UUID changeId, final Object dto) {
 		final var stompHeaders = new StompHeaders();
 		stompHeaders.setDestination(destination);
 		stompHeaders.add("client-id", CLIENT_ID.toString());
@@ -124,7 +145,12 @@ public abstract class WebSocketTest {
 			stompHeaders.add("change-id", changeId.toString());
 		}
 
-		stompSession.send(stompHeaders, dto);
+		session.send(stompHeaders, dto);
+	}
+
+	protected void send(final String destination, final UUID changeId,
+			final Object dto) {
+		send(stompSession, destination, changeId, dto);
 	}
 
 	protected void send(final String destination, final Object dto) {

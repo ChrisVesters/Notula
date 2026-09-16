@@ -63,12 +63,25 @@ Known risks and open decisions
 
 These want an answer before the phases they sit in.
 
-- **Nothing drives the whole path.** Remote edits are applied by the meeting
-  page and the envelope is pinned by tests on both sides, but no test carries
-  one change from a STOMP frame through the services to what a second
-  subscriber receives, so the two halves agree by construction rather than by
-  demonstration. Same gap as *An end-to-end test* under Quality, now with more
-  riding on it.
+- **One change drives the whole path; the rest still agree by construction.**
+  `MeetingChangeWebSocketTest` carries a topic move and a schedule from a STOMP
+  frame through the services to a second subscriber with nothing mocked, which
+  pins one revision per change and consecutive changes differing by one. Every
+  other operation — creates, deletes, text edits, block moves, and anything on
+  the meeting itself — is still covered only by tests that mock the services on
+  one side and assert the type on the other.
+
+- **A change that publishes nothing still spends a revision.**
+  `TopicService.doMove` and `BlockService.doMove` return early when
+  `direction == 0`, *after* `MeetingLock` has bumped, so the transaction commits
+  a revision that no event ever carries. The next change then arrives two above
+  what clients hold and every one of them resyncs. Demonstrated, not inferred: a
+  no-op move followed by a schedule delivers the schedule at revision 19 where
+  clients hold 17. Unreachable from the UI today, because
+  `ReorderHandler.handleDrop` drops a move to the position it already holds, so
+  any client that is not this frontend triggers it. The fix is a decision about
+  the service boundary: refuse a no-op the way an out-of-range target is already
+  refused, and let the rollback undo the bump.
 
 - **Concurrent edits to the same text can corrupt each other.**
   `common/domain/TextUpdate` applies an incoming edit as a raw
@@ -335,9 +348,10 @@ Accounts and administration
 Quality
 ===
 
-- An end-to-end test that drives a STOMP frame through the full stack and
-  asserts what the other subscriber receives. `WebSocketTest` gets close;
-  nothing yet asserts the broadcast side.
+- End-to-end coverage beyond the one operation `MeetingChangeWebSocketTest`
+  carries. `WebSocketTest` can now open several sessions and `FrameHandler` can
+  await a sequence of frames, so the cost of the next one is the fixtures, not
+  the harness.
 - Frontend tests. Four files cover three form components and one client,
   against 1014 backend tests.
 - Mutation testing is configured (`org.pitest:pitest-maven`) but is not part
