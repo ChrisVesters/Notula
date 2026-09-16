@@ -317,6 +317,32 @@ Text events for our *own* origin are skipped by the page, because the editor
 already applied them; structural events are not, since create, move and delete
 still rely on the echo.
 
+The page checks `revision` on every event before applying it, and needs **two**
+pieces of state to do it — `revision` and `streamed`. All events of one change
+carry that change's revision, so a second event at the current revision is the
+same change continuing and must be applied; an event at the revision a
+*snapshot* reported is already in the payload and must be dropped. One cursor
+cannot tell those apart. So: below the current revision is stale, equal is the
+same change only when `streamed`, `+ 1` is the next change, beyond that is a gap
+and resyncs. Testing `=== revision + 1` alone makes every drag look like a gap.
+Events arriving before the snapshot are buffered and replayed once `onLoad` sets
+the baseline. Resync is `MeetingWebSocketClient.resync` — the page never names a
+destination — and clearing `revision` is what marks one as in flight, so the
+several events of one change resync once. A new operation needs no client-side
+plumbing to be gap-checked; it needs its events published under the change's own
+`MeetingScope`, which `MeetingLock` already guarantees.
+
+**Aim for one change, one event, one revision.** Because the revision numbers
+a change and not an event, the gap check sees a jump *between* changes and is
+blind to receiving part of one: three of a drag's five moves apply cleanly and
+leave two topics on a stale sequence with nothing to notice. Several events at
+one revision is therefore tolerated, not endorsed — it exists because dense
+`sequence_id`s make a move shift its siblings, and `SEQUENCING.md` step 5
+removes that. So a new operation should write a single row and publish a single
+event where it can, and one that wants to publish a list of them is a question
+rather than a judgement call. Do not close the blind spot by numbering events
+within a change; that field dies with step 5.
+
 ## Conventions
 
 These have each been violated and reverted at least once. **A design decision

@@ -408,9 +408,85 @@ and drops the queue on a failure. Because the queue destination belongs to the
 session rather than to a meeting, it can also notice that `Session` handed it a
 new `WebSocketClient` and resubscribe on its own.
 
-The meeting page tracks the last revision it applied. A jump means it missed
-something, and it resubscribes to `/app/meetings/{id}` for a fresh snapshot
-instead of continuing on a diverged view.
+*Landed.* The meeting page tracks the last revision it applied. A jump means it
+missed something, and `MeetingWebSocketClient.resync` unsubscribes and
+resubscribes `/app/meetings/{id}` for a fresh snapshot rather than continuing on
+a diverged view. Destinations stay inside that client; the page asks for a
+reload and never names one.
+
+**One number is not enough, and this is the part that is easy to get wrong.**
+Two different events can carry the revision the page is currently on, and they
+need opposite treatment. A move publishes an event per shifted sibling, all at
+one revision, so a second event at the current revision is the same change
+continuing and has to be applied. An event still in flight for the revision a
+*snapshot* reported is a change that snapshot already contains, and applying it
+splices the same edit in twice. A single monotone cursor cannot tell those
+apart: advance per event and the move's siblings look stale, hold the cursor
+back and a skipped revision after a fresh snapshot looks like the change that
+follows it. The page therefore carries the revision *and* whether it reached it
+by applying events or by loading a snapshot — `streamed` next to `revision`.
+
+The comparison also has to allow equality upward for the same reason: `<` the
+current revision is stale, `+ 1` is the next change, and anything beyond that is
+the gap. An implementation that tests `=== revision + 1` alone treats every drag
+as a gap and resyncs on each one.
+
+Events that arrive before the snapshot are buffered rather than dropped, and
+replayed through the same comparison once `onLoad` has a baseline, where the
+ones at or below the snapshot's revision fall out as already applied. Dropping
+them was the alternative: the gap check does eventually catch the loss, but only
+on the *next* event, so the view sits one change short for as long as the
+meeting is quiet. This closes the two `TODO`s the page carried about initial
+data not being loaded yet.
+
+Divergence found while applying a mutation resyncs too. `findTopic` and
+`findBlock` used to log *out of sync?* and continue; a mutation naming a topic
+or block the page does not hold is the same divergence arriving by a different
+route, so they now ask for the reload. The resync is idempotent for a change
+that publishes several events, because clearing `revision` is what marks one as
+already in flight.
+
+The stale view stays on screen for the round trip instead of blanking to
+`Loading`. Events keep arriving and are replayed onto the snapshot, so the
+divergence outlives the request by nothing, and a transient gap does not throw
+the note-taker back to a spinner mid-meeting.
+
+**The counter is blind inside a change, and the fix is one event per change.**
+Numbering changes rather than events detects a gap *between* changes and cannot
+see a partial one: receive three of a drag's five moves and the next change
+still arrives at `+ 1`, applies cleanly, and leaves two topics on a stale rank
+with nothing to notice it. Permitting equality is what costs this — a duplicate
+at the current revision is indistinguishable from a legitimate sibling, so it is
+applied twice, which a move survives and a splice would not.
+
+Two properties keep that latent rather than live, and both are worth knowing
+because the hole opens the moment either stops holding. A change is one
+transaction, so a snapshot never lands mid-change: `DetailsService.get` sees all
+of a change or none of it and reports the revision to match, which is what makes
+dropping events at exactly the snapshot's revision safe. And within one
+connection STOMP is ordered and lossless, while a drop takes the subscription
+with it — `WebSocketClient.onConnect` replays the subscription map, including
+`/app/meetings/{id}`, so a reconnect re-fires the snapshot and rebaselines the
+page whether or not the gap check noticed. Partial loss therefore self-heals one
+round trip later.
+
+What opens it is anything that drops or duplicates one message without dropping
+the subscription: an external broker relay and its message TTLs, a relay
+restart, or per-message acknowledgement actually being honoured. Note that
+`WebSocketClient` subscribes with `ack: "client-individual"` and nothing ever
+calls `ack()`; the simple broker appears to ignore ack mode, which is why this
+has never surfaced, but that is read from behaviour rather than demonstrated,
+and redelivery is exactly the duplicate the equality case waves through.
+
+**So the invariant to hold going forward is one change, one event, one
+revision.** It is not true today only because dense `sequence_id`s make a move
+shift its siblings, and step 5 removes that — after it, the revision numbers a
+single event and the blindness has nowhere to live. Until then, an operation
+that publishes several events per change is tolerated, not endorsed: adding a
+new one is the moment to ask whether it can write a single row instead. An event
+index and count on `EventDto` would make a partial change detectable sooner, and
+was considered and set aside — it carries a field on the wire that step 5
+deletes, and it detects the duplicate without fixing it.
 
 **The meeting id is not part of this work.** An earlier draft put it on the
 action, resolved by an argument resolver next to `Origin`, to spare the walk up
@@ -433,11 +509,12 @@ precondition for trusting anything below. It also replaces the current
 acknowledgement signal, which is an echoed broadcast event that belongs to the
 meeting page and does not correspond one-to-one with actions.
 
-*Done when:* a client that misses an event reloads instead of drifting, and an
-in-flight change is released by its own acknowledgement rather than by an
-echoed broadcast. The throttle this was going to remove is already gone — the
-meeting page holds no queue or timer today, which is why the release has
-nothing to hook into yet.
+*Done when:* a client that misses an event reloads instead of drifting — done —
+and an in-flight change is released by its own acknowledgement rather than by an
+echoed broadcast, which is what is left. The throttle this was going to remove
+is already gone — the meeting page holds no queue or timer today, which is why
+the release still has nothing to hook into, and why the acknowledgement is
+worth building with the queue that consumes it rather than before it.
 
 Step 5 — Fractional ranks instead of dense sequence ids (M)
 --
@@ -474,6 +551,13 @@ above, but it wants step 4's acknowledgement in place first so the one-event
 -per-action property can actually be relied on. It closes the roadmap's
 *reordering events are not broadcast* bug by removing the shift rather than by
 broadcasting it.
+
+One event per change is not a side effect of this step, it is half the point.
+Step 4's revision numbers a change and so cannot see a change arriving in
+pieces; collapsing a move to one event makes *one change, one event, one
+revision* true, at which point the counter numbers events and changes alike and
+the gap check stops having a blind spot. Treat that as the invariant this step
+owes the ones above it, not as a bonus.
 
 *Done when:* dragging a topic in a long agenda produces a single event, and two
 people reordering the same list concurrently end up with the same order.

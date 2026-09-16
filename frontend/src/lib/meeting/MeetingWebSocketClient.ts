@@ -16,9 +16,11 @@ export default class MeetingWebSocketClient {
 	static readonly #REJECTIONS = "/user/queue/rejections";
 
 	static #meetingId: number | null = null;
+	static #handler: MeetingEventHandler | null = null;
 
 	public static connect(id: number, handler: MeetingEventHandler): void {
 		MeetingWebSocketClient.#meetingId = id;
+		MeetingWebSocketClient.#handler = handler;
 
 		client().subscribe(MeetingWebSocketClient.#REJECTIONS, message =>
 			handler.onRejected(JSON.parse(message.body))
@@ -26,14 +28,24 @@ export default class MeetingWebSocketClient {
 		client().subscribe(`/topic/meetings/${id}`, message =>
 			handler.onEvent(JSON.parse(message.body))
 		);
-		client().subscribe(`/app/meetings/${id}`, message =>
-			handler.onLoad(JSON.parse(message.body))
-		);
+		MeetingWebSocketClient.#load(id, handler);
+	}
+
+	public static resync(): void {
+		const id = MeetingWebSocketClient.#meetingId;
+		const handler = MeetingWebSocketClient.#handler;
+		if (id === null || handler === null) {
+			throw new Error("No meeting to reload");
+		}
+
+		client().unsubscribe(`/app/meetings/${id}`);
+		MeetingWebSocketClient.#load(id, handler);
 	}
 
 	public static disconnect(): void {
 		const id = MeetingWebSocketClient.#meetingId;
 		MeetingWebSocketClient.#meetingId = null;
+		MeetingWebSocketClient.#handler = null;
 
 		client().unsubscribe(`/app/meetings/${id}`);
 		client().unsubscribe(`/topic/meetings/${id}`);
@@ -55,6 +67,12 @@ export default class MeetingWebSocketClient {
 		);
 
 		return id;
+	}
+
+	static #load(id: number, handler: MeetingEventHandler): void {
+		client().subscribe(`/app/meetings/${id}`, message =>
+			handler.onLoad(JSON.parse(message.body))
+		);
 	}
 }
 

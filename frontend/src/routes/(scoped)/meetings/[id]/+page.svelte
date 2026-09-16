@@ -27,6 +27,16 @@
 		meeting?.topics?.toSorted((a, b) => a.sequenceId - b.sequenceId) ?? []
 	);
 
+	let revision: number | undefined = $state();
+	// A change numbers every event it publishes with its own revision, so a
+	// second event at the current revision belongs to the change being
+	// applied and is not a repeat. A snapshot absorbs a change whole instead,
+	// so an event still in flight for the revision it reports describes
+	// something the payload already holds, and applying it would splice the
+	// same edit in twice. This says which of the two we are on.
+	let streamed = false;
+	const buffered: Array<MeetingEvent> = [];
+
 	onMount(async () => {
 		MeetingWebSocketClient.connect(id, {
 			onLoad,
@@ -41,6 +51,10 @@
 
 	const onLoad = (data: MeetingDetails) => {
 		meeting = data;
+		revision = data.revision;
+		streamed = false;
+
+		buffered.splice(0, buffered.length).forEach(event => accept(event));
 	};
 
 	const onRejected = (rejected: Rejected) => {
@@ -48,11 +62,55 @@
 		window.alert(rejected.reason);
 	};
 
+	const onEvent = (event: MeetingEvent) => {
+		console.debug("Received event:", event);
+
+		accept(event);
+	};
+
+	const accept = (event: MeetingEvent) => {
+		if (revision === undefined) {
+			buffered.push(event);
+			return;
+		}
+
+		const seen =
+			event.revision < revision ||
+			(event.revision === revision && !streamed);
+		if (seen) {
+			return;
+		}
+
+		if (event.revision > revision + 1) {
+			resync();
+			return;
+		}
+
+		revision = event.revision;
+		streamed = true;
+
+		mutate(event);
+	};
+
+	// Leaves the stale view up for the round trip rather than blanking the
+	// page: events keep arriving and are replayed onto the snapshot, so the
+	// divergence outlives the request by nothing.
+	const resync = () => {
+		if (revision === undefined) {
+			return;
+		}
+
+		console.warn("Missed a change, reloading the meeting");
+		revision = undefined;
+		streamed = false;
+
+		MeetingWebSocketClient.resync();
+	};
+
 	const findTopic = (id: number): TopicDetails | undefined => {
 		const topic = meeting?.topics.find(t => t.id === id);
 		if (!topic) {
-			// TODO: out of sync?
-			console.error("Topic does not exist");
+			resync();
 		}
 
 		return topic;
@@ -63,23 +121,18 @@
 			.flatMap(t => t.blocks)
 			.find(b => b.id === id);
 		if (!block) {
-			// TODO: out of sync?
-			console.error("Block does not exist");
+			resync();
 		}
 
 		return block;
 	};
 
-	const onEvent = (event: MeetingEvent) => {
+	const mutate = (event: MeetingEvent) => {
 		// Our own changes come back too. Creating, moving and deleting topics
 		// and blocks still relies on that echo to update the view, so they are
 		// applied whoever caused them. Text is the exception: the editor
 		// already applied it locally, and applying the echo would splice the
 		// same edit in twice.
-		// TODO: what if initial data is not yet loaded?
-		// TODO: keep in queue and apply once loaded.
-		console.debug("Received event:", event);
-
 		const mutation = event.mutation;
 		const remote = !isOwnEvent(event.origin);
 
@@ -190,8 +243,7 @@
 					t.blocks.some(b => b.id === mutation.block)
 				);
 				if (!topic) {
-					// TODO: out of sync?
-					console.error("Block does not exist");
+					resync();
 					break;
 				}
 

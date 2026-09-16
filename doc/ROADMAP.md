@@ -51,6 +51,12 @@ Checked against the code, not against the commit messages.
 - **The socket survives a token refresh.** `WebSocketClient.reconnect` keeps
   the subscription map; `config/WebSocketSessionRegistry` closes a connection
   whose token has expired.
+- **A missed change is detected, not silently absorbed.** `meetings.revision`
+  is bumped inside the change's own transaction by `meeting/MeetingLock`, rides
+  out on `EventDto` and the `/app/meetings/{id}` snapshot, and the meeting page
+  compares the two: a gap resyncs, an event that arrived before the snapshot is
+  buffered and replayed, and a repeat is dropped. `SEQUENCING.md` step 4, less
+  the acknowledgement.
 
 Known risks and open decisions
 ==
@@ -166,11 +172,18 @@ Phase 1 and 2 add data; this phase makes multi-person editing trustworthy.
 - **Conflict-safe text editing** (L) — see the risk above. Design decision
   first, then implementation. Everything else in this phase is easier once
   edits carry a revision.
-- **Gap detection and resync** (M) — a per-meeting revision on every event so
-  a client can tell it missed one, and a way to ask for what it missed rather
-  than reloading the page. This is what answers the events lost during a
-  reconnect, a closed laptop or a redeploy, all at once — `SEQUENCING.md`
-  step 4.
+- **Ask for what was missed** (M) — detection has landed; recovery is still a
+  full reload. A client that knows it skipped revisions should be able to ask
+  for those changes rather than re-fetching the whole meeting, which is what
+  makes a reconnect, a closed laptop or a redeploy cheap instead of merely
+  correct. Wants the operation log from `SEQUENCING.md` step 6 to have anything
+  to replay, so it is worth doing after it rather than before.
+- **Acknowledge a change to its sender** (M) — the other half of
+  `SEQUENCING.md` step 4: an `ExecutorChannelInterceptor` sending
+  `{changeId, revision}` to `/user/queue/acks`, and
+  `MeetingWebSocketClient` releasing the in-flight change on it. Blocked on
+  nothing technical, but the page holds no in-flight queue yet, so the
+  acknowledgement has no consumer until one exists — build the two together.
 - **Presence** (M) — who is in the meeting right now, as avatars.
   `DetailsWebSocket` already has the subscribe hook to hang this on.
 - **Authorship attribution** (M) — who wrote which note. Nothing in `blocks`
@@ -297,9 +310,10 @@ Robustness
 - Use the rejection the server already sends. `RejectedDto` carries the
   `change-id`, and every `MeetingWebSocketClient.send` call site drops the id
   it gets back, so a refusal cannot be tied to the action that caused it.
-- Out-of-order resilience: the meeting page has open TODOs about events
-  arriving before the initial load, and about every *out of sync?* branch that
-  currently logs and continues.
+- Out-of-order resilience is handled for events, not for the rest of the page.
+  Events now carry a revision the page checks, buffers against and resyncs on,
+  but `REMOVE_MEETING` still navigates away with no message, and an unknown
+  `blockType` only logs.
 
 Accounts and administration
 ===
