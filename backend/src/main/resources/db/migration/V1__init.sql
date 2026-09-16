@@ -60,6 +60,7 @@ CREATE TABLE meetings(
 	organisation_id BIGINT NOT NULL,
 	name TEXT NOT NULL,
 	description TEXT NOT NULL,
+	revision BIGINT NOT NULL DEFAULT 0,
 
 	PRIMARY KEY(id),
 	FOREIGN KEY(organisation_id) REFERENCES organisations(id) ON DELETE CASCADE

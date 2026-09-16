@@ -13,13 +13,15 @@ public class MeetingInfo {
 	private final long organisationId;
 	private String name;
 	private String description;
+	private long revision;
 
 	public MeetingInfo(final long organisationId, final String name) {
-		this(null, organisationId, name, "");
+		this(null, organisationId, name, "", 0);
 	}
 
 	public MeetingInfo(final Long id, final long organisationId,
-			final String name, final String description) {
+			final String name, final String description,
+			final long revision) {
 		Objects.requireNonNull(name);
 		Objects.requireNonNull(description);
 
@@ -27,6 +29,7 @@ public class MeetingInfo {
 		this.organisationId = organisationId;
 		this.name = name;
 		this.description = description;
+		this.revision = revision;
 	}
 
 	public long getId() {
@@ -45,6 +48,10 @@ public class MeetingInfo {
 		Objects.requireNonNull(description);
 
 		this.description = description;
+	}
+
+	public void bumpRevision() {
+		revision++;
 	}
 
 }

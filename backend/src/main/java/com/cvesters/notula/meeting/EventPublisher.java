@@ -9,6 +9,7 @@ import com.cvesters.notula.common.domain.Origin;
 import com.cvesters.notula.common.dto.OriginDto;
 import com.cvesters.notula.common.messaging.TransactionalPublisher;
 import com.cvesters.notula.meeting.bdo.MeetingEvent;
+import com.cvesters.notula.meeting.bdo.MeetingScope;
 import com.cvesters.notula.meeting.dto.BlockMutationDto;
 import com.cvesters.notula.meeting.dto.EventDto;
 import com.cvesters.notula.meeting.dto.MeetingMutationDto;
@@ -29,34 +30,35 @@ public class EventPublisher {
 		this.publisher = publisher;
 	}
 
-	public void publish(final long meetingId, final MeetingEvent event) {
+	public void publish(final MeetingScope scope, final MeetingEvent event) {
 		Objects.requireNonNull(event);
 
-		send(meetingId, event.origin(), MeetingMutationDto.of(event));
+		send(scope, event.origin(), MeetingMutationDto.of(event));
 	}
 
-	public void publish(final long meetingId, final TopicEvent event) {
+	public void publish(final MeetingScope scope, final TopicEvent event) {
 		Objects.requireNonNull(event);
 
-		send(meetingId, event.origin(), TopicMutationDto.of(event));
+		send(scope, event.origin(), TopicMutationDto.of(event));
 	}
 
-	public void publish(final long meetingId, final BlockEvent event) {
+	public void publish(final MeetingScope scope, final BlockEvent event) {
 		Objects.requireNonNull(event);
 
-		send(meetingId, event.origin(), BlockMutationDto.of(event));
+		send(scope, event.origin(), BlockMutationDto.of(event));
 	}
 
-	public void publish(final long meetingId, final TextBlockEvent event) {
+	public void publish(final MeetingScope scope, final TextBlockEvent event) {
 		Objects.requireNonNull(event);
 
-		send(meetingId, event.origin(), TextBlockMutationDto.of(event));
+		send(scope, event.origin(), TextBlockMutationDto.of(event));
 	}
 
-	private void send(final long meetingId, final Origin origin,
+	private void send(final MeetingScope scope, final Origin origin,
 			final MutationDto mutation) {
-		final var dto = new EventDto(new OriginDto(origin), mutation);
+		final var dto = new EventDto(scope.revision(), new OriginDto(origin),
+				mutation);
 
-		publisher.send(TOPIC + meetingId, dto);
+		publisher.send(TOPIC + scope.meetingId(), dto);
 	}
 }

@@ -39,6 +39,8 @@ class MeetingDetailsDtoTest {
 			assertThat(dto.getName()).isEqualTo(meetingInfo.getName());
 			assertThat(dto.getDescription())
 					.isEqualTo(meetingInfo.getDescription());
+			assertThat(dto.getRevision())
+					.isEqualTo(meetingInfo.getRevision());
 
 			assertThat(dto.getTopics()).hasSize(topics.size());
 			topics.forEach(topic -> {

@@ -13,6 +13,7 @@ public class MeetingDetails {
 	private final long id;
 	private final String name;
 	private final String description;
+	private final long revision;
 
 	private final List<TopicDetails> topics;
 
@@ -24,6 +25,7 @@ public class MeetingDetails {
 		this.id = info.getId();
 		this.name = info.getName();
 		this.description = info.getDescription();
+		this.revision = info.getRevision();
 
 		this.topics = List.copyOf(topics);
 	}

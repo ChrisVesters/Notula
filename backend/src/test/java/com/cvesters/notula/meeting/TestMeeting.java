@@ -8,28 +8,33 @@ import com.cvesters.notula.organisation.TestOrganisation;
 @Getter
 public enum TestMeeting {
 	SPORER_PROJECT(1, TestOrganisation.SPORER, "Project Meeting",
-			"Discuss project progress and next steps"),
+			"Discuss project progress and next steps", 17),
 	SPORER_RETRO(2, TestOrganisation.SPORER, "Retrospective Meeting",
-			"Reflect on the past sprint and identify improvements"),
+			"Reflect on the past sprint and identify improvements", 0),
 	GLOVER_KICKOFF_2026(3, TestOrganisation.GLOVER, "2026 Kickoff Meeting",
-			"What are our goals and expectations for 2026?"),
-	SPORER_Q2_PLANNING(4, TestOrganisation.SPORER, "Q2 Planning Session", "");
+			"What are our goals and expectations for 2026?", 5),
+	SPORER_Q2_PLANNING(4, TestOrganisation.SPORER, "Q2 Planning Session", "",
+			9);
 
 	private final long id;
 	private final TestOrganisation organisation;
 	private final String name;
 	private final String description;
+	private final long revision;
 
 	TestMeeting(final long id, final TestOrganisation organisation,
-			final String name, final String description) {
+			final String name, final String description,
+			final long revision) {
 		this.id = id;
 		this.organisation = organisation;
 		this.name = name;
 		this.description = description;
+		this.revision = revision;
 	}
 
 	public MeetingInfo info() {
-		return new MeetingInfo(id, organisation.getId(), name, description);
+		return new MeetingInfo(id, organisation.getId(), name, description,
+				revision);
 	}
 
 }

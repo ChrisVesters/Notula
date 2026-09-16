@@ -13,6 +13,7 @@ import com.cvesters.notula.meeting.EventPublisher;
 import com.cvesters.notula.meeting.MeetingLock;
 import com.cvesters.notula.meeting.MeetingService;
 import com.cvesters.notula.meeting.bdo.MeetingInfo;
+import com.cvesters.notula.meeting.bdo.MeetingScope;
 import com.cvesters.notula.topic.bdo.TopicAction;
 import com.cvesters.notula.topic.bdo.TopicEvent;
 import com.cvesters.notula.topic.bdo.TopicInfo;
@@ -62,13 +63,13 @@ public class TopicService {
 		Objects.requireNonNull(action);
 
 		return meetingLock.call(meetingId,
-				() -> doCreate(origin, meetingId, action));
+				scope -> doCreate(origin, scope, action));
 	}
 
-	private TopicInfo doCreate(final Origin origin, final long meetingId,
+	private TopicInfo doCreate(final Origin origin, final MeetingScope scope,
 			final TopicAction.Create action) {
 		final MeetingInfo meeting = meetingService.getById(origin.principal(),
-				meetingId);
+				scope.meetingId());
 
 		final List<TopicInfo> existingTopics = topicStorage
 				.findAllByMeetingId(meeting.getId());
@@ -94,7 +95,7 @@ public class TopicService {
 		final TopicInfo created = topicStorage.create(topic);
 		events.add(new TopicEvent(created, action, origin));
 
-		events.forEach(e -> eventPublisher.publish(meetingId, e));
+		events.forEach(e -> eventPublisher.publish(scope, e));
 
 		return created;
 	}
@@ -105,12 +106,12 @@ public class TopicService {
 		Objects.requireNonNull(action);
 
 		return meetingLock.call(meetingId,
-				() -> doMove(origin, meetingId, topicId, action));
+				scope -> doMove(origin, scope, topicId, action));
 	}
 
-	private TopicInfo doMove(final Origin origin, final long meetingId,
+	private TopicInfo doMove(final Origin origin, final MeetingScope scope,
 			final long topicId, final TopicAction.Move action) {
-		final TopicInfo topic = getById(origin.principal(), meetingId,
+		final TopicInfo topic = getById(origin.principal(), scope.meetingId(),
 				topicId);
 		final int from = topic.getSequenceId();
 		final int to = action.getSequenceId();
@@ -146,7 +147,7 @@ public class TopicService {
 			events.add(new TopicEvent(updatedTopic, move, origin));
 		}
 
-		events.forEach(e -> eventPublisher.publish(meetingId, e));
+		events.forEach(e -> eventPublisher.publish(scope, e));
 
 		return topic;
 	}
@@ -157,18 +158,18 @@ public class TopicService {
 		Objects.requireNonNull(action);
 
 		return meetingLock.call(meetingId,
-				() -> doUpdate(origin, meetingId, topicId, action));
+				scope -> doUpdate(origin, scope, topicId, action));
 	}
 
-	private TopicInfo doUpdate(final Origin origin, final long meetingId,
+	private TopicInfo doUpdate(final Origin origin, final MeetingScope scope,
 			final long topicId, final TopicAction.Update action) {
-		final TopicInfo topicInfo = getById(origin.principal(), meetingId,
-				topicId);
+		final TopicInfo topicInfo = getById(origin.principal(),
+				scope.meetingId(), topicId);
 		action.apply(topicInfo);
 		final TopicInfo updated = topicStorage.update(topicInfo);
 
 		final var event = new TopicEvent(updated, action, origin);
-		eventPublisher.publish(meetingId, event);
+		eventPublisher.publish(scope, event);
 
 		return updated;
 	}
@@ -177,13 +178,14 @@ public class TopicService {
 			final long topicId) {
 		Objects.requireNonNull(origin);
 
-		meetingLock.run(meetingId, () -> doDelete(origin, meetingId, topicId));
+		meetingLock.run(meetingId,
+				scope -> doDelete(origin, scope, topicId));
 	}
 
-	private void doDelete(final Origin origin, final long meetingId,
+	private void doDelete(final Origin origin, final MeetingScope scope,
 			final long topicId) {
-		final TopicInfo topicInfo = getById(origin.principal(), meetingId,
-				topicId);
+		final TopicInfo topicInfo = getById(origin.principal(),
+				scope.meetingId(), topicId);
 		topicStorage.delete(topicInfo);
 
 		final var events = new ArrayList<TopicEvent>();
@@ -203,7 +205,7 @@ public class TopicService {
 			events.add(new TopicEvent(updatedTopic, move, origin));
 		}
 
-		events.forEach(e -> eventPublisher.publish(meetingId, e));
+		events.forEach(e -> eventPublisher.publish(scope, e));
 	}
 
 }

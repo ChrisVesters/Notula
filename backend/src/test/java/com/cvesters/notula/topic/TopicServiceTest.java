@@ -3,9 +3,9 @@ package com.cvesters.notula.topic;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.argThat;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.inOrder;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
@@ -19,6 +19,7 @@ import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
@@ -29,10 +30,10 @@ import com.cvesters.notula.common.domain.Origin;
 import com.cvesters.notula.common.domain.Principal;
 import com.cvesters.notula.common.exception.MissingEntityException;
 import com.cvesters.notula.meeting.EventPublisher;
-import com.cvesters.notula.meeting.MeetingLock;
 import com.cvesters.notula.meeting.MeetingService;
-import com.cvesters.notula.meeting.TestMeetingLock;
 import com.cvesters.notula.meeting.TestMeeting;
+import com.cvesters.notula.meeting.TestMeetingLock;
+import com.cvesters.notula.meeting.bdo.MeetingScope;
 import com.cvesters.notula.organisation.TestOrganisation;
 import com.cvesters.notula.session.TestSession;
 import com.cvesters.notula.topic.bdo.TopicAction;
@@ -45,13 +46,13 @@ class TopicServiceTest {
 			.fromString("3f9c1a44-1d2e-4a51-8b0c-2c7e9b1d4a0e");
 
 	private final MeetingService meetingService = mock();
-	private final MeetingLock meetingLock = TestMeetingLock.passThrough();
+	private final TestMeetingLock meetingLock = new TestMeetingLock();
 
 	private final TopicStorageGateway topicStorageGateway = mock();
 	private final EventPublisher eventPublisher = mock();
 
 	private final TopicService topicService = new TopicService(meetingService,
-			meetingLock, topicStorageGateway, eventPublisher);
+			meetingLock.lock(), topicStorageGateway, eventPublisher);
 
 	@Nested
 	class GetById {
@@ -144,6 +145,16 @@ class TopicServiceTest {
 				.getOrganisation();
 
 		private static final long MEETING_ID = MEETING.getId();
+
+		private static final long REVISION = MEETING.getRevision();
+		private static final MeetingScope SCOPE = new MeetingScope(MEETING_ID,
+				REVISION);
+
+		@BeforeEach
+		void revision() {
+			meetingLock.passThrough(REVISION);
+		}
+
 		private static final long TOPIC_ID = Long.MAX_VALUE;
 		private static final int TOPIC_SEQUENCE_ID = 0;
 		private static final String TOPIC_NAME = "Topic";
@@ -182,8 +193,8 @@ class TopicServiceTest {
 
 			assertThat(result).isEqualTo(created);
 
-			final var expectedAction = new TopicAction.Create(
-					TOPIC_SEQUENCE_ID, TOPIC_NAME);
+			final var expectedAction = new TopicAction.Create(TOPIC_SEQUENCE_ID,
+					TOPIC_NAME);
 			final var matcher = new TopicActionMatcher.Create(expectedAction);
 			final ArgumentMatcher<TopicEvent> event = e -> {
 				assertThat(e.origin()).isEqualTo(ORIGIN);
@@ -192,7 +203,7 @@ class TopicServiceTest {
 				return true;
 			};
 
-			verify(eventPublisher).publish(eq(MEETING_ID), argThat(event));
+			verify(eventPublisher).publish(eq(SCOPE), argThat(event));
 		}
 
 		@Test
@@ -242,7 +253,7 @@ class TopicServiceTest {
 				return true;
 			};
 
-			verify(eventPublisher).publish(eq(MEETING_ID), argThat(event));
+			verify(eventPublisher).publish(eq(SCOPE), argThat(event));
 
 			verify(topicStorageGateway, never()).update(any());
 			verify(topicStorageGateway).create(any());
@@ -309,8 +320,8 @@ class TopicServiceTest {
 			final ArgumentCaptor<TopicEvent> events = ArgumentCaptor
 					.forClass(TopicEvent.class);
 
-			verify(eventPublisher, times(topics.size() + 1))
-					.publish(eq(MEETING_ID), events.capture());
+			verify(eventPublisher, times(topics.size() + 1)).publish(eq(SCOPE),
+					events.capture());
 
 			final List<TopicEvent> topicEvents = events.getAllValues();
 
@@ -327,8 +338,8 @@ class TopicServiceTest {
 				assertThat(event.action()).is(matcher.equal());
 			}
 
-			final var expectedAction = new TopicAction.Create(
-					TOPIC_SEQUENCE_ID, TOPIC_NAME);
+			final var expectedAction = new TopicAction.Create(TOPIC_SEQUENCE_ID,
+					TOPIC_NAME);
 			final var matcher = new TopicActionMatcher.Create(expectedAction);
 
 			final TopicEvent createEvent = topicEvents.get(topics.size());
@@ -377,17 +388,16 @@ class TopicServiceTest {
 							.isInstanceOf(NullPointerException.class);
 		}
 
-
 		@Test
 		void serialised() {
-			TestMeetingLock.withhold(meetingLock);
+			meetingLock.withhold();
 
 			final var action = new TopicAction.Create(TOPIC_SEQUENCE_ID,
 					TOPIC_NAME);
 
 			topicService.create(ORIGIN, MEETING_ID, action);
 
-			verify(meetingLock).call(eq(MEETING_ID), any());
+			verify(meetingLock.lock()).call(eq(MEETING_ID), any());
 			verifyNoInteractions(topicStorageGateway);
 		}
 	}
@@ -400,6 +410,15 @@ class TopicServiceTest {
 				CLIENT_ID);
 		private static final TestMeeting MEETING = TestMeeting.SPORER_PROJECT;
 		private static final long MEETING_ID = MEETING.getId();
+
+		private static final long REVISION = MEETING.getRevision();
+		private static final MeetingScope SCOPE = new MeetingScope(MEETING_ID,
+				REVISION);
+
+		@BeforeEach
+		void revision() {
+			meetingLock.passThrough(REVISION);
+		}
 
 		@Test
 		void down() {
@@ -465,8 +484,8 @@ class TopicServiceTest {
 			final ArgumentCaptor<TopicEvent> events = ArgumentCaptor
 					.forClass(TopicEvent.class);
 
-			verify(eventPublisher, times(moved.size()))
-					.publish(eq(MEETING_ID), events.capture());
+			verify(eventPublisher, times(moved.size())).publish(eq(SCOPE),
+					events.capture());
 
 			final List<TopicEvent> topicEvents = events.getAllValues();
 
@@ -556,8 +575,8 @@ class TopicServiceTest {
 			final var moved = List.of(result, second, first);
 			final ArgumentCaptor<TopicEvent> events = ArgumentCaptor
 					.forClass(TopicEvent.class);
-			verify(eventPublisher, times(moved.size()))
-					.publish(eq(MEETING_ID), events.capture());
+			verify(eventPublisher, times(moved.size())).publish(eq(SCOPE),
+					events.capture());
 
 			final List<TopicEvent> topicEvents = events.getAllValues();
 
@@ -636,8 +655,8 @@ class TopicServiceTest {
 			final var moved = List.of(neighbour, result);
 			final ArgumentCaptor<TopicEvent> events = ArgumentCaptor
 					.forClass(TopicEvent.class);
-			verify(eventPublisher, times(moved.size()))
-					.publish(eq(MEETING_ID), events.capture());
+			verify(eventPublisher, times(moved.size())).publish(eq(SCOPE),
+					events.capture());
 
 			final List<TopicEvent> topicEvents = events.getAllValues();
 
@@ -742,8 +761,8 @@ class TopicServiceTest {
 			final long topicId = TestTopic.SPORER_PROJECT_BLOCKERS.getId();
 			final var action = new TopicAction.Move(1);
 
-			assertThatThrownBy(() -> topicService.move(null, MEETING_ID,
-					topicId, action))
+			assertThatThrownBy(
+					() -> topicService.move(null, MEETING_ID, topicId, action))
 							.isInstanceOf(NullPointerException.class);
 		}
 
@@ -751,8 +770,8 @@ class TopicServiceTest {
 		void actionNull() {
 			final long topicId = TestTopic.SPORER_PROJECT_BLOCKERS.getId();
 
-			assertThatThrownBy(() -> topicService.move(ORIGIN, MEETING_ID,
-					topicId, null))
+			assertThatThrownBy(
+					() -> topicService.move(ORIGIN, MEETING_ID, topicId, null))
 							.isInstanceOf(NullPointerException.class);
 		}
 
@@ -760,12 +779,12 @@ class TopicServiceTest {
 		void serialised() {
 			final TestTopic topic = TestTopic.SPORER_PROJECT_BLOCKERS;
 
-			TestMeetingLock.withhold(meetingLock);
+			meetingLock.withhold();
 
 			topicService.move(ORIGIN, MEETING_ID, topic.getId(),
 					new TopicAction.Move(1));
 
-			verify(meetingLock).call(eq(MEETING_ID), any());
+			verify(meetingLock.lock()).call(eq(MEETING_ID), any());
 
 			verifyNoInteractions(topicStorageGateway);
 		}
@@ -780,6 +799,15 @@ class TopicServiceTest {
 		private static final TestTopic TOPIC = TestTopic.SPORER_PROJECT_TIMELINE;
 		private static final TestMeeting MEETING = TOPIC.getMeeting();
 		private static final long MEETING_ID = MEETING.getId();
+
+		private static final long REVISION = MEETING.getRevision();
+		private static final MeetingScope SCOPE = new MeetingScope(MEETING_ID,
+				REVISION);
+
+		@BeforeEach
+		void revision() {
+			meetingLock.passThrough(REVISION);
+		}
 
 		@Test
 		void success() {
@@ -818,7 +846,7 @@ class TopicServiceTest {
 				return true;
 			};
 
-			verify(eventPublisher).publish(eq(MEETING_ID), argThat(event));
+			verify(eventPublisher).publish(eq(SCOPE), argThat(event));
 		}
 
 		@Test
@@ -831,9 +859,8 @@ class TopicServiceTest {
 			final TopicAction.Update action = new TopicAction.UpdateName(0, 0,
 					"Project ");
 
-			assertThatThrownBy(
-					() -> topicService.update(ORIGIN, MEETING_ID, topicId,
-							action))
+			assertThatThrownBy(() -> topicService.update(ORIGIN, MEETING_ID,
+					topicId, action))
 							.isInstanceOf(MissingEntityException.class);
 
 			verify(topicStorageGateway, never()).update(any());
@@ -848,8 +875,7 @@ class TopicServiceTest {
 					"Project ");
 
 			assertThatThrownBy(() -> topicService.update(null, MEETING_ID,
-					topicId, action))
-							.isInstanceOf(NullPointerException.class);
+					topicId, action)).isInstanceOf(NullPointerException.class);
 		}
 
 		@Test
@@ -857,19 +883,18 @@ class TopicServiceTest {
 			final long topicId = TOPIC.getId();
 
 			assertThatThrownBy(() -> topicService.update(ORIGIN, MEETING_ID,
-					topicId, null))
-							.isInstanceOf(NullPointerException.class);
+					topicId, null)).isInstanceOf(NullPointerException.class);
 		}
 
 		@Test
 		void serialised() {
-			TestMeetingLock.withhold(meetingLock);
+			meetingLock.withhold();
 
 			final var action = new TopicAction.UpdateName(0, 0, "Renamed");
 
 			topicService.update(ORIGIN, MEETING_ID, TOPIC.getId(), action);
 
-			verify(meetingLock).call(eq(MEETING_ID), any());
+			verify(meetingLock.lock()).call(eq(MEETING_ID), any());
 
 			verifyNoInteractions(topicStorageGateway);
 		}
@@ -884,6 +909,15 @@ class TopicServiceTest {
 		private static final TestTopic TOPIC = TestTopic.SPORER_PROJECT_TIMELINE;
 		private static final TestMeeting MEETING = TOPIC.getMeeting();
 		private static final long MEETING_ID = MEETING.getId();
+
+		private static final long REVISION = MEETING.getRevision();
+		private static final MeetingScope SCOPE = new MeetingScope(MEETING_ID,
+				REVISION);
+
+		@BeforeEach
+		void revision() {
+			meetingLock.passThrough(REVISION);
+		}
 
 		@Test
 		void onlyTopic() {
@@ -903,12 +937,11 @@ class TopicServiceTest {
 			final ArgumentMatcher<TopicEvent> event = e -> {
 				assertThat(e.origin()).isEqualTo(ORIGIN);
 				assertThat(e.topic()).isEqualTo(topicInfo);
-				assertThat(e.action())
-						.isInstanceOf(TopicAction.Delete.class);
+				assertThat(e.action()).isInstanceOf(TopicAction.Delete.class);
 				return true;
 			};
 
-			verify(eventPublisher).publish(eq(MEETING_ID), argThat(event));
+			verify(eventPublisher).publish(eq(SCOPE), argThat(event));
 
 			verify(topicStorageGateway, never()).update(any());
 		}
@@ -962,7 +995,7 @@ class TopicServiceTest {
 					.forClass(TopicEvent.class);
 
 			verify(eventPublisher, times(movedTopics.size() + 1))
-					.publish(eq(MEETING_ID), events.capture());
+					.publish(eq(SCOPE), events.capture());
 
 			final List<TopicEvent> topicEvents = events.getAllValues();
 
@@ -1015,12 +1048,11 @@ class TopicServiceTest {
 			final ArgumentMatcher<TopicEvent> event = e -> {
 				assertThat(e.origin()).isEqualTo(ORIGIN);
 				assertThat(e.topic()).isEqualTo(topicInfo);
-				assertThat(e.action())
-						.isInstanceOf(TopicAction.Delete.class);
+				assertThat(e.action()).isInstanceOf(TopicAction.Delete.class);
 				return true;
 			};
 
-			verify(eventPublisher).publish(eq(MEETING_ID), argThat(event));
+			verify(eventPublisher).publish(eq(SCOPE), argThat(event));
 
 			verify(topicStorageGateway, never()).update(any());
 		}
@@ -1051,11 +1083,11 @@ class TopicServiceTest {
 
 		@Test
 		void serialised() {
-			TestMeetingLock.withhold(meetingLock);
+			meetingLock.withhold();
 
 			topicService.delete(ORIGIN, MEETING_ID, TOPIC.getId());
 
-			verify(meetingLock).run(eq(MEETING_ID), any());
+			verify(meetingLock.lock()).run(eq(MEETING_ID), any());
 
 			verifyNoInteractions(topicStorageGateway);
 		}

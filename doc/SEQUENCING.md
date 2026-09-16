@@ -307,6 +307,82 @@ Carrying it on an event is now one field on `meeting/dto/EventDto`, which is
 why the outbound envelope was built first rather than adding the same field to
 four event types and four frontend type files.
 
+**One number per change, not per event.** A move under dense sequence ids
+publishes an event per shifted sibling, so numbering events would spend five
+revisions on one drag and make the counter a position in a channel rather than
+a version of the meeting. Every event of one change therefore carries the
+revision that change committed at, consecutive changes differ by one, and a
+jump means exactly one thing. Step 5 makes a move a single event, at which
+point the two readings converge anyway.
+
+**`MeetingLock` bumps it.** The lock already has the meeting id, already owns
+the transaction and already runs once per change, which makes it the one place
+a new operation cannot forget the bump — the same argument that puts the
+acknowledgement in an interceptor rather than in every handler. A `MeetingLock`
+that only locks is still available: `run` and `call` bump because every caller
+today is a change, and the plain path underneath them is one private method, so
+a non-bumping pair is two lines the day a read path wants one.
+
+**The bump belongs to the meeting, not to the row.** `MeetingInfo.bumpRevision`
+decides what the next number is and `MeetingDao.update` carries it to storage
+with the name and the description, like every other field of a meeting. A
+`bumpRevision` on the DAO was the first shape and put a rule in the row; a
+`MeetingRevision` component around it was the second, and was a second gateway
+over `MeetingRepository` that skipped the DAO ↔ BDO conversion every other
+write goes through.
+
+What is left is the shape every other change already has: read the
+`MeetingInfo`, change it, write it back. `MeetingLock.bump` does exactly that
+through `find` and `update`, and `MeetingStorageGateway` gains no method for
+it — a gateway that grew a `bumpRevision` would be answering a question about
+revisions rather than storing meetings.
+
+*Landed.* `meetings.revision` is in `V1__init.sql`, and `MeetingLock` hands the
+action a `MeetingScope` — the meeting id and the revision the change is
+committing at — which travels down to `EventPublisher` as one parameter where
+the meeting id used to travel alone. Re-reading the number at publish time was
+the alternative and does not work: `REMOVE_MEETING` deletes the row it came
+from. `EventDto` and `MeetingDetailsDto` both carry it, and `DetailsService.get`
+became one `REPEATABLE READ` transaction, since a snapshot assembled from N+1
+separate reads can report a revision the payload has already passed.
+
+`MeetingScope` is the scope a change runs in, which is what every service
+method needed both halves of anyway; `Origin` and `ChangeId` are the candidates
+to join it. It is handed down, not bound into a publisher the action calls —
+see below. The pair that hands it out stays named `run` and `call` rather than
+one overloaded `change`, because two overloads taking an implicitly typed
+lambda are ambiguous whatever their return types.
+
+**Considered and rejected: the lock publishes, not the services.** The scope
+travels as a parameter through ten service methods and twelve publish calls,
+and handing the action a publisher already bound to it —
+`change(meetingId, Consumer<Events>)` — would take it off every service
+signature. It was cheap to build: each locked method's return value is
+discarded at its only call site, so `<T> T call` is generic in a type nobody
+reads and could have returned the scope instead, and nothing publishes outside
+a lock, so the lock gave up nothing by owning it.
+
+What it costs is the class. `MeetingLock` would own the lock, the transaction,
+the revision and the event scope — the whole boundary a change runs in, which
+is not a lock any more, and the rename is the smaller half of that. Against
+that, the plumbing it removes is one parameter each new operation copies from
+the method beside it, visible in the signature, where the wrong one does not
+compile — and `MeetingScope` already made it one parameter rather than two. The lock stays a primitive about ordering and transactions and the
+services keep their publish. Do not revisit this as a cleanup.
+
+Returning a list of events from the action was never the alternative either. It
+wants a common type over four deliberately unrelated `bdo` records, and a
+*sealed* one is not available: the four live in four packages and the project
+has no `module-info`, so `javac` refuses — *class Event in unnamed module
+cannot extend a sealed class in a different package*. What is left is a
+non-sealed marker interface, a union with no exhaustiveness, bought for
+plumbing.
+
+Next is the acknowledgement: the interceptor, `/user/queue/acks`, and the
+client half. The thing to work out there is that the interceptor holds the
+frame, not the handler's return value, so the revision a change committed at
+has to reach it on the message rather than out of the lock.
+
 There is no header to add. A change already carries `change-id`, minted by
 `MeetingWebSocketClient` and resolved by `config/ChangeIdArgumentResolver`
 exactly as `OriginArgumentResolver` resolves the client id, so an

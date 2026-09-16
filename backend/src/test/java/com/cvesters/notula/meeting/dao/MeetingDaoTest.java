@@ -30,6 +30,7 @@ class MeetingDaoTest {
 			assertThat(dao.getName()).isEqualTo(MEETING.getName());
 			assertThat(dao.getDescription())
 					.isEqualTo(MEETING.getDescription());
+			assertThat(dao.getRevision()).isZero();
 		}
 
 		@Test
@@ -49,7 +50,8 @@ class MeetingDaoTest {
 			final String name = "Updated";
 			final String description = "Updated description";
 			final MeetingInfo bdo = new MeetingInfo(MEETING.getId(),
-					ORGANISATION.getId(), name, description);
+					ORGANISATION.getId(), name, description,
+					MEETING.getRevision());
 
 			dao.update(bdo);
 
@@ -57,6 +59,7 @@ class MeetingDaoTest {
 			assertThat(dao.getOrganisationId()).isEqualTo(ORGANISATION.getId());
 			assertThat(dao.getName()).isEqualTo(name);
 			assertThat(dao.getDescription()).isEqualTo(description);
+			assertThat(dao.getRevision()).isEqualTo(MEETING.getRevision());
 		}
 
 		@Test
@@ -84,6 +87,7 @@ class MeetingDaoTest {
 			assertThat(bdo.getName()).isEqualTo(MEETING.getName());
 			assertThat(bdo.getDescription())
 					.isEqualTo(MEETING.getDescription());
+			assertThat(bdo.getRevision()).isEqualTo(dao.getRevision());
 		}
 
 		@Test

@@ -128,7 +128,7 @@ halves of the wire; the two with no inbound counterpart are `ADD_MEETING` and
 `REMOVE_MEETING`, because meetings are created and deleted over REST.
 
 **A cross-cutting field goes on `EventDto`, not on the mutations.** That is the
-whole point of the envelope: step 4's `revision` is one record, not fourteen.
+whole point of the envelope: `revision` is one record, not fourteen.
 Four per-entity `*EventDto` wrappers over four `*MutationDto` hierarchies,
 keyed on a two-level `target` plus `action`, is what this replaced. They were
 Lombok getter beans and so serialised alphabetically, where records serialise
@@ -227,10 +227,37 @@ enforce it, in order:
    give this class a way to answer the client: everything that can talk to a
    connection is built from the channels, which are built by asking the
    configurers for their interceptors, so any such dependency is a bean cycle.
-2. `meeting/MeetingLock` — a per-meeting `ReentrantLock` that **owns both the
-   lock and the transaction**: it acquires, then runs the action inside a
-   `TransactionTemplate`. Mutating `*Service` methods go through it. Timing out
-   raises `BusyEntityException`, which is rejected as *retryable*.
+2. `meeting/MeetingLock` — a per-meeting `ReentrantLock` that **owns the lock,
+   the transaction and the revision**: it acquires, bumps `meetings.revision`,
+   and runs the action inside a
+   `TransactionTemplate` with a `bdo/MeetingScope` — the meeting id and the new
+   revision. Mutating `*Service` methods go through it. Timing out raises
+   `BusyEntityException`, which is rejected as *retryable*. `run` and `call`
+   both bump; the plain lock underneath them is private, so a non-bumping pair
+   is two lines when a read path needs one. They are not one overloaded
+   `change` because two overloads over an implicitly typed lambda are
+   ambiguous.
+
+   **One revision per change, not per event**, and the scope travels as a
+   parameter — `doMove(origin, scope, topicId, action)`, then
+   `events.publish(scope, event)` — for the same reason the meeting id used to,
+   and because nothing downstream can re-read it: a `REMOVE_MEETING` deletes
+   the row its revision came from. Publishing stays in the services: handing
+   the action a publisher already bound to the scope was considered and
+   rejected, because the lock then owns the whole boundary a change runs in and
+   stops being a lock. Do not offer it as a cleanup.
+
+   The bump is a read, a change to the object and a write — `find`,
+   `MeetingInfo.bumpRevision`, `update` — like any other change to a meeting,
+   and `MeetingDao.update` carries the number to storage with the name and the
+   description. `MeetingStorageGateway` keeps no `bumpRevision` of its own; a
+   `bumpRevision` on the DAO and a `MeetingRevision` component over the
+   repository were both tried and removed.
+
+   The snapshot has to be comparable to the stream, so `DetailsService.get`
+   runs as one `REPEATABLE READ` read-only transaction. Without it the N+1
+   reads each see their own database snapshot, and the revision reported can
+   belong to a state the payload has already moved past.
 
    The meeting id comes from the destination and is **passed down** as a
    parameter — `move(origin, meetingId, topicId, action)` — so the lock is taken
@@ -305,7 +332,9 @@ call — ask before writing.**
 - Primary keys are server-assigned `BIGINT`. No client-generated ids as keys;
   client-minted UUIDs are correlation handles (`Submission.id`, `change-id`) and
   stay UUIDs.
-- `bdo` types carry data. Do not give them behaviour.
+- `bdo` types carry data. Do not give them behaviour. A mutator that only
+  maintains its own field — `MeetingInfo.bumpRevision`, next to its setters —
+  is the edge of that, not a licence to put a rule in a record.
 - Do not comment classes and methods. No Javadoc, no summary line restating
   the signature, no section banners. The code says what it does; make it
   readable instead — a clearer name, a smaller method, an extracted variable.

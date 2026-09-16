@@ -14,6 +14,7 @@ import com.cvesters.notula.common.domain.Principal;
 import com.cvesters.notula.common.exception.MissingEntityException;
 import com.cvesters.notula.meeting.EventPublisher;
 import com.cvesters.notula.meeting.MeetingLock;
+import com.cvesters.notula.meeting.bdo.MeetingScope;
 import com.cvesters.notula.topic.TopicService;
 import com.cvesters.notula.topic.bdo.TopicInfo;
 
@@ -60,13 +61,13 @@ public class BlockService {
 		Objects.requireNonNull(action);
 
 		return meetingLock.call(meetingId,
-				() -> doCreate(origin, meetingId, action));
+				scope -> doCreate(origin, scope, action));
 	}
 
-	private BlockInfo doCreate(final Origin origin, final long meetingId,
+	private BlockInfo doCreate(final Origin origin, final MeetingScope scope,
 			final BlockAction.Create action) {
 		final TopicInfo topic = topicService.getById(origin.principal(),
-				meetingId, action.getTopicId());
+				scope.meetingId(), action.getTopicId());
 
 		final List<BlockInfo> existingBlocks = blockStorage
 				.findAllByTopicId(topic.getId());
@@ -92,7 +93,7 @@ public class BlockService {
 		final BlockInfo created = blockStorage.create(block);
 		events.add(new BlockEvent(created, action, origin));
 
-		events.forEach(e -> eventPublisher.publish(meetingId, e));
+		events.forEach(e -> eventPublisher.publish(scope, e));
 
 		return created;
 	}
@@ -103,12 +104,12 @@ public class BlockService {
 		Objects.requireNonNull(action);
 
 		return meetingLock.call(meetingId,
-				() -> doMove(origin, meetingId, blockId, action));
+				scope -> doMove(origin, scope, blockId, action));
 	}
 
-	private BlockInfo doMove(final Origin origin, final long meetingId,
+	private BlockInfo doMove(final Origin origin, final MeetingScope scope,
 			final long blockId, final BlockAction.Move action) {
-		final BlockInfo block = getById(origin.principal(), meetingId,
+		final BlockInfo block = getById(origin.principal(), scope.meetingId(),
 				blockId);
 		final int from = block.getSequenceId();
 		final int to = action.getSequenceId();
@@ -144,7 +145,7 @@ public class BlockService {
 			events.add(new BlockEvent(updatedBlock, move, origin));
 		}
 
-		events.forEach(e -> eventPublisher.publish(meetingId, e));
+		events.forEach(e -> eventPublisher.publish(scope, e));
 
 		return block;
 	}
@@ -154,13 +155,13 @@ public class BlockService {
 		Objects.requireNonNull(origin);
 
 		meetingLock.run(meetingId,
-				() -> doDelete(origin, meetingId, blockId));
+				scope -> doDelete(origin, scope, blockId));
 	}
 
-	private void doDelete(final Origin origin, final long meetingId,
+	private void doDelete(final Origin origin, final MeetingScope scope,
 			final long blockId) {
-		final BlockInfo blockInfo = getById(origin.principal(), meetingId,
-				blockId);
+		final BlockInfo blockInfo = getById(origin.principal(),
+				scope.meetingId(), blockId);
 		blockStorage.delete(blockInfo);
 
 		final var events = new ArrayList<BlockEvent>();
@@ -181,6 +182,6 @@ public class BlockService {
 			events.add(new BlockEvent(updatedBlock, move, origin));
 		}
 
-		events.forEach(e -> eventPublisher.publish(meetingId, e));
+		events.forEach(e -> eventPublisher.publish(scope, e));
 	}
 }

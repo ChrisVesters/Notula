@@ -6,30 +6,39 @@ import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.when;
 
-import java.util.function.Supplier;
+import java.util.function.Consumer;
+import java.util.function.Function;
+
+import com.cvesters.notula.meeting.bdo.MeetingScope;
 
 public final class TestMeetingLock {
 
-	private TestMeetingLock() {
-	}
+	private final MeetingLock meetingLock = mock();
 
-	public static MeetingLock passThrough() {
-		final MeetingLock meetingLock = mock();
-
-		when(meetingLock.call(anyLong(), any())).thenAnswer(
-				invocation -> invocation.getArgument(1, Supplier.class).get());
-		doAnswer(invocation -> {
-			invocation.getArgument(1, Runnable.class).run();
-
-			return null;
-		}).when(meetingLock).run(anyLong(), any());
-
+	public MeetingLock lock() {
 		return meetingLock;
 	}
 
-	public static void withhold(final MeetingLock meetingLock) {
+	public void passThrough(final long revision) {
+		doAnswer(invocation -> {
+			final long meetingId = invocation.getArgument(0, Long.class);
+			final Function<MeetingScope, ?> action = invocation.getArgument(1);
+
+			return action.apply(new MeetingScope(meetingId, revision));
+		}).when(meetingLock).call(anyLong(), any());
+
+		doAnswer(invocation -> {
+			final long meetingId = invocation.getArgument(0, Long.class);
+			final Consumer<MeetingScope> action = invocation.getArgument(1);
+
+			action.accept(new MeetingScope(meetingId, revision));
+
+			return null;
+		}).when(meetingLock).run(anyLong(), any());
+	}
+
+	public void withhold() {
 		doReturn(null).when(meetingLock).call(anyLong(), any());
 		doNothing().when(meetingLock).run(anyLong(), any());
 	}

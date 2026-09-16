@@ -34,6 +34,9 @@ public class MeetingDao {
 	@Column(nullable = false)
 	private String description;
 
+	@Column(nullable = false)
+	private long revision;
+
 	public MeetingDao(final MeetingInfo bdo) {
 		Objects.requireNonNull(bdo);
 
@@ -47,11 +50,13 @@ public class MeetingDao {
 
 		this.name = bdo.getName();
 		this.description = bdo.getDescription();
+		this.revision = bdo.getRevision();
 	}
 
 	public MeetingInfo toBdo() {
 		Validate.validState(id != null);
 
-		return new MeetingInfo(id, organisationId, name, description);
+		return new MeetingInfo(id, organisationId, name, description,
+				revision);
 	}
 }

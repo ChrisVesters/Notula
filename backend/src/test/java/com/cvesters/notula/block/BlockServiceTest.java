@@ -3,9 +3,9 @@ package com.cvesters.notula.block;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.argThat;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.inOrder;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
@@ -19,6 +19,7 @@ import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
@@ -32,9 +33,9 @@ import com.cvesters.notula.common.domain.Origin;
 import com.cvesters.notula.common.domain.Principal;
 import com.cvesters.notula.common.exception.MissingEntityException;
 import com.cvesters.notula.meeting.EventPublisher;
-import com.cvesters.notula.meeting.MeetingLock;
 import com.cvesters.notula.meeting.TestMeeting;
 import com.cvesters.notula.meeting.TestMeetingLock;
+import com.cvesters.notula.meeting.bdo.MeetingScope;
 import com.cvesters.notula.organisation.TestOrganisation;
 import com.cvesters.notula.session.TestSession;
 import com.cvesters.notula.topic.TestTopic;
@@ -50,13 +51,13 @@ class BlockServiceTest {
 	private static final Origin ORIGIN = new Origin(PRINCIPAL, CLIENT_ID);
 
 	private final TopicService topicService = mock();
-	private final MeetingLock meetingLock = TestMeetingLock.passThrough();
+	private final TestMeetingLock meetingLock = new TestMeetingLock();
 
 	private final BlockStorageGateway blockStorageGateway = mock();
 	private final EventPublisher eventPublisher = mock();
 
 	private final BlockService blockService = new BlockService(topicService,
-			meetingLock, blockStorageGateway, eventPublisher);
+			meetingLock.lock(), blockStorageGateway, eventPublisher);
 
 	@Nested
 	class GetById {
@@ -153,6 +154,15 @@ class BlockServiceTest {
 				.getOrganisation();
 		private static final long MEETING_ID = MEETING.getId();
 
+		private static final long REVISION = MEETING.getRevision();
+		private static final MeetingScope SCOPE = new MeetingScope(MEETING_ID,
+				REVISION);
+
+		@BeforeEach
+		void revision() {
+			meetingLock.passThrough(REVISION);
+		}
+
 		@Test
 		void firstBlock() {
 			final long topicId = TOPIC.getId();
@@ -196,7 +206,7 @@ class BlockServiceTest {
 				return true;
 			};
 
-			verify(eventPublisher).publish(eq(MEETING_ID), argThat(event));
+			verify(eventPublisher).publish(eq(SCOPE), argThat(event));
 
 			final InOrder inOrder = inOrder(blockStorageGateway);
 			verify(blockStorageGateway, never()).update(any());
@@ -251,7 +261,7 @@ class BlockServiceTest {
 				return true;
 			};
 
-			verify(eventPublisher).publish(eq(MEETING_ID), argThat(event));
+			verify(eventPublisher).publish(eq(SCOPE), argThat(event));
 
 			verify(blockStorageGateway, never()).update(any());
 			verify(blockStorageGateway).create(any());
@@ -318,8 +328,8 @@ class BlockServiceTest {
 			final ArgumentCaptor<BlockEvent> events = ArgumentCaptor
 					.forClass(BlockEvent.class);
 
-			verify(eventPublisher, times(blocks.size() + 1))
-					.publish(eq(MEETING_ID), events.capture());
+			verify(eventPublisher, times(blocks.size() + 1)).publish(eq(SCOPE),
+					events.capture());
 
 			final List<BlockEvent> blockEvents = events.getAllValues();
 
@@ -391,17 +401,16 @@ class BlockServiceTest {
 							.isInstanceOf(NullPointerException.class);
 		}
 
-
 		@Test
 		void serialised() {
-			TestMeetingLock.withhold(meetingLock);
+			meetingLock.withhold();
 
 			final var action = new BlockAction.Create(TOPIC.getId(),
 					BLOCK.getType(), 0);
 
 			blockService.create(ORIGIN, MEETING_ID, action);
 
-			verify(meetingLock).call(eq(MEETING_ID), any());
+			verify(meetingLock.lock()).call(eq(MEETING_ID), any());
 			verifyNoInteractions(blockStorageGateway);
 		}
 	}
@@ -411,6 +420,15 @@ class BlockServiceTest {
 
 		private static final TestTopic TOPIC = TestTopic.SPORER_PROJECT_BLOCKERS;
 		private static final long MEETING_ID = TOPIC.getMeeting().getId();
+
+		private static final long REVISION = TOPIC.getMeeting().getRevision();
+		private static final MeetingScope SCOPE = new MeetingScope(MEETING_ID,
+				REVISION);
+
+		@BeforeEach
+		void revision() {
+			meetingLock.passThrough(REVISION);
+		}
 
 		@Test
 		void down() {
@@ -476,8 +494,8 @@ class BlockServiceTest {
 			final ArgumentCaptor<BlockEvent> events = ArgumentCaptor
 					.forClass(BlockEvent.class);
 
-			verify(eventPublisher, times(moved.size()))
-					.publish(eq(MEETING_ID), events.capture());
+			verify(eventPublisher, times(moved.size())).publish(eq(SCOPE),
+					events.capture());
 
 			final List<BlockEvent> blockEvents = events.getAllValues();
 
@@ -567,8 +585,8 @@ class BlockServiceTest {
 			final var moved = List.of(result, second, first);
 			final ArgumentCaptor<BlockEvent> events = ArgumentCaptor
 					.forClass(BlockEvent.class);
-			verify(eventPublisher, times(moved.size()))
-					.publish(eq(MEETING_ID), events.capture());
+			verify(eventPublisher, times(moved.size())).publish(eq(SCOPE),
+					events.capture());
 
 			final List<BlockEvent> blockEvents = events.getAllValues();
 
@@ -647,8 +665,8 @@ class BlockServiceTest {
 			final var moved = List.of(neighbour, result);
 			final ArgumentCaptor<BlockEvent> events = ArgumentCaptor
 					.forClass(BlockEvent.class);
-			verify(eventPublisher, times(moved.size()))
-					.publish(eq(MEETING_ID), events.capture());
+			verify(eventPublisher, times(moved.size())).publish(eq(SCOPE),
+					events.capture());
 
 			final List<BlockEvent> blockEvents = events.getAllValues();
 
@@ -773,12 +791,12 @@ class BlockServiceTest {
 		void serialised() {
 			final TestBlock block = TestBlock.SPORER_PROJECT_BLOCKERS_FIRST;
 
-			TestMeetingLock.withhold(meetingLock);
+			meetingLock.withhold();
 
 			blockService.move(ORIGIN, MEETING_ID, block.getId(),
 					new BlockAction.Move(1));
 
-			verify(meetingLock).call(eq(MEETING_ID), any());
+			verify(meetingLock.lock()).call(eq(MEETING_ID), any());
 
 			verifyNoInteractions(blockStorageGateway);
 		}
@@ -793,6 +811,15 @@ class BlockServiceTest {
 		private static final TestBlock BLOCK = TestBlock.SPORER_PROJECT_BLOCKERS_FIRST;
 		private static final TestTopic TOPIC = BLOCK.getTopic();
 		private static final long MEETING_ID = TOPIC.getMeeting().getId();
+
+		private static final long REVISION = TOPIC.getMeeting().getRevision();
+		private static final MeetingScope SCOPE = new MeetingScope(MEETING_ID,
+				REVISION);
+
+		@BeforeEach
+		void revision() {
+			meetingLock.passThrough(REVISION);
+		}
 
 		@Test
 		void onlyBlock() {
@@ -812,12 +839,11 @@ class BlockServiceTest {
 			final ArgumentMatcher<BlockEvent> event = e -> {
 				assertThat(e.origin()).isEqualTo(ORIGIN);
 				assertThat(e.block()).isEqualTo(blockInfo);
-				assertThat(e.action())
-						.isInstanceOf(BlockAction.Delete.class);
+				assertThat(e.action()).isInstanceOf(BlockAction.Delete.class);
 				return true;
 			};
 
-			verify(eventPublisher).publish(eq(MEETING_ID), argThat(event));
+			verify(eventPublisher).publish(eq(SCOPE), argThat(event));
 
 			verify(blockStorageGateway, never()).update(any());
 		}
@@ -871,7 +897,7 @@ class BlockServiceTest {
 					.forClass(BlockEvent.class);
 
 			verify(eventPublisher, times(movedBlocks.size() + 1))
-					.publish(eq(MEETING_ID), events.capture());
+					.publish(eq(SCOPE), events.capture());
 
 			final List<BlockEvent> blockEvents = events.getAllValues();
 
@@ -925,12 +951,11 @@ class BlockServiceTest {
 			verify(blockStorageGateway).delete(blockInfo);
 			final ArgumentMatcher<BlockEvent> event = e -> {
 				assertThat(e.origin()).isEqualTo(ORIGIN);
-				assertThat(e.action())
-						.isInstanceOf(BlockAction.Delete.class);
+				assertThat(e.action()).isInstanceOf(BlockAction.Delete.class);
 				return true;
 			};
 
-			verify(eventPublisher).publish(eq(MEETING_ID), argThat(event));
+			verify(eventPublisher).publish(eq(SCOPE), argThat(event));
 
 			verify(blockStorageGateway, never()).update(any());
 		}
@@ -965,11 +990,11 @@ class BlockServiceTest {
 
 		@Test
 		void serialised() {
-			TestMeetingLock.withhold(meetingLock);
+			meetingLock.withhold();
 
 			blockService.delete(ORIGIN, MEETING_ID, BLOCK.getId());
 
-			verify(meetingLock).run(eq(MEETING_ID), any());
+			verify(meetingLock.lock()).run(eq(MEETING_ID), any());
 
 			verifyNoInteractions(blockStorageGateway);
 		}

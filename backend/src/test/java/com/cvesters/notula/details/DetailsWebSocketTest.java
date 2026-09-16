@@ -113,10 +113,11 @@ public class DetailsWebSocketTest extends WebSocketTest {
 					"description": "%s",
 					"id": %d,
 					"name": "%s",
+					"revision": %d,
 					"topics": [%s]
 				}
 				""".formatted(meeting.getDescription(), meeting.getId(),
-				meeting.getName(), topicsResponse);
+				meeting.getName(), meeting.getRevision(), topicsResponse);
 	}
 
 	private static String getResponse(final TestTopic topic) {

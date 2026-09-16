@@ -11,6 +11,7 @@ import com.cvesters.notula.common.domain.Origin;
 import com.cvesters.notula.common.exception.InvalidActionException;
 import com.cvesters.notula.meeting.EventPublisher;
 import com.cvesters.notula.meeting.MeetingLock;
+import com.cvesters.notula.meeting.bdo.MeetingScope;
 import com.cvesters.notula.textblock.bdo.TextBlockAction;
 import com.cvesters.notula.textblock.bdo.TextBlockEvent;
 import com.cvesters.notula.textblock.bdo.TextBlockInfo;
@@ -40,13 +41,14 @@ public class TextBlockService {
 		Objects.requireNonNull(action);
 
 		return meetingLock.call(meetingId,
-				() -> doUpdate(origin, meetingId, blockId, action));
+				scope -> doUpdate(origin, scope, blockId, action));
 	}
 
-	private TextBlockInfo doUpdate(final Origin origin, final long meetingId,
-			final long blockId, final TextBlockAction.Update action) {
+	private TextBlockInfo doUpdate(final Origin origin,
+			final MeetingScope scope, final long blockId,
+			final TextBlockAction.Update action) {
 		final BlockInfo blockInfo = blockService.getById(origin.principal(),
-				meetingId, blockId);
+				scope.meetingId(), blockId);
 		if (blockInfo.getType() != BlockType.TEXT) {
 			throw new InvalidActionException();
 		}
@@ -59,7 +61,7 @@ public class TextBlockService {
 				.update(textBlockInfo);
 
 		final var event = new TextBlockEvent(blockInfo, action, origin);
-		eventPublisher.publish(meetingId, event);
+		eventPublisher.publish(scope, event);
 
 		return updated;
 	}

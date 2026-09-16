@@ -4,6 +4,7 @@ export type MeetingDetails = {
 	id: number;
 	name: string;
 	description: string;
+	revision: number;
 
 	topics: Array<TopicDetails>;
 };

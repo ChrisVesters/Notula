@@ -42,6 +42,8 @@ class MeetingRepositoryTest extends RepositoryTest {
 				assertThat(meeting.getName()).isEqualTo(MEETING.getName());
 				assertThat(meeting.getDescription())
 						.isEqualTo(MEETING.getDescription());
+				assertThat(meeting.getRevision())
+						.isEqualTo(MEETING.getRevision());
 			});
 
 			final var expected = entityManager.find(MeetingDao.class,
@@ -77,6 +79,8 @@ class MeetingRepositoryTest extends RepositoryTest {
 						.isEqualTo(expectedMeeting.getName());
 				assertThat(meeting.getDescription())
 						.isEqualTo(expectedMeeting.getDescription());
+				assertThat(meeting.getRevision())
+						.isEqualTo(expectedMeeting.getRevision());
 			});
 		}
 
@@ -97,6 +101,8 @@ class MeetingRepositoryTest extends RepositoryTest {
 						.isEqualTo(expectedMeeting.getName());
 				assertThat(meeting.getDescription())
 						.isEqualTo(expectedMeeting.getDescription());
+				assertThat(meeting.getRevision())
+						.isEqualTo(expectedMeeting.getRevision());
 			}).anySatisfy(meeting -> {
 				final TestMeeting expectedMeeting = TestMeeting.SPORER_RETRO;
 				assertThat(meeting.getId()).isEqualTo(expectedMeeting.getId());
@@ -106,6 +112,8 @@ class MeetingRepositoryTest extends RepositoryTest {
 						.isEqualTo(expectedMeeting.getName());
 				assertThat(meeting.getDescription())
 						.isEqualTo(expectedMeeting.getDescription());
+				assertThat(meeting.getRevision())
+						.isEqualTo(expectedMeeting.getRevision());
 			}).anySatisfy(meeting -> {
 				final TestMeeting expectedMeeting = TestMeeting.SPORER_Q2_PLANNING;
 				assertThat(meeting.getId()).isEqualTo(expectedMeeting.getId());
@@ -115,6 +123,8 @@ class MeetingRepositoryTest extends RepositoryTest {
 						.isEqualTo(expectedMeeting.getName());
 				assertThat(meeting.getDescription())
 						.isEqualTo(expectedMeeting.getDescription());
+				assertThat(meeting.getRevision())
+						.isEqualTo(expectedMeeting.getRevision());
 			});
 		}
 
@@ -144,6 +154,7 @@ class MeetingRepositoryTest extends RepositoryTest {
 					.isEqualTo(organisation.getId());
 			assertThat(saved.getName()).isEqualTo(name);
 			assertThat(saved.getDescription()).isEmpty();
+			assertThat(saved.getRevision()).isZero();
 
 			final MeetingDao found = entityManager.find(MeetingDao.class,
 					saved.getId());
@@ -154,6 +165,24 @@ class MeetingRepositoryTest extends RepositoryTest {
 			assertThat(found.getName()).isEqualTo(saved.getName());
 			assertThat(found.getDescription())
 					.isEqualTo(saved.getDescription());
+			assertThat(found.getRevision()).isEqualTo(saved.getRevision());
+		}
+
+		@Test
+		void bumped() {
+			final TestMeeting meeting = TestMeeting.SPORER_PROJECT;
+			final MeetingDao dao = meetingRepository.findById(meeting.getId())
+					.orElseThrow();
+
+			final MeetingInfo bdo = dao.toBdo();
+			bdo.bumpRevision();
+			dao.update(bdo);
+			meetingRepository.save(dao);
+
+			final MeetingDao found = entityManager.find(MeetingDao.class,
+					meeting.getId());
+			assertThat(found.getRevision())
+					.isEqualTo(meeting.getRevision() + 1);
 		}
 
 		@Test

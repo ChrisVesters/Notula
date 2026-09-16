@@ -11,6 +11,7 @@ import com.cvesters.notula.common.exception.MissingEntityException;
 import com.cvesters.notula.meeting.bdo.MeetingAction;
 import com.cvesters.notula.meeting.bdo.MeetingEvent;
 import com.cvesters.notula.meeting.bdo.MeetingInfo;
+import com.cvesters.notula.meeting.bdo.MeetingScope;
 
 @Service
 public class MeetingService {
@@ -62,17 +63,18 @@ public class MeetingService {
 		Objects.requireNonNull(action);
 
 		return meetingLock.call(id,
-				() -> doUpdate(origin, id, action));
+				scope -> doUpdate(origin, scope, action));
 	}
 
-	private MeetingInfo doUpdate(final Origin origin, final long id,
+	private MeetingInfo doUpdate(final Origin origin, final MeetingScope scope,
 			final MeetingAction.Update action) {
-		final MeetingInfo meetingInfo = getById(origin.principal(), id);
+		final MeetingInfo meetingInfo = getById(origin.principal(),
+				scope.meetingId());
 		action.apply(meetingInfo);
 		final MeetingInfo updated = meetingStorage.update(meetingInfo);
 
 		final var event = new MeetingEvent(action, origin);
-		eventPublisher.publish(id, event);
+		eventPublisher.publish(scope, event);
 
 		return updated;
 	}
@@ -80,17 +82,17 @@ public class MeetingService {
 	public void delete(final Origin origin, final long id) {
 		Objects.requireNonNull(origin);
 
-		meetingLock.run(id,
-				() -> doDelete(origin, id));
+		meetingLock.run(id, scope -> doDelete(origin, scope));
 	}
 
-	private void doDelete(final Origin origin, final long id) {
-		final MeetingInfo meetingInfo = getById(origin.principal(), id);
+	private void doDelete(final Origin origin, final MeetingScope scope) {
+		final MeetingInfo meetingInfo = getById(origin.principal(),
+				scope.meetingId());
 
 		meetingStorage.delete(meetingInfo);
 
 		final var action = new MeetingAction.Delete();
 		final var event = new MeetingEvent(action, origin);
-		eventPublisher.publish(id, event);
+		eventPublisher.publish(scope, event);
 	}
 }

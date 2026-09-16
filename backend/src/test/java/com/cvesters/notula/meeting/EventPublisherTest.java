@@ -21,6 +21,7 @@ import com.cvesters.notula.common.dto.OriginDto;
 import com.cvesters.notula.common.messaging.TransactionalPublisher;
 import com.cvesters.notula.meeting.bdo.MeetingAction;
 import com.cvesters.notula.meeting.bdo.MeetingEvent;
+import com.cvesters.notula.meeting.bdo.MeetingScope;
 import com.cvesters.notula.meeting.dto.BlockMutationDto;
 import com.cvesters.notula.meeting.dto.EventDto;
 import com.cvesters.notula.meeting.dto.MeetingMutationDto;
@@ -44,6 +45,9 @@ class EventPublisherTest {
 			CLIENT_ID);
 
 	private static final long MEETING_ID = 1L;
+	private static final long REVISION = 12L;
+	private static final MeetingScope SCOPE = new MeetingScope(MEETING_ID,
+			REVISION);
 	private static final long TOPIC_ID = 32L;
 	private static final long BLOCK_ID = 61L;
 
@@ -54,7 +58,8 @@ class EventPublisherTest {
 			publisher);
 
 	private void verifySent(final MutationDto mutation) {
-		final var expected = new EventDto(new OriginDto(ORIGIN), mutation);
+		final var expected = new EventDto(REVISION, new OriginDto(ORIGIN),
+				mutation);
 
 		verify(publisher).send(DESTINATION, expected);
 	}
@@ -70,7 +75,7 @@ class EventPublisherTest {
 				final var action = new MeetingAction.Create("New");
 				final var event = new MeetingEvent(action, ORIGIN);
 
-				eventPublisher.publish(MEETING_ID, event);
+				eventPublisher.publish(SCOPE, event);
 
 				verifySent(new MeetingMutationDto.Add("New"));
 			}
@@ -81,7 +86,7 @@ class EventPublisherTest {
 						"Updated");
 				final var event = new MeetingEvent(action, ORIGIN);
 
-				eventPublisher.publish(MEETING_ID, event);
+				eventPublisher.publish(SCOPE, event);
 
 				final var edit = new TextEditDto(4, 12, "Updated");
 				verifySent(new MeetingMutationDto.Rename(edit));
@@ -93,7 +98,7 @@ class EventPublisherTest {
 						"Updated");
 				final var event = new MeetingEvent(action, ORIGIN);
 
-				eventPublisher.publish(MEETING_ID, event);
+				eventPublisher.publish(SCOPE, event);
 
 				final var edit = new TextEditDto(4, 12, "Updated");
 				verifySent(new MeetingMutationDto.Describe(edit));
@@ -104,14 +109,14 @@ class EventPublisherTest {
 				final var action = new MeetingAction.Delete();
 				final var event = new MeetingEvent(action, ORIGIN);
 
-				eventPublisher.publish(MEETING_ID, event);
+				eventPublisher.publish(SCOPE, event);
 
 				verifySent(new MeetingMutationDto.Remove());
 			}
 
 			@Test
 			void eventNull() {
-				assertThatThrownBy(() -> eventPublisher.publish(MEETING_ID,
+				assertThatThrownBy(() -> eventPublisher.publish(SCOPE,
 						(MeetingEvent) null))
 						.isInstanceOf(NullPointerException.class);
 			}
@@ -132,7 +137,7 @@ class EventPublisherTest {
 				final var action = new TopicAction.Create(3, "New");
 				final var event = new TopicEvent(topic, action, ORIGIN);
 
-				eventPublisher.publish(MEETING_ID, event);
+				eventPublisher.publish(SCOPE, event);
 
 				verifySent(new TopicMutationDto.Add(TOPIC_ID, 3, "New"));
 			}
@@ -142,7 +147,7 @@ class EventPublisherTest {
 				final var action = new TopicAction.Move(3);
 				final var event = new TopicEvent(topic, action, ORIGIN);
 
-				eventPublisher.publish(MEETING_ID, event);
+				eventPublisher.publish(SCOPE, event);
 
 				verifySent(new TopicMutationDto.Move(TOPIC_ID, 3));
 			}
@@ -153,7 +158,7 @@ class EventPublisherTest {
 						"Updated");
 				final var event = new TopicEvent(topic, action, ORIGIN);
 
-				eventPublisher.publish(MEETING_ID, event);
+				eventPublisher.publish(SCOPE, event);
 
 				final var edit = new TextEditDto(4, 12, "Updated");
 				verifySent(new TopicMutationDto.Rename(TOPIC_ID, edit));
@@ -165,7 +170,7 @@ class EventPublisherTest {
 						"Updated");
 				final var event = new TopicEvent(topic, action, ORIGIN);
 
-				eventPublisher.publish(MEETING_ID, event);
+				eventPublisher.publish(SCOPE, event);
 
 				final var edit = new TextEditDto(4, 12, "Updated");
 				verifySent(new TopicMutationDto.Describe(TOPIC_ID, edit));
@@ -176,14 +181,14 @@ class EventPublisherTest {
 				final var action = new TopicAction.Delete();
 				final var event = new TopicEvent(topic, action, ORIGIN);
 
-				eventPublisher.publish(MEETING_ID, event);
+				eventPublisher.publish(SCOPE, event);
 
 				verifySent(new TopicMutationDto.Remove(TOPIC_ID));
 			}
 
 			@Test
 			void eventNull() {
-				assertThatThrownBy(() -> eventPublisher.publish(MEETING_ID,
+				assertThatThrownBy(() -> eventPublisher.publish(SCOPE,
 						(TopicEvent) null))
 						.isInstanceOf(NullPointerException.class);
 			}
@@ -205,7 +210,7 @@ class EventPublisherTest {
 						BlockType.TEXT, 3);
 				final var event = new BlockEvent(block, action, ORIGIN);
 
-				eventPublisher.publish(MEETING_ID, event);
+				eventPublisher.publish(SCOPE, event);
 
 				verifySent(new BlockMutationDto.Add(BLOCK_ID, TOPIC_ID,
 						new BlockTypeDto(BlockType.TEXT), 3));
@@ -216,7 +221,7 @@ class EventPublisherTest {
 				final var action = new BlockAction.Move(3);
 				final var event = new BlockEvent(block, action, ORIGIN);
 
-				eventPublisher.publish(MEETING_ID, event);
+				eventPublisher.publish(SCOPE, event);
 
 				verifySent(new BlockMutationDto.Move(BLOCK_ID, 3));
 			}
@@ -226,14 +231,14 @@ class EventPublisherTest {
 				final var action = new BlockAction.Delete();
 				final var event = new BlockEvent(block, action, ORIGIN);
 
-				eventPublisher.publish(MEETING_ID, event);
+				eventPublisher.publish(SCOPE, event);
 
 				verifySent(new BlockMutationDto.Remove(BLOCK_ID));
 			}
 
 			@Test
 			void eventNull() {
-				assertThatThrownBy(() -> eventPublisher.publish(MEETING_ID,
+				assertThatThrownBy(() -> eventPublisher.publish(SCOPE,
 						(BlockEvent) null))
 						.isInstanceOf(NullPointerException.class);
 			}
@@ -255,7 +260,7 @@ class EventPublisherTest {
 						"New");
 				final var event = new TextBlockEvent(block, action, ORIGIN);
 
-				eventPublisher.publish(MEETING_ID, event);
+				eventPublisher.publish(SCOPE, event);
 
 				final var edit = new TextEditDto(2, 3, "New");
 				verifySent(new TextBlockMutationDto.Edit(BLOCK_ID, edit));
@@ -263,7 +268,7 @@ class EventPublisherTest {
 
 			@Test
 			void eventNull() {
-				assertThatThrownBy(() -> eventPublisher.publish(MEETING_ID,
+				assertThatThrownBy(() -> eventPublisher.publish(SCOPE,
 						(TextBlockEvent) null))
 						.isInstanceOf(NullPointerException.class);
 			}

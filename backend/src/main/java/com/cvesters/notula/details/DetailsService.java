@@ -5,6 +5,8 @@ import java.util.List;
 import java.util.Objects;
 
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Isolation;
+import org.springframework.transaction.annotation.Transactional;
 
 import com.cvesters.notula.block.BlockStorageGateway;
 import com.cvesters.notula.block.bdo.BlockInfo;
@@ -40,6 +42,7 @@ public class DetailsService {
 		this.textBlockStorage = textBlockStorage;
 	}
 
+	@Transactional(readOnly = true, isolation = Isolation.REPEATABLE_READ)
 	public MeetingDetails get(final Principal principal, final long id) {
 		Objects.requireNonNull(principal);
 

@@ -2,8 +2,8 @@ package com.cvesters.notula.meeting;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
@@ -14,11 +14,12 @@ import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
-import org.mockito.ArgumentMatcher;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.MethodSource;
+import org.mockito.ArgumentMatcher;
 
 import com.cvesters.notula.common.domain.Origin;
 import com.cvesters.notula.common.domain.Principal;
@@ -26,6 +27,7 @@ import com.cvesters.notula.common.exception.MissingEntityException;
 import com.cvesters.notula.meeting.bdo.MeetingAction;
 import com.cvesters.notula.meeting.bdo.MeetingEvent;
 import com.cvesters.notula.meeting.bdo.MeetingInfo;
+import com.cvesters.notula.meeting.bdo.MeetingScope;
 import com.cvesters.notula.organisation.TestOrganisation;
 import com.cvesters.notula.session.TestSession;
 
@@ -34,13 +36,13 @@ class MeetingServiceTest {
 	private static final UUID CLIENT_ID = UUID
 			.fromString("3f9c1a44-1d2e-4a51-8b0c-2c7e9b1d4a0f");
 
-	private final MeetingLock meetingLock = TestMeetingLock.passThrough();
+	private final TestMeetingLock meetingLock = new TestMeetingLock();
 
 	private final MeetingStorageGateway meetingStorageGateway = mock();
 	private final EventPublisher eventPublisher = mock();
 
 	private final MeetingService meetingService = new MeetingService(
-			meetingLock, meetingStorageGateway, eventPublisher);
+			meetingLock.lock(), meetingStorageGateway, eventPublisher);
 
 	@Nested
 	class GetById {
@@ -196,6 +198,16 @@ class MeetingServiceTest {
 		private static final Origin ORIGIN = new Origin(SESSION.principal(),
 				CLIENT_ID);
 		private static final TestMeeting MEETING = TestMeeting.SPORER_PROJECT;
+		private static final long MEETING_ID = MEETING.getId();
+
+		private static final long REVISION = MEETING.getRevision();
+		private static final MeetingScope SCOPE = new MeetingScope(MEETING_ID,
+				REVISION);
+
+		@BeforeEach
+		void revision() {
+			meetingLock.passThrough(REVISION);
+		}
 
 		@Test
 		void success() {
@@ -227,7 +239,7 @@ class MeetingServiceTest {
 				return true;
 			};
 
-			verify(eventPublisher).publish(eq(meetingId), argThat(event));
+			verify(eventPublisher).publish(eq(SCOPE), argThat(event));
 		}
 
 		@Test
@@ -265,13 +277,13 @@ class MeetingServiceTest {
 
 		@Test
 		void serialised() {
-			TestMeetingLock.withhold(meetingLock);
+			meetingLock.withhold();
 
 			final var action = new MeetingAction.UpdateName(0, 0, "Renamed");
 
 			meetingService.update(ORIGIN, MEETING.getId(), action);
 
-			verify(meetingLock).call(eq(MEETING.getId()), any());
+			verify(meetingLock.lock()).call(eq(MEETING.getId()), any());
 			verifyNoInteractions(meetingStorageGateway);
 		}
 	}
@@ -283,6 +295,16 @@ class MeetingServiceTest {
 		private static final Origin ORIGIN = new Origin(SESSION.principal(),
 				CLIENT_ID);
 		private static final TestMeeting MEETING = TestMeeting.SPORER_PROJECT;
+		private static final long MEETING_ID = MEETING.getId();
+
+		private static final long REVISION = MEETING.getRevision();
+		private static final MeetingScope SCOPE = new MeetingScope(MEETING_ID,
+				REVISION);
+
+		@BeforeEach
+		void revision() {
+			meetingLock.passThrough(REVISION);
+		}
 
 		@Test
 		void success() {
@@ -302,7 +324,7 @@ class MeetingServiceTest {
 				return true;
 			};
 
-			verify(eventPublisher).publish(eq(meetingId), argThat(event));
+			verify(eventPublisher).publish(eq(SCOPE), argThat(event));
 		}
 
 		@Test
@@ -312,9 +334,8 @@ class MeetingServiceTest {
 			when(meetingStorageGateway.find(meetingId))
 					.thenReturn(Optional.empty());
 
-			assertThatThrownBy(
-					() -> meetingService.delete(ORIGIN, meetingId))
-							.isInstanceOf(MissingEntityException.class);
+			assertThatThrownBy(() -> meetingService.delete(ORIGIN, meetingId))
+					.isInstanceOf(MissingEntityException.class);
 		}
 
 		@Test
@@ -325,11 +346,11 @@ class MeetingServiceTest {
 
 		@Test
 		void serialised() {
-			TestMeetingLock.withhold(meetingLock);
+			meetingLock.withhold();
 
 			meetingService.delete(ORIGIN, MEETING.getId());
 
-			verify(meetingLock).run(eq(MEETING.getId()), any());
+			verify(meetingLock.lock()).run(eq(MEETING.getId()), any());
 			verifyNoInteractions(meetingStorageGateway);
 		}
 	}

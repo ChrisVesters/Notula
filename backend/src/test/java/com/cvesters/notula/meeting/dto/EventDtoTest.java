@@ -21,6 +21,7 @@ class EventDtoTest {
 			.fromString("3f9c1a44-1d2e-4a51-8b0c-2c7e9b1d4a06");
 	private static final OriginDto ORIGIN = new OriginDto(
 			new Origin(SESSION.principal(), CLIENT_ID));
+	private static final long REVISION = 12;
 
 	@Nested
 	class Constructor {
@@ -29,13 +30,13 @@ class EventDtoTest {
 		void originNull() {
 			final var mutation = new MeetingMutationDto.Remove();
 
-			assertThatThrownBy(() -> new EventDto(null, mutation))
+			assertThatThrownBy(() -> new EventDto(REVISION, null, mutation))
 					.isInstanceOf(NullPointerException.class);
 		}
 
 		@Test
 		void mutationNull() {
-			assertThatThrownBy(() -> new EventDto(ORIGIN, null))
+			assertThatThrownBy(() -> new EventDto(REVISION, ORIGIN, null))
 					.isInstanceOf(NullPointerException.class);
 		}
 	}
@@ -47,13 +48,14 @@ class EventDtoTest {
 
 		@Test
 		void success() {
-			final var event = new EventDto(ORIGIN,
+			final var event = new EventDto(REVISION, ORIGIN,
 					new TopicMutationDto.Remove(32L));
 
 			final String json = MAPPER.writeValueAsString(event);
 
 			assertThat(json).isEqualToIgnoringWhitespace("""
 					{
+						"revision": 12,
 						"origin": {
 							"userId": 1,
 							"clientId": "3f9c1a44-1d2e-4a51-8b0c-2c7e9b1d4a06"
@@ -69,13 +71,14 @@ class EventDtoTest {
 		@Test
 		void withoutClientId() {
 			final var origin = new OriginDto(new Origin(SESSION.principal()));
-			final var event = new EventDto(origin,
+			final var event = new EventDto(REVISION, origin,
 					new TopicMutationDto.Remove(32L));
 
 			final String json = MAPPER.writeValueAsString(event);
 
 			assertThat(json).isEqualToIgnoringWhitespace("""
 					{
+						"revision": 12,
 						"origin": {
 							"userId": 1,
 							"clientId": null

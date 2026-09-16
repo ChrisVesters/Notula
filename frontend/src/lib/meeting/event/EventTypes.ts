@@ -5,6 +5,7 @@ import type { TextEdit } from "../change/ChangeTypes";
 
 export type MeetingEvent = {
 	origin: EventOrigin;
+	revision: number;
 	mutation: Mutation;
 };
 

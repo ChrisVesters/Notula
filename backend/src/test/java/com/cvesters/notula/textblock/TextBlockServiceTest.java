@@ -2,8 +2,8 @@ package com.cvesters.notula.textblock;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
@@ -13,6 +13,7 @@ import static org.mockito.Mockito.when;
 import java.util.Optional;
 import java.util.UUID;
 
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentMatcher;
@@ -24,8 +25,8 @@ import com.cvesters.notula.common.domain.Origin;
 import com.cvesters.notula.common.domain.Principal;
 import com.cvesters.notula.common.exception.InvalidActionException;
 import com.cvesters.notula.meeting.EventPublisher;
-import com.cvesters.notula.meeting.MeetingLock;
 import com.cvesters.notula.meeting.TestMeetingLock;
+import com.cvesters.notula.meeting.bdo.MeetingScope;
 import com.cvesters.notula.session.TestSession;
 import com.cvesters.notula.textblock.bdo.TextBlockAction;
 import com.cvesters.notula.textblock.bdo.TextBlockEvent;
@@ -37,13 +38,13 @@ class TextBlockServiceTest {
 			.fromString("3f9c1a44-1d2e-4a51-8b0c-2c7e9b1d4a10");
 
 	private final BlockService blockService = mock();
-	private final MeetingLock meetingLock = TestMeetingLock.passThrough();
+	private final TestMeetingLock meetingLock = new TestMeetingLock();
 
 	private final TextBlockStorageGateway textBlockStorageGateway = mock();
 	private final EventPublisher eventPublisher = mock();
 
 	private final TextBlockService textBlockService = new TextBlockService(
-			blockService, meetingLock, textBlockStorageGateway,
+			blockService, meetingLock.lock(), textBlockStorageGateway,
 			eventPublisher);
 
 	@Nested
@@ -54,8 +55,20 @@ class TextBlockServiceTest {
 				CLIENT_ID);
 		private static final TestTextBlock TEXT_BLOCK = TestTextBlock.SPORER_PROJECT_BLOCKERS_FIRST;
 		private static final TestBlock BLOCK = TestBlock.SPORER_PROJECT_BLOCKERS_FIRST;
-		private static final long MEETING_ID = BLOCK.getTopic().getMeeting()
+		private static final long MEETING_ID = BLOCK.getTopic()
+				.getMeeting()
 				.getId();
+
+		private static final long REVISION = BLOCK.getTopic()
+				.getMeeting()
+				.getRevision();
+		private static final MeetingScope SCOPE = new MeetingScope(MEETING_ID,
+				REVISION);
+
+		@BeforeEach
+		void revision() {
+			meetingLock.passThrough(REVISION);
+		}
 
 		@Test
 		void success() {
@@ -91,7 +104,7 @@ class TextBlockServiceTest {
 				return true;
 			};
 
-			verify(eventPublisher).publish(eq(MEETING_ID), argThat(event));
+			verify(eventPublisher).publish(eq(SCOPE), argThat(event));
 		}
 
 		@Test
@@ -127,7 +140,7 @@ class TextBlockServiceTest {
 				return true;
 			};
 
-			verify(eventPublisher).publish(eq(MEETING_ID), argThat(event));
+			verify(eventPublisher).publish(eq(SCOPE), argThat(event));
 		}
 
 		@Test
@@ -142,9 +155,8 @@ class TextBlockServiceTest {
 
 			final var action = new TextBlockAction.UpdateContent(0, 0,
 					"Project ");
-			assertThatThrownBy(
-					() -> textBlockService.update(ORIGIN, MEETING_ID,
-							blockId, action))
+			assertThatThrownBy(() -> textBlockService.update(ORIGIN, MEETING_ID,
+					blockId, action))
 							.isInstanceOf(InvalidActionException.class);
 
 			verifyNoInteractions(textBlockStorageGateway);
@@ -158,31 +170,27 @@ class TextBlockServiceTest {
 			final var action = new TextBlockAction.UpdateContent(0, 0,
 					"Project ");
 
-			assertThatThrownBy(
-					() -> textBlockService.update(null, MEETING_ID,
-							blockId, action))
-							.isInstanceOf(NullPointerException.class);
+			assertThatThrownBy(() -> textBlockService.update(null, MEETING_ID,
+					blockId, action)).isInstanceOf(NullPointerException.class);
 		}
 
 		@Test
 		void actionNull() {
 			final long blockId = BLOCK.getId();
 
-			assertThatThrownBy(
-					() -> textBlockService.update(ORIGIN, MEETING_ID,
-							blockId, null))
-							.isInstanceOf(NullPointerException.class);
+			assertThatThrownBy(() -> textBlockService.update(ORIGIN, MEETING_ID,
+					blockId, null)).isInstanceOf(NullPointerException.class);
 		}
 
 		@Test
 		void serialised() {
-			TestMeetingLock.withhold(meetingLock);
+			meetingLock.withhold();
 
 			final var action = new TextBlockAction.UpdateContent(0, 0, "text");
 
 			textBlockService.update(ORIGIN, MEETING_ID, BLOCK.getId(), action);
 
-			verify(meetingLock).call(eq(MEETING_ID), any());
+			verify(meetingLock.lock()).call(eq(MEETING_ID), any());
 			verifyNoInteractions(textBlockStorageGateway);
 		}
 	}

@@ -31,13 +31,14 @@ public class MeetingInfoTest {
 					.isEqualTo(ORGANISATION.getId());
 			assertThat(result.getName()).isEqualTo(MEETING.getName());
 			assertThat(result.getDescription()).isEmpty();
+			assertThat(result.getRevision()).isZero();
 		}
 
 		@Test
 		void withId() {
 			final var result = new MeetingInfo(MEETING.getId(),
 					ORGANISATION.getId(), MEETING.getName(),
-					MEETING.getDescription());
+					MEETING.getDescription(), MEETING.getRevision());
 
 			assertThat(result.getId()).isEqualTo(MEETING.getId());
 			assertThat(result.getOrganisationId())
@@ -45,6 +46,7 @@ public class MeetingInfoTest {
 			assertThat(result.getName()).isEqualTo(MEETING.getName());
 			assertThat(result.getDescription())
 					.isEqualTo(MEETING.getDescription());
+			assertThat(result.getRevision()).isEqualTo(MEETING.getRevision());
 		}
 
 		@Test
@@ -53,9 +55,10 @@ public class MeetingInfoTest {
 			final long organisationId = ORGANISATION.getId();
 			final String name = null;
 			final String description = MEETING.getDescription();
+			final long revision = MEETING.getRevision();
 
 			assertThatThrownBy(() -> new MeetingInfo(meetingId, organisationId,
-					name, description))
+					name, description, revision))
 							.isInstanceOf(NullPointerException.class);
 		}
 
@@ -65,9 +68,10 @@ public class MeetingInfoTest {
 			final long organisationId = ORGANISATION.getId();
 			final String name = MEETING.getName();
 			final String description = null;
+			final long revision = MEETING.getRevision();
 
 			assertThatThrownBy(() -> new MeetingInfo(meetingId, organisationId,
-					name, description))
+					name, description, revision))
 							.isInstanceOf(NullPointerException.class);
 		}
 	}
@@ -111,6 +115,31 @@ public class MeetingInfoTest {
 		void descriptionNull() {
 			assertThatThrownBy(() -> info.setDescription(null))
 					.isInstanceOf(NullPointerException.class);
+		}
+	}
+
+	@Nested
+	class BumpRevision {
+
+		@Test
+		void success() {
+			final MeetingInfo meeting = MEETING.info();
+
+			meeting.bumpRevision();
+
+			assertThat(meeting.getRevision())
+					.isEqualTo(MEETING.getRevision() + 1);
+		}
+
+		@Test
+		void repeated() {
+			final MeetingInfo meeting = MEETING.info();
+
+			meeting.bumpRevision();
+			meeting.bumpRevision();
+
+			assertThat(meeting.getRevision())
+					.isEqualTo(MEETING.getRevision() + 2);
 		}
 	}
 }
