@@ -515,8 +515,9 @@ deletes, and it detects the duplicate without fixing it.
 action, resolved by an argument resolver next to `Origin`, to spare the walk up
 the tree for a lock key. It was settled the other way instead: the id is a
 `@DestinationVariable` on `/app/meetings/{id}/changes` and travels down as a
-parameter — `topics.move(origin, meetingId, topicId, action)` — so the lock is
-taken before anything is read and the client never states the same fact twice.
+parameter — `changes.apply(origin, meetingId, change)`, and below the lock as
+the `MeetingScope` — so the lock is taken before anything is read and the client
+never states the same fact twice.
 Do not reintroduce it as a header, and do not denormalise `meeting_id` onto
 `blocks`; both have been tried and removed. The walk that remains is the
 authorisation check inside `getById`.
@@ -537,14 +538,19 @@ in-flight change is released by its own acknowledgement rather than by an echoed
 broadcast. Both done, and the queue the release hooks into is the one step 7
 merges keystrokes in rather than only holding them back.
 
-**What is not answered is an acknowledgement that never arrives.** Within a
+**An acknowledgement that never arrives is not answered at all yet.** Within a
 connection STOMP is ordered and lossless and every failure path answers on
-`/user/queue/rejections`, so the queue stalls only if the connection drops with
-a change outstanding: `WebSocketClient.reconnect` replays the subscription map,
-but nothing releases the change that was in flight, and that tab then sends
-nothing ever again. Releasing on reconnect is the answer and resending is not —
-the change may well have committed, and a text splice applied twice is worse
-than one lost.
+`/user/queue/rejections`, so the only way to wait forever is to lose the socket
+with a change outstanding — and then the tab stops sending, because
+`WebSocketClient` sets `reconnectDelay: 0` and the connection does not come
+back. That is deliberate. Reconnecting on its own is the worse failure: the
+replayed subscription re-fires the snapshot and rebaselines the page over the
+edits the sender never got out, so they disappear from the screen unannounced.
+A releasing timer is not the answer either — it guesses at a fate the client
+cannot know, and a change that did commit would be replayed on top of itself.
+Recovery is real work and it is scheduled: *Reconnect and recover* alongside
+*Sync status*, and properly once step 6's base versions make replaying an
+outstanding change safe rather than hopeful.
 
 Step 5 — Fractional ranks instead of dense sequence ids (M)
 --

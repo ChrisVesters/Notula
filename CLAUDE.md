@@ -255,7 +255,7 @@ enforce it, in order:
    ambiguous.
 
    **One revision per change, not per event**, and the scope travels as a
-   parameter — `doMove(origin, scope, topicId, action)`, then
+   parameter — `move(origin, scope, topicId, action)`, then
    `events.publish(scope, event)` — for the same reason the meeting id used to,
    and because nothing downstream can re-read it: a `REMOVE_MEETING` deletes
    the row its revision came from. Publishing stays in the services: handing
@@ -284,10 +284,11 @@ enforce it, in order:
    reads each see their own database snapshot, and the revision reported can
    belong to a state the payload has already moved past.
 
-   The meeting id comes from the destination and is **passed down** as a
-   parameter — `move(origin, meetingId, topicId, action)` — so the lock is taken
-   before anything is read. Do not reintroduce a `getMeetingId` that derives it
-   from the entity: that read happens outside the lock. The tree walk stays, as
+   The meeting id comes from the destination and is **passed down** — to
+   `ChangeService.apply(origin, meetingId, change)`, and below the lock as the
+   `MeetingScope` — so the lock is taken before anything is read. Do not
+   reintroduce a `getMeetingId` that derives it from the entity: that read
+   happens outside the lock. The tree walk stays, as
    the *authorisation* check inside `getById(principal, meetingId, entityId)`.
 3. `common/messaging/TransactionalPublisher` — events are sent `afterCommit`, so
    no client ever sees an event for a change that rolled back.
@@ -330,9 +331,22 @@ Route groups mirror the access model: `(public)` for login and registration,
 WebSocket client and views per domain. `MeetingWebSocketClient` is the single
 entry point for meeting traffic; it mints a `change-id` per change and returns
 it. It keeps one change in flight and queues the rest, releasing on the
-acknowledgement and dropping the queue on a refusal — but nothing releases a
-change left in flight by a dropped connection, and that tab then sends nothing
-further.
+acknowledgement and dropping both the change and the queue on a refusal —
+whatever was waiting was composed against a change that never happened. Nothing
+is ever resent: whether a change in flight committed is unknowable, and a text
+edit applied twice corrupts where a lost one does not.
+
+**A lost connection is not recovered from, on purpose.** `WebSocketClient` sets
+`reconnectDelay: 0`, overriding stompjs's default of five seconds. Reconnecting
+silently is worse than staying down: it replays the subscription map, which
+re-fires the snapshot and rebaselines the page over whatever the sender never
+managed to send, so a note-taker watches their own text vanish with nothing
+said. A tab that stops updating is at least a symptom someone can act on. Do
+not switch the retry back on by itself — the roadmap's *Reconnect and recover*
+and *Sync status* are what make recovery safe and visible, and they go
+together. Note that `onDisconnect` is no signal for a lost link either:
+stompjs only fires it on a DISCONNECT receipt, which by its own documentation
+may never arrive when the connection is interrupted.
 
 The meeting page applies every event to its state, and `editor/Input.svelte`
 and `editor/TextArea.svelte` are bound to that state, so someone else's edit

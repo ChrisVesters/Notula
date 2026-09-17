@@ -109,11 +109,6 @@ These want an answer before the phases they sit in.
   meeting to topic to block. Deleting a topic during a meeting destroys the
   notes under it for everybody, immediately, with no undo. Trash arrives in
   Phase 2; until then the risk is worth knowing.
-- **A dropped connection stalls a tab's queue.**
-  `MeetingWebSocketClient` sends the next change only once the last was
-  acknowledged, and nothing releases a change that was in flight when the
-  socket dropped, so that tab sends nothing further. Releasing on reconnect is
-  the fix; resending is not, since the change may have committed.
 - **Nothing runs the tests but a person.** There is no `.github/workflows`.
   The backend suite is substantial; the frontend one is thin. The frontend
   suite has now broken twice on its own configuration — first a stale Vitest
@@ -199,6 +194,31 @@ Phase 1 and 2 add data; this phase makes multi-person editing trustworthy.
   makes a reconnect, a closed laptop or a redeploy cheap instead of merely
   correct. Wants the operation log from `SEQUENCING.md` step 6 to have anything
   to replay, so it is worth doing after it rather than before.
+- **Reconnect and recover** (M) — a dropped connection currently stays
+  dropped: `WebSocketClient` sets `reconnectDelay: 0`, overriding the library's
+  default of five seconds, so nothing retries and the tab goes quiet instead of
+  silently rebaselining over what the sender never managed to send. That is a
+  holding position, not an answer. Recovery is: reconnect deliberately,
+  re-establish the subscriptions, and decide what becomes of the change that
+  was in flight and the queue behind it — replaying them wants step 6's base
+  versions, discarding them wants *Sync status* to say so. Note that the
+  deliberate reconnect on token refresh already goes through the same gap:
+  `Session.start` calls `WebSocketClient.reconnect`, and an acknowledgement
+  lost in that window leaves the tab's queue stuck until the page is reloaded.
+  Do these two together.
+- **Sync status** (M) — one place in the UI that says whether the meeting is
+  in sync, syncing, or disconnected. Today that state exists and is never
+  shown: `MeetingWebSocketClient` holds one change in flight and a queue behind
+  it, and discards both on a refusal without telling anyone, while a lost
+  connection leaves the tab quietly doing nothing at all. A note-taker learns
+  that their edits are not being saved by noticing that nobody else's are
+  arriving either. The indicator is the fix, not a dialog: `window.alert`
+  would fire on every transient drop, for something stompjs recovers from in
+  five seconds. Bigger than the notice, though: this is the surface that later
+  carries "catching up" once step 6's base versions let the client replay what
+  was outstanding instead of discarding it, so build it as connection state
+  rather than as an error message. Pairs with presence and subsumes the
+  discarded-changes half of *Real error handling in the frontend*.
 - **Presence** (M) — who is in the meeting right now, as avatars.
   `DetailsWebSocket` already has the subscribe hook to hang this on.
 - **Authorship attribution** (M) — who wrote which note. Nothing in `blocks`

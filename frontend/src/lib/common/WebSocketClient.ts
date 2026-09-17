@@ -26,8 +26,8 @@ export default class WebSocketClient {
 				Authorization: `Bearer ${accessToken}`
 			},
 			heartbeatIncoming: 10000,
-			heartbeatOutgoing: 10000
-			// reconnectDelay: 5000,
+			heartbeatOutgoing: 10000,
+			reconnectDelay: 0
 		});
 
 		this.client.onConnect = () => {
@@ -48,6 +48,10 @@ export default class WebSocketClient {
 			this.subscriptions.forEach(registration => {
 				registration.subscription = undefined;
 			});
+		};
+
+		this.client.onWebSocketClose = () => {
+			console.warn("STOMP connection closed; not reconnecting");
 		};
 
 		this.client.onStompError = frame => {
