@@ -77,6 +77,36 @@ public class MeetingChangeWebSocketTest extends WebSocketTest {
 		}
 
 		@Test
+		void unchanged() throws Exception {
+			final FrameHandler events = observing();
+			final StompSession author = connect(SESSION);
+
+			send(author, CHANGES, CHANGE_ID, payload("""
+					{
+						"type": "MOVE_TOPIC",
+						"topic": %d,
+						"sequenceId": %d
+					}
+					""".formatted(TIMELINE.getId(), TIMELINE.getSequenceId())));
+			send(author, CHANGES, CHANGE_ID, payload("""
+					{
+						"type": "SCHEDULE_TOPIC",
+						"topic": %d,
+						"minutes": 5
+					}
+					""".formatted(DELIVERABLES.getId())));
+
+			final List<String> received = events.await(2, EVENT_TIMEOUT);
+
+			assertThat(received).hasSize(2);
+			assertThat(received.get(0)).isEqualToIgnoringWhitespace(event(
+					REVISION,
+					moveMutation(TIMELINE.getId(), TIMELINE.getSequenceId())));
+			assertThat(received.get(1)).isEqualToIgnoringWhitespace(event(
+					REVISION + 1, scheduleMutation(DELIVERABLES.getId(), 5)));
+		}
+
+		@Test
 		void consecutive() throws Exception {
 			final FrameHandler events = observing();
 			final StompSession author = connect(SESSION);

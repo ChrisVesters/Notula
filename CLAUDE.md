@@ -371,6 +371,16 @@ event where it can, and one that wants to publish a list of them is a question
 rather than a judgement call. Do not close the blind spot by numbering events
 within a change; that field dies with step 5.
 
+**A change that accepts and writes nothing still publishes.** A move to the
+position something already holds is accepted, so it spends a revision, so it
+has to be broadcast — otherwise the next change arrives two above what every
+other client holds and they all resync. `TopicService.move` and
+`BlockService.move` publish the move at the unchanged sequence id and write no
+row. Refusing it was the other candidate: a request for a state that already
+holds is not an error, and a refusal costs the sender the changes queued
+behind it. `ReorderHandler.handleDrop` still filters it client-side to save the
+round trip, but the invariant no longer rests on that.
+
 ## Conventions
 
 These have each been violated and reverted at least once. **A design decision

@@ -101,6 +101,9 @@ public class BlockService {
 		final int to = action.getSequenceId();
 		final int direction = Integer.signum(to - from);
 		if (direction == 0) {
+			eventPublisher.publish(scope,
+					new BlockEvent(block, action, origin));
+
 			return block;
 		}
 

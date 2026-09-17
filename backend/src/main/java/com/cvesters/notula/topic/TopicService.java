@@ -103,6 +103,9 @@ public class TopicService {
 		final int to = action.getSequenceId();
 		final int direction = Integer.signum(to - from);
 		if (direction == 0) {
+			eventPublisher.publish(scope,
+					new TopicEvent(topic, action, origin));
+
 			return topic;
 		}
 

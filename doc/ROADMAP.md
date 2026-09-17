@@ -51,6 +51,12 @@ Checked against the code, not against the commit messages.
 - **The socket survives a token refresh.** `WebSocketClient.reconnect` keeps
   the subscription map; `config/WebSocketSessionRegistry` closes a connection
   whose token has expired.
+- **A move that changes nothing says so.** `TopicService.move` and
+  `BlockService.move` publish the move for the entity at the position it
+  already holds rather than returning silently, so the revision the change
+  spent is one every client sees. Refusing it instead was the other candidate
+  and was not taken: a request for a state that already holds is not an error,
+  and a refusal now costs the sender its queued changes.
 - **A change is acknowledged to its sender.** `meeting/ChangeService` is the
   boundary of a change: it takes the lock once, dispatches the sealed
   `ChangeDto` inside it and returns the `MeetingScope`, which
@@ -79,18 +85,6 @@ These want an answer before the phases they sit in.
   other operation — creates, deletes, text edits, block moves, and anything on
   the meeting itself — is still covered only by tests that mock the services on
   one side and assert the type on the other.
-
-- **A change that publishes nothing still spends a revision.**
-  `TopicService.doMove` and `BlockService.doMove` return early when
-  `direction == 0`, *after* `MeetingLock` has bumped, so the transaction commits
-  a revision that no event ever carries. The next change then arrives two above
-  what clients hold and every one of them resyncs. Demonstrated, not inferred: a
-  no-op move followed by a schedule delivers the schedule at revision 19 where
-  clients hold 17. Unreachable from the UI today, because
-  `ReorderHandler.handleDrop` drops a move to the position it already holds, so
-  any client that is not this frontend triggers it. The fix is a decision about
-  the service boundary: refuse a no-op the way an out-of-range target is already
-  refused, and let the rollback undo the bump.
 
 - **Concurrent edits to the same text can corrupt each other.**
   `common/domain/TextUpdate` applies an incoming edit as a raw

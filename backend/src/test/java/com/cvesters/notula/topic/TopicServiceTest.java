@@ -668,7 +668,18 @@ class TopicServiceTest {
 					action);
 
 			assertThat(result).isEqualTo(topic);
-			verifyNoInteractions(eventPublisher);
+
+			final ArgumentCaptor<TopicEvent> event = ArgumentCaptor
+					.forClass(TopicEvent.class);
+			verify(eventPublisher).publish(eq(SCOPE), event.capture());
+
+			final TopicEvent published = event.getValue();
+			assertThat(published.topic()).isEqualTo(topic);
+			assertThat(published.origin()).isEqualTo(ORIGIN);
+			final var expected = new TopicAction.Move(topic.getSequenceId());
+			assertThat(published.action())
+					.is(new TopicActionMatcher.Move(expected).equal());
+
 			verify(topicStorageGateway, never()).update(any());
 			verify(topicStorageGateway, never()).findAllByMeetingId(anyLong());
 		}

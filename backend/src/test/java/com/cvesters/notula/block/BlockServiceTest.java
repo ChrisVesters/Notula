@@ -680,7 +680,18 @@ class BlockServiceTest {
 					action);
 
 			assertThat(result).isEqualTo(block);
-			verifyNoInteractions(eventPublisher);
+
+			final ArgumentCaptor<BlockEvent> event = ArgumentCaptor
+					.forClass(BlockEvent.class);
+			verify(eventPublisher).publish(eq(SCOPE), event.capture());
+
+			final BlockEvent published = event.getValue();
+			assertThat(published.block()).isEqualTo(block);
+			assertThat(published.origin()).isEqualTo(ORIGIN);
+			final var expected = new BlockAction.Move(block.getSequenceId());
+			assertThat(published.action())
+					.is(new BlockActionMatcher.Move(expected).equal());
+
 			verify(blockStorageGateway, never()).update(any());
 			verify(blockStorageGateway, never()).findAllByTopicId(anyLong());
 		}
