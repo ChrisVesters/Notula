@@ -44,6 +44,11 @@ export type Submission = {
 	change: Change;
 };
 
+export type Acknowledged = {
+	id: string;
+	revision: number;
+};
+
 export type Rejected = {
 	id: string;
 	retryable: boolean;

@@ -378,20 +378,40 @@ cannot extend a sealed class in a different package*. What is left is a
 non-sealed marker interface, a union with no exhaustiveness, bought for
 plumbing.
 
-Next is the acknowledgement: the interceptor, `/user/queue/acks`, and the
-client half. The thing to work out there is that the interceptor holds the
-frame, not the handler's return value, so the revision a change committed at
-has to reach it on the message rather than out of the lock.
+*Landed.* A change enters through one service. `meeting/ChangeService.apply`
+takes the lock, dispatches on the sealed `ChangeDto` inside it and returns the
+`MeetingScope` the change committed at; `MeetingWebSocket.submit` turns that
+into an `AcknowledgedDto` and answers `/user/queue/acks` with `@SendToUser`,
+mirroring the rejection the exception handler sends on the other queue. The
+revision is a return value the whole way, visible in every signature, and a
+change that threw never produces one.
+
+**The entity services no longer lock for themselves.** Each wrapped its work in
+`meetingLock.call(meetingId, scope -> doX(...))`, ten times over; now they take
+a `MeetingScope` and the `doX` is the method. The lock is taken once, at the one
+place a change enters, still before anything is read. What that gives up is a
+service that cannot be called unlocked by construction; what replaces it is a
+parameter only `MeetingLock` hands out. `MeetingService.delete` keeps its own
+lock, because a meeting is deleted over REST and never arrives as a change.
+
+*Built first and removed:* an `ExecutorChannelInterceptor` sending the
+acknowledgement from `afterMessageHandled`. It cannot see the handler's return
+value, so the revision had to reach it on a thread-local that `MeetingLock` wrote
+after the commit — and it could not hold a `SimpMessagingTemplate` either, since
+the channels are built by asking the configurers for their interceptors and the
+template is built from the channels, so a constructor dependency fails the
+context with *Requested bean is currently in creation*. Two workarounds for one
+cause: an acknowledgement is not interceptor work. The argument that put it
+there — that a new `@MessageMapping` could forget to acknowledge — assumes a
+second handler this design does not have, since a new operation is a record and
+a `@Type` entry.
 
 There is no header to add. A change already carries `change-id`, minted by
 `MeetingWebSocketClient` and resolved by `config/ChangeIdArgumentResolver`
 exactly as `OriginArgumentResolver` resolves the client id, so an
-acknowledgement names the change the client is already holding. An
-`ExecutorChannelInterceptor` registered in `WebSocketConfig` sends it:
-`afterMessageHandled` fires once per handled message, filtered to
-`SimpAnnotationMethodMessageHandler`, and sends `{changeId, revision}` to the
-sending session on `/user/queue/acks`. A new `@MessageMapping` cannot forget to
-acknowledge, for the same reason it cannot forget its `Origin`.
+acknowledgement names the change the client is already holding. The handler
+takes it as a resolved argument beside `Origin`, and names it in the
+`AcknowledgedDto` it returns.
 
 **The acknowledgement means success and carries no status.** An earlier draft
 gave it one, to tell "try again" from "this will never work". Failure has its
@@ -402,11 +422,14 @@ step was going to close are closed. What is left for step 4 is the positive
 half — which change committed, and at what revision — and that is the one new
 destination this step introduces.
 
-`MeetingWebSocketClient` then subscribes to that queue itself and needs no help
-from any page: it releases the in-flight action on a matching acknowledgement
-and drops the queue on a failure. Because the queue destination belongs to the
-session rather than to a meeting, it can also notice that `Session` handed it a
-new `WebSocketClient` and resubscribe on its own.
+`MeetingWebSocketClient` subscribes to that queue itself and needs no help from
+any page: it holds one change in flight, queues what is sent behind it, releases
+on a matching acknowledgement and drops the queue on a refusal, because whatever
+is waiting was composed against a change that never happened. Noticing that
+`Session` handed it a new `WebSocketClient` turned out not to be needed:
+`Session.start` reuses the client and calls `WebSocketClient.reconnect` when the
+identity is the same, which replays the subscription map, and a new client means
+a different user, who is leaving the meeting anyway.
 
 *Landed.* The meeting page tracks the last revision it applied. A jump means it
 missed something, and `MeetingWebSocketClient.resync` unsubscribes and
@@ -509,12 +532,19 @@ precondition for trusting anything below. It also replaces the current
 acknowledgement signal, which is an echoed broadcast event that belongs to the
 meeting page and does not correspond one-to-one with actions.
 
-*Done when:* a client that misses an event reloads instead of drifting — done —
-and an in-flight change is released by its own acknowledgement rather than by an
-echoed broadcast, which is what is left. The throttle this was going to remove
-is already gone — the meeting page holds no queue or timer today, which is why
-the release still has nothing to hook into, and why the acknowledgement is
-worth building with the queue that consumes it rather than before it.
+*Done when:* a client that misses an event reloads instead of drifting, and an
+in-flight change is released by its own acknowledgement rather than by an echoed
+broadcast. Both done, and the queue the release hooks into is the one step 7
+merges keystrokes in rather than only holding them back.
+
+**What is not answered is an acknowledgement that never arrives.** Within a
+connection STOMP is ordered and lossless and every failure path answers on
+`/user/queue/rejections`, so the queue stalls only if the connection drops with
+a change outstanding: `WebSocketClient.reconnect` replays the subscription map,
+but nothing releases the change that was in flight, and that tab then sends
+nothing ever again. Releasing on reconnect is the answer and resending is not —
+the change may well have committed, and a text splice applied twice is worse
+than one lost.
 
 Step 5 — Fractional ranks instead of dense sequence ids (M)
 --

@@ -109,6 +109,10 @@ Two applications behind one nginx origin: a Spring Boot 4 / Java 25 backend
   - `/user/queue/rejections` — refusals only, to the one connection that asked.
     Success is never reported here; it arrives as an event on the topic like
     anyone else's.
+  - `/user/queue/acks` — `{id, revision}` for a change that committed, to the
+    one connection that sent it. It is the return value of the one handler on
+    `/changes`, sent with `@SendToUser`, so it cannot be sent for a change that
+    threw: the exception handler answers on `/queue/rejections` instead.
 
 ### One envelope each way
 
@@ -142,17 +146,17 @@ meeting.
 
 **There is no `Change` in `bdo`.** A change DTO converts straight to the
 entity's `*Action` — `TopicChangeDto.Rename.toBdo()` returns a
-`TopicAction.UpdateName` — and `MeetingWebSocket` switches on the DTO and calls
-the entity service itself. A parallel `bdo` `Change` hierarchy existed and was
+`TopicAction.UpdateName` — and `meeting/ChangeService` switches on the DTO and
+calls the entity service itself. A parallel `bdo` `Change` hierarchy existed and was
 deleted: it restated every `*Action`'s fields, and the three `*ChangeService`
 classes that unpacked one into the other held no logic. The two hierarchies
 differed only in where identity lived — a field on a change, a parameter on an
 action — which is not a difference worth a type.
 
 **The meeting id is never in an action.** It is the scope every change runs in,
-so it travels as a parameter the whole way down — `topics.create(origin,
-meetingId, action)`, `blocks.move(origin, meetingId, blockId, action)` — sourced
-once from the destination. An `Add` names its parent on the wire only when the
+so it travels as a parameter the whole way down — `topics.create(origin, scope,
+action)`, `blocks.move(origin, scope, blockId, action)` — sourced once from the
+destination and turned into a `MeetingScope` by the lock. An `Add` names its parent on the wire only when the
 parent is *not* the meeting: `ADD_BLOCK` carries `topic`, `ADD_TOPIC` carries
 nothing, because a topic's parent is the meeting the frame was already
 addressed to. `TopicAction.Create` used to hold a `meetingId` and it was
@@ -189,9 +193,17 @@ its own endpoint, request type, action, event and publisher per entity, so
 cross-cutting field to the envelope is one file. Keep it that way: a new
 operation is a new record plus a `@Type` entry, not a new destination.
 
-Flow: `MeetingWebSocket` (dispatches on the sealed DTO, converts to the
-entity's `*Action`) → per-entity `*Service` → `*StorageGateway` → Spring Data
-repository. `meeting/EventPublisher` emits the events.
+Flow: `MeetingWebSocket` (one handler, returns the acknowledgement) →
+`meeting/ChangeService` (takes the lock, dispatches on the sealed DTO, converts
+to the entity's `*Action`) → per-entity `*Service` → `*StorageGateway` → Spring
+Data repository. `meeting/EventPublisher` emits the events.
+
+**`ChangeService` is the boundary of a change.** It is the one place the lock is
+taken, so the revision a change committed at is a return value — the
+`MeetingScope` — and the handler turns it into an `AcknowledgedDto`. It is not
+one of the per-entity `*ChangeService` classes that were deleted: those unpacked
+a `bdo` `Change` into an `*Action` and held no logic, where this one owns the
+lock, the dispatch and the scope every service below it runs in.
 
 **One publisher, overloaded per event type.** `EventPublisher.publish` takes
 `(meetingId, event)` with an overload per `*Event` record, so the four `bdo`
@@ -231,7 +243,11 @@ enforce it, in order:
    the transaction and the revision**: it acquires, bumps `meetings.revision`,
    and runs the action inside a
    `TransactionTemplate` with a `bdo/MeetingScope` — the meeting id and the new
-   revision. Mutating `*Service` methods go through it. Timing out raises
+   revision. **`meeting/ChangeService` is its only caller on the change path**,
+   so a change takes it exactly once; `MeetingService.delete` takes it too,
+   because a meeting is deleted over REST. The entity services take a
+   `MeetingScope` and cannot be reached without one, which is what replaced
+   each of them locking for itself. Timing out raises
    `BusyEntityException`, which is rejected as *retryable*. `run` and `call`
    both bump; the plain lock underneath them is private, so a non-bumping pair
    is two lines when a read path needs one. They are not one overloaded
@@ -246,6 +262,15 @@ enforce it, in order:
    the action a publisher already bound to the scope was considered and
    rejected, because the lock then owns the whole boundary a change runs in and
    stops being a lock. Do not offer it as a cleanup.
+
+   **The revision leaves as a return value.** `ChangeService.apply` returns the
+   `MeetingScope` the change committed at and the handler acknowledges it. An
+   `ExecutorChannelInterceptor` was built first and removed: the interceptor
+   holds the frame but not the handler's return value, so the revision had to
+   reach it on a thread-local, and it could not hold a `SimpMessagingTemplate`
+   either — the channels are built from the interceptors and the template is
+   built from the channels, so that is a bean cycle. Both problems were the
+   same thing telling us the acknowledgement is not interceptor work.
 
    The bump is a read, a change to the object and a write — `find`,
    `MeetingInfo.bumpRevision`, `update` — like any other change to a meeting,
@@ -304,7 +329,10 @@ Route groups mirror the access model: `(public)` for login and registration,
 `(scoped)/(admin)` for administration. `src/lib/<domain>/` holds the API client,
 WebSocket client and views per domain. `MeetingWebSocketClient` is the single
 entry point for meeting traffic; it mints a `change-id` per change and returns
-it.
+it. It keeps one change in flight and queues the rest, releasing on the
+acknowledgement and dropping the queue on a refusal — but nothing releases a
+change left in flight by a dropped connection, and that tab then sends nothing
+further.
 
 The meeting page applies every event to its state, and `editor/Input.svelte`
 and `editor/TextArea.svelte` are bound to that state, so someone else's edit
@@ -457,12 +485,20 @@ Stated in `doc/LESSONS.md` and worth knowing before starting:
   no other operation is covered end to end.
 - Text conflicts are refused with a retryable rejection rather than merged;
   transformation is the seam to plug into.
-- The frontend has almost no tests: `frontend/test/` covers a few form
-  components, one API client, one editor component and the text-edit splice,
-  and nothing of the meeting path. `vite.config.ts` has twice stopped the suite
-  from running, so treat any frontend coverage claim as unverified until you
-  have run `npm test` and read the file count it prints: its `include` globs
-  must point at `test/`, not `src/`, and a run that collects nothing still
-  exits zero.
+- The frontend has almost no tests: `frontend/tests/` covers a few form
+  components, one API client, one editor component, the text-edit splice and
+  `MeetingWebSocketClient`'s queue, and nothing else of the meeting path.
+  Configuration has stopped the suite twice, so treat any frontend coverage
+  claim as unverified until you have run `npm test` and read the file count it
+  prints: `vite.config.ts`'s `include` globs must point at `tests/`, not
+  `src/`, and a run that collects nothing still exits zero.
+- **The directory is `tests/`, plural, and not by taste.** SvelteKit hardcodes
+  that name when it generates `.svelte-kit/tsconfig.json` — *"we advocate
+  putting tests in a top-level tests folder and it's not configurable"*. It sat
+  in `test/` and so no test file was in the TypeScript project at all: `$lib`
+  did not resolve in the editor, and `npm run check` reported zero errors
+  having never looked. Renaming it back means hand-maintaining an `include` in
+  `tsconfig.json`, because extending replaces that field rather than adding to
+  it.
 - The account layer (organisations, users, credentials, sessions) is the
   original shape and was deliberately left untouched by the rewrite.

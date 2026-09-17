@@ -136,6 +136,15 @@ public abstract class WebSocketTest {
 		return subscribeToRejections(stompSession);
 	}
 
+	protected FrameHandler subscribeToAcknowledgements(
+			final StompSession session) {
+		return subscribe(session, "/user/queue/acks");
+	}
+
+	protected FrameHandler subscribeToAcknowledgements() {
+		return subscribeToAcknowledgements(stompSession);
+	}
+
 	protected void send(final StompSession session, final String destination,
 			final UUID changeId, final Object dto) {
 		final var stompHeaders = new StompHeaders();

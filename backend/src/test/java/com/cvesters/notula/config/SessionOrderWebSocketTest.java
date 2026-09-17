@@ -14,11 +14,13 @@ import java.util.concurrent.TimeUnit;
 import org.junit.jupiter.api.Test;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 
+import com.cvesters.notula.meeting.ChangeService;
 import com.cvesters.notula.meeting.TestMeeting;
+import com.cvesters.notula.meeting.bdo.MeetingScope;
+import com.cvesters.notula.meeting.dto.TopicChangeDto;
 import com.cvesters.notula.session.TestSession;
 import com.cvesters.notula.test.FrameHandler;
 import com.cvesters.notula.test.WebSocketTest;
-import com.cvesters.notula.topic.TopicService;
 
 class SessionOrderWebSocketTest extends WebSocketTest {
 
@@ -36,7 +38,7 @@ class SessionOrderWebSocketTest extends WebSocketTest {
 			.fromString("9f8e7d6c-5b4a-4938-8271-6a5b4c3d2e1f");
 
 	@MockitoBean
-	private TopicService topicService;
+	private ChangeService changeService;
 
 	private static byte[] change(final long topic) {
 		return """
@@ -53,11 +55,14 @@ class SessionOrderWebSocketTest extends WebSocketTest {
 			if (deleted.isEmpty()) {
 				Thread.sleep(500);
 			}
-			deleted.add(invocation.getArgument(2));
+
+			final var change = (TopicChangeDto.Remove) invocation
+					.getArgument(2);
+			deleted.add(change.topic());
 			handled.countDown();
 
-			return null;
-		}).when(topicService).delete(any(), anyLong(), anyLong());
+			return new MeetingScope(MEETING.getId(), MEETING.getRevision());
+		}).when(changeService).apply(any(), anyLong(), any());
 
 		connect(SESSION);
 		final FrameHandler rejections = subscribeToRejections();

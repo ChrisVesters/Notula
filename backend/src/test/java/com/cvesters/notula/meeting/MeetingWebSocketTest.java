@@ -18,54 +18,51 @@ import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 
-import com.cvesters.notula.block.BlockService;
 import com.cvesters.notula.common.domain.Origin;
-import com.cvesters.notula.common.domain.TextUpdate;
 import com.cvesters.notula.common.exception.BusyEntityException;
 import com.cvesters.notula.common.exception.MissingEntityException;
+import com.cvesters.notula.meeting.bdo.MeetingScope;
+import com.cvesters.notula.meeting.dto.TopicChangeDto;
 import com.cvesters.notula.session.TestSession;
 import com.cvesters.notula.test.FrameHandler;
 import com.cvesters.notula.test.WebSocketTest;
-import com.cvesters.notula.textblock.TextBlockService;
-import com.cvesters.notula.topic.TopicService;
 
 class MeetingWebSocketTest extends WebSocketTest {
 
-	private static final TestSession SESSION =
-			TestSession.EDUARDO_CHRISTIANSEN_SPORER;
+	private static final TestSession SESSION = TestSession.EDUARDO_CHRISTIANSEN_SPORER;
 
 	private static final Origin ORIGIN = new Origin(SESSION.principal(),
 			CLIENT_ID);
 
 	private static final TestMeeting MEETING = TestMeeting.SPORER_PROJECT;
 
-	private static final String ENDPOINT =
-			"/app/meetings/" + MEETING.getId() + "/changes";
+	private static final String ENDPOINT = "/app/meetings/" + MEETING.getId()
+			+ "/changes";
 
 	private static final UUID CHANGE_ID = UUID
 			.fromString("7c6f0d54-2f70-4a1e-9f5a-1d4c8b2e0a11");
 
-	@MockitoBean
-	private TopicService topicService;
+	private static final long REVISION = 12L;
 
 	@MockitoBean
-	private BlockService blockService;
-
-	@MockitoBean
-	private TextBlockService textBlockService;
-
-	@MockitoBean
-	private MeetingService meetingService;
+	private ChangeService changeService;
 
 	private static byte[] payload(final String change) {
 		return change.getBytes(StandardCharsets.UTF_8);
+	}
+
+	private void commits() {
+		when(changeService.apply(any(), anyLong(), any()))
+				.thenReturn(new MeetingScope(MEETING.getId(), REVISION));
 	}
 
 	@Nested
 	class Submit {
 
 		@Test
-		void addTopic() throws Exception {
+		void change() throws Exception {
+			commits();
+
 			connect(SESSION);
 			send(ENDPOINT, CHANGE_ID, payload("""
 					{
@@ -75,90 +72,47 @@ class MeetingWebSocketTest extends WebSocketTest {
 					}
 					"""));
 
-			verify(topicService, timeout(WAIT_TIMEOUT.toMillis()))
-					.create(eq(ORIGIN), eq(MEETING.getId()), argThat(action -> {
-						assertThat(action.getSequenceId()).isEqualTo(2);
-						assertThat(action.getName()).isEqualTo("Blockers");
+			verify(changeService, timeout(WAIT_TIMEOUT.toMillis()))
+					.apply(eq(ORIGIN), eq(MEETING.getId()), argThat(change -> {
+						final var add = (TopicChangeDto.Add) change;
+
+						assertThat(add.sequenceId()).isEqualTo(2);
+						assertThat(add.name()).isEqualTo("Blockers");
 						return true;
 					}));
 		}
 
 		@Test
-		void renameMeeting() throws Exception {
+		void acknowledged() throws Exception {
+			commits();
+
 			connect(SESSION);
+			final FrameHandler acknowledgements = subscribeToAcknowledgements();
+			final FrameHandler rejections = subscribeToRejections();
 			send(ENDPOINT, CHANGE_ID, payload("""
-					{
-						"type": "RENAME_MEETING",
-						"position": 0,
-						"length": 3,
-						"value": "Renamed"
-					}
+					{ "type": "REMOVE_TOPIC", "topic": 32 }
 					"""));
 
-			verify(meetingService, timeout(WAIT_TIMEOUT.toMillis()))
-					.update(eq(ORIGIN), eq(MEETING.getId()), argThat(action -> {
-						final var update = (TextUpdate<?>) action;
-
-						assertThat(update.getPosition()).isEqualTo(0);
-						assertThat(update.getLength()).isEqualTo(3);
-						assertThat(update.getValue()).isEqualTo("Renamed");
-						return true;
-					}));
-		}
-
-		@Test
-		void editTextBlock() throws Exception {
-			connect(SESSION);
-			send(ENDPOINT, CHANGE_ID, payload("""
-					{
-						"type": "EDIT_TEXT_BLOCK",
-						"block": 61,
-						"position": 4,
-						"length": 2,
-						"value": "new"
-					}
-					"""));
-
-			verify(textBlockService, timeout(WAIT_TIMEOUT.toMillis()))
-					.update(eq(ORIGIN), eq(MEETING.getId()), eq(61L),
-							argThat(action -> {
-								final var splice = (TextUpdate<?>) action;
-
-								assertThat(splice.getPosition()).isEqualTo(4);
-								assertThat(splice.getLength()).isEqualTo(2);
-								assertThat(splice.getValue()).isEqualTo("new");
-								return true;
-							}));
-		}
-
-		@Test
-		void addBlock() throws Exception {
-			connect(SESSION);
-			send(ENDPOINT, CHANGE_ID, payload("""
-					{
-						"type": "ADD_BLOCK",
-						"topic": 32,
-						"blockType": "TEXT",
-						"sequenceId": 1
-					}
-					"""));
-
-			verify(blockService, timeout(WAIT_TIMEOUT.toMillis()))
-					.create(eq(ORIGIN), eq(MEETING.getId()), argThat(action -> {
-						assertThat(action.getTopicId()).isEqualTo(32L);
-						assertThat(action.getSequenceId()).isEqualTo(1);
-						return true;
-					}));
+			assertThat(acknowledgements.getResponse())
+					.succeedsWithin(WAIT_TIMEOUT.toSeconds(), TimeUnit.SECONDS)
+					.satisfies(acknowledged -> assertThat(acknowledged)
+							.isEqualToIgnoringWhitespace("""
+									{
+										"id": "%s",
+										"revision": %d
+									}
+									""".formatted(CHANGE_ID, REVISION)));
+			assertThat(rejections.getResponse()).isNotDone();
 		}
 
 		@Test
 		void missing() throws Exception {
-			doThrow(new MissingEntityException()).when(topicService)
-					.delete(any(), anyLong(), anyLong());
+			doThrow(new MissingEntityException()).when(changeService)
+					.apply(any(), anyLong(), any());
 
 			connect(SESSION);
-			final FrameHandler rejections =
-					subscribeToRejections();
+			final FrameHandler rejections = subscribeToRejections();
+			final FrameHandler acknowledgements = subscribeToAcknowledgements();
 			send(ENDPOINT, CHANGE_ID, payload("""
 					{ "type": "REMOVE_TOPIC", "topic": 32 }
 					"""));
@@ -171,16 +125,16 @@ class MeetingWebSocketTest extends WebSocketTest {
 						assertThat(rejected).contains("\"retryable\":false");
 						assertThat(rejected).doesNotContain("\"reason\":null");
 					});
+			assertThat(acknowledgements.getResponse()).isNotDone();
 		}
 
 		@Test
 		void busy() throws Exception {
-			doThrow(new BusyEntityException("Timed out")).when(topicService)
-					.delete(any(), anyLong(), anyLong());
+			doThrow(new BusyEntityException("Timed out")).when(changeService)
+					.apply(any(), anyLong(), any());
 
 			connect(SESSION);
-			final FrameHandler rejections =
-					subscribeToRejections();
+			final FrameHandler rejections = subscribeToRejections();
 			send(ENDPOINT, CHANGE_ID, payload("""
 					{ "type": "REMOVE_TOPIC", "topic": 32 }
 					"""));
@@ -190,28 +144,6 @@ class MeetingWebSocketTest extends WebSocketTest {
 					.isNotNull()
 					.satisfies(rejected -> assertThat(rejected)
 							.contains("\"retryable\":true"));
-		}
-
-		@Test
-		void success() throws Exception {
-			when(topicService.create(any(), anyLong(), any()))
-					.thenReturn(null);
-
-			connect(SESSION);
-			final FrameHandler rejections =
-					subscribeToRejections();
-			send(ENDPOINT, CHANGE_ID, payload("""
-					{
-						"type": "ADD_TOPIC",
-						"sequenceId": 0,
-						"name": "Blockers"
-					}
-					"""));
-
-			verify(topicService, timeout(WAIT_TIMEOUT.toMillis()))
-					.create(any(), anyLong(), any());
-
-			assertThat(rejections.getResponse()).isNotDone();
 		}
 
 		@Test

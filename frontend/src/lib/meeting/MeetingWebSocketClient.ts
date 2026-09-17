@@ -3,7 +3,12 @@ import CLIENT_ID from "$lib/common/ClientId";
 import type WebSocketClient from "$lib/common/WebSocketClient";
 import type { MeetingDetails } from "$lib/details/DetailTypes";
 
-import type { Change, Rejected } from "./change/ChangeTypes";
+import type {
+	Acknowledged,
+	Change,
+	Rejected,
+	Submission
+} from "./change/ChangeTypes";
 import type { MeetingEvent } from "./event/EventTypes";
 
 export type MeetingEventHandler = {
@@ -14,17 +19,27 @@ export type MeetingEventHandler = {
 
 export default class MeetingWebSocketClient {
 	static readonly #REJECTIONS = "/user/queue/rejections";
+	static readonly #ACKS = "/user/queue/acks";
 
 	static #meetingId: number | null = null;
 	static #handler: MeetingEventHandler | null = null;
+
+	static #inFlight: Submission | null = null;
+	static #queued: Array<Submission> = [];
 
 	public static connect(id: number, handler: MeetingEventHandler): void {
 		MeetingWebSocketClient.#meetingId = id;
 		MeetingWebSocketClient.#handler = handler;
 
-		client().subscribe(MeetingWebSocketClient.#REJECTIONS, message =>
-			handler.onRejected(JSON.parse(message.body))
+		client().subscribe(MeetingWebSocketClient.#ACKS, message =>
+			MeetingWebSocketClient.#acknowledge(JSON.parse(message.body))
 		);
+		client().subscribe(MeetingWebSocketClient.#REJECTIONS, message => {
+			const rejected: Rejected = JSON.parse(message.body);
+
+			MeetingWebSocketClient.#clear();
+			handler.onRejected(rejected);
+		});
 		client().subscribe(`/topic/meetings/${id}`, message =>
 			handler.onEvent(JSON.parse(message.body))
 		);
@@ -46,27 +61,58 @@ export default class MeetingWebSocketClient {
 		const id = MeetingWebSocketClient.#meetingId;
 		MeetingWebSocketClient.#meetingId = null;
 		MeetingWebSocketClient.#handler = null;
+		MeetingWebSocketClient.#clear();
 
 		client().unsubscribe(`/app/meetings/${id}`);
 		client().unsubscribe(`/topic/meetings/${id}`);
 		client().unsubscribe(MeetingWebSocketClient.#REJECTIONS);
+		client().unsubscribe(MeetingWebSocketClient.#ACKS);
 	}
 
 	public static send(change: Change): string {
-		const meetingId = MeetingWebSocketClient.#meetingId;
-		if (meetingId === null) {
+		if (MeetingWebSocketClient.#meetingId === null) {
 			throw new Error("No meeting to change");
 		}
 
 		const id: string = crypto.randomUUID();
 
-		client().send(
-			`/app/meetings/${meetingId}/changes`,
-			JSON.stringify(change),
-			{ "client-id": CLIENT_ID, "change-id": id }
-		);
+		MeetingWebSocketClient.#queued.push({ id, change });
+		MeetingWebSocketClient.#submit();
 
 		return id;
+	}
+
+	static #acknowledge(acknowledged: Acknowledged): void {
+		if (MeetingWebSocketClient.#inFlight?.id !== acknowledged.id) {
+			return;
+		}
+
+		MeetingWebSocketClient.#inFlight = null;
+		MeetingWebSocketClient.#submit();
+	}
+
+	static #submit(): void {
+		const meetingId = MeetingWebSocketClient.#meetingId;
+		if (meetingId === null || MeetingWebSocketClient.#inFlight !== null) {
+			return;
+		}
+
+		const next = MeetingWebSocketClient.#queued.shift();
+		if (next === undefined) {
+			return;
+		}
+
+		MeetingWebSocketClient.#inFlight = next;
+		client().send(
+			`/app/meetings/${meetingId}/changes`,
+			JSON.stringify(next.change),
+			{ "client-id": CLIENT_ID, "change-id": next.id }
+		);
+	}
+
+	static #clear(): void {
+		MeetingWebSocketClient.#inFlight = null;
+		MeetingWebSocketClient.#queued = [];
 	}
 
 	static #load(id: number, handler: MeetingEventHandler): void {

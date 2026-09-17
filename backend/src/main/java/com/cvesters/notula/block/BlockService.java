@@ -13,7 +13,6 @@ import com.cvesters.notula.common.domain.Origin;
 import com.cvesters.notula.common.domain.Principal;
 import com.cvesters.notula.common.exception.MissingEntityException;
 import com.cvesters.notula.meeting.EventPublisher;
-import com.cvesters.notula.meeting.MeetingLock;
 import com.cvesters.notula.meeting.bdo.MeetingScope;
 import com.cvesters.notula.topic.TopicService;
 import com.cvesters.notula.topic.bdo.TopicInfo;
@@ -22,17 +21,14 @@ import com.cvesters.notula.topic.bdo.TopicInfo;
 public class BlockService {
 
 	private final TopicService topicService;
-	private final MeetingLock meetingLock;
 
 	private final BlockStorageGateway blockStorage;
 	private final EventPublisher eventPublisher;
 
 	public BlockService(final TopicService topicService,
-			final MeetingLock meetingLock,
 			final BlockStorageGateway blockStorage,
 			final EventPublisher eventPublisher) {
 		this.topicService = topicService;
-		this.meetingLock = meetingLock;
 		this.blockStorage = blockStorage;
 		this.eventPublisher = eventPublisher;
 	}
@@ -55,17 +51,12 @@ public class BlockService {
 		return block;
 	}
 
-	public BlockInfo create(final Origin origin, final long meetingId,
+	public BlockInfo create(final Origin origin, final MeetingScope scope,
 			final BlockAction.Create action) {
 		Objects.requireNonNull(origin);
+		Objects.requireNonNull(scope);
 		Objects.requireNonNull(action);
 
-		return meetingLock.call(meetingId,
-				scope -> doCreate(origin, scope, action));
-	}
-
-	private BlockInfo doCreate(final Origin origin, final MeetingScope scope,
-			final BlockAction.Create action) {
 		final TopicInfo topic = topicService.getById(origin.principal(),
 				scope.meetingId(), action.getTopicId());
 
@@ -98,17 +89,12 @@ public class BlockService {
 		return created;
 	}
 
-	public BlockInfo move(final Origin origin, final long meetingId,
+	public BlockInfo move(final Origin origin, final MeetingScope scope,
 			final long blockId, final BlockAction.Move action) {
 		Objects.requireNonNull(origin);
+		Objects.requireNonNull(scope);
 		Objects.requireNonNull(action);
 
-		return meetingLock.call(meetingId,
-				scope -> doMove(origin, scope, blockId, action));
-	}
-
-	private BlockInfo doMove(final Origin origin, final MeetingScope scope,
-			final long blockId, final BlockAction.Move action) {
 		final BlockInfo block = getById(origin.principal(), scope.meetingId(),
 				blockId);
 		final int from = block.getSequenceId();
@@ -150,23 +136,17 @@ public class BlockService {
 		return block;
 	}
 
-	public void delete(final Origin origin, final long meetingId,
+	public void delete(final Origin origin, final MeetingScope scope,
 			final long blockId) {
 		Objects.requireNonNull(origin);
+		Objects.requireNonNull(scope);
 
-		meetingLock.run(meetingId,
-				scope -> doDelete(origin, scope, blockId));
-	}
-
-	private void doDelete(final Origin origin, final MeetingScope scope,
-			final long blockId) {
 		final BlockInfo blockInfo = getById(origin.principal(),
 				scope.meetingId(), blockId);
 		blockStorage.delete(blockInfo);
 
 		final var events = new ArrayList<BlockEvent>();
-		events.add(
-				new BlockEvent(blockInfo, new BlockAction.Delete(), origin));
+		events.add(new BlockEvent(blockInfo, new BlockAction.Delete(), origin));
 
 		final List<BlockInfo> existingBlocks = blockStorage
 				.findAllByTopicId(blockInfo.getTopicId());

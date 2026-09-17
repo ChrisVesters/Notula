@@ -204,11 +204,6 @@ class MeetingServiceTest {
 		private static final MeetingScope SCOPE = new MeetingScope(MEETING_ID,
 				REVISION);
 
-		@BeforeEach
-		void revision() {
-			meetingLock.passThrough(REVISION);
-		}
-
 		@Test
 		void success() {
 			final long meetingId = MEETING.getId();
@@ -228,7 +223,7 @@ class MeetingServiceTest {
 				return true;
 			}))).thenReturn(updated);
 
-			final MeetingInfo result = meetingService.update(ORIGIN, meetingId,
+			final MeetingInfo result = meetingService.update(ORIGIN, SCOPE,
 					action);
 
 			assertThat(result).isEqualTo(updated);
@@ -252,40 +247,35 @@ class MeetingServiceTest {
 					.thenReturn(Optional.empty());
 
 			assertThatThrownBy(
-					() -> meetingService.update(ORIGIN, meetingId, action))
+					() -> meetingService.update(ORIGIN, SCOPE, action))
 							.isInstanceOf(MissingEntityException.class);
 		}
 
 		@Test
 		void originNull() {
-			final long meetingId = MEETING.getId();
+			final MeetingAction.Update action = new MeetingAction.UpdateName(2,
+					4, "27");
+
+			assertThatThrownBy(() -> meetingService.update(null, SCOPE, action))
+					.isInstanceOf(NullPointerException.class);
+		}
+
+		@Test
+		void scopeNull() {
 			final MeetingAction.Update action = new MeetingAction.UpdateName(2,
 					4, "27");
 
 			assertThatThrownBy(
-					() -> meetingService.update(null, meetingId, action))
+					() -> meetingService.update(ORIGIN, null, action))
 							.isInstanceOf(NullPointerException.class);
 		}
 
 		@Test
 		void actionNull() {
-			final long meetingId = MEETING.getId();
-			assertThatThrownBy(
-					() -> meetingService.update(ORIGIN, meetingId, null))
-							.isInstanceOf(NullPointerException.class);
+			assertThatThrownBy(() -> meetingService.update(ORIGIN, SCOPE, null))
+					.isInstanceOf(NullPointerException.class);
 		}
 
-		@Test
-		void serialised() {
-			meetingLock.withhold();
-
-			final var action = new MeetingAction.UpdateName(0, 0, "Renamed");
-
-			meetingService.update(ORIGIN, MEETING.getId(), action);
-
-			verify(meetingLock.lock()).call(eq(MEETING.getId()), any());
-			verifyNoInteractions(meetingStorageGateway);
-		}
 	}
 
 	@Nested

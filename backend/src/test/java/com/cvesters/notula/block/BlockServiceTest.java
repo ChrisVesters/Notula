@@ -19,7 +19,6 @@ import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
@@ -34,7 +33,6 @@ import com.cvesters.notula.common.domain.Principal;
 import com.cvesters.notula.common.exception.MissingEntityException;
 import com.cvesters.notula.meeting.EventPublisher;
 import com.cvesters.notula.meeting.TestMeeting;
-import com.cvesters.notula.meeting.TestMeetingLock;
 import com.cvesters.notula.meeting.bdo.MeetingScope;
 import com.cvesters.notula.organisation.TestOrganisation;
 import com.cvesters.notula.session.TestSession;
@@ -51,13 +49,12 @@ class BlockServiceTest {
 	private static final Origin ORIGIN = new Origin(PRINCIPAL, CLIENT_ID);
 
 	private final TopicService topicService = mock();
-	private final TestMeetingLock meetingLock = new TestMeetingLock();
 
 	private final BlockStorageGateway blockStorageGateway = mock();
 	private final EventPublisher eventPublisher = mock();
 
 	private final BlockService blockService = new BlockService(topicService,
-			meetingLock.lock(), blockStorageGateway, eventPublisher);
+			blockStorageGateway, eventPublisher);
 
 	@Nested
 	class GetById {
@@ -158,11 +155,6 @@ class BlockServiceTest {
 		private static final MeetingScope SCOPE = new MeetingScope(MEETING_ID,
 				REVISION);
 
-		@BeforeEach
-		void revision() {
-			meetingLock.passThrough(REVISION);
-		}
-
 		@Test
 		void firstBlock() {
 			final long topicId = TOPIC.getId();
@@ -191,8 +183,7 @@ class BlockServiceTest {
 			final var action = new BlockAction.Create(TOPIC.getId(),
 					BLOCK.getType(), BLOCK.getSequenceId());
 
-			final BlockInfo result = blockService.create(ORIGIN, MEETING_ID,
-					action);
+			final BlockInfo result = blockService.create(ORIGIN, SCOPE, action);
 
 			assertThat(result).isEqualTo(created);
 
@@ -246,8 +237,7 @@ class BlockServiceTest {
 			final var action = new BlockAction.Create(TOPIC.getId(),
 					BLOCK.getType(), sequenceId);
 
-			final BlockInfo result = blockService.create(ORIGIN, MEETING_ID,
-					action);
+			final BlockInfo result = blockService.create(ORIGIN, SCOPE, action);
 
 			assertThat(result).isEqualTo(created);
 
@@ -320,8 +310,7 @@ class BlockServiceTest {
 			final var action = new BlockAction.Create(TOPIC.getId(),
 					BLOCK.getType(), sequenceId);
 
-			final BlockInfo result = blockService.create(ORIGIN, MEETING_ID,
-					action);
+			final BlockInfo result = blockService.create(ORIGIN, SCOPE, action);
 
 			assertThat(result).isEqualTo(created);
 
@@ -373,9 +362,8 @@ class BlockServiceTest {
 			final var action = new BlockAction.Create(TOPIC.getId(),
 					BLOCK.getType(), 1);
 
-			assertThatThrownBy(
-					() -> blockService.create(ORIGIN, MEETING_ID, action))
-							.isInstanceOf(IllegalArgumentException.class);
+			assertThatThrownBy(() -> blockService.create(ORIGIN, SCOPE, action))
+					.isInstanceOf(IllegalArgumentException.class);
 
 			verifyNoInteractions(eventPublisher);
 			verify(blockStorageGateway, never()).update(any());
@@ -388,31 +376,27 @@ class BlockServiceTest {
 			final var block = new BlockAction.Create(TOPIC.getId(),
 					BLOCK.getType(), BLOCK.getSequenceId());
 
-			assertThatThrownBy(
-					() -> blockService.create(null, MEETING_ID, block))
-							.isInstanceOf(NullPointerException.class);
+			assertThatThrownBy(() -> blockService.create(null, SCOPE, block))
+					.isInstanceOf(NullPointerException.class);
+		}
+
+		@Test
+		void scopeNull() {
+
+			final var block = new BlockAction.Create(TOPIC.getId(),
+					BLOCK.getType(), BLOCK.getSequenceId());
+
+			assertThatThrownBy(() -> blockService.create(ORIGIN, null, block))
+					.isInstanceOf(NullPointerException.class);
 		}
 
 		@Test
 		void actionNull() {
 
-			assertThatThrownBy(
-					() -> blockService.create(ORIGIN, MEETING_ID, null))
-							.isInstanceOf(NullPointerException.class);
+			assertThatThrownBy(() -> blockService.create(ORIGIN, SCOPE, null))
+					.isInstanceOf(NullPointerException.class);
 		}
 
-		@Test
-		void serialised() {
-			meetingLock.withhold();
-
-			final var action = new BlockAction.Create(TOPIC.getId(),
-					BLOCK.getType(), 0);
-
-			blockService.create(ORIGIN, MEETING_ID, action);
-
-			verify(meetingLock.lock()).call(eq(MEETING_ID), any());
-			verifyNoInteractions(blockStorageGateway);
-		}
 	}
 
 	@Nested
@@ -424,11 +408,6 @@ class BlockServiceTest {
 		private static final long REVISION = TOPIC.getMeeting().getRevision();
 		private static final MeetingScope SCOPE = new MeetingScope(MEETING_ID,
 				REVISION);
-
-		@BeforeEach
-		void revision() {
-			meetingLock.passThrough(REVISION);
-		}
 
 		@Test
 		void down() {
@@ -483,7 +462,7 @@ class BlockServiceTest {
 			});
 
 			final var action = new BlockAction.Move(2);
-			final BlockInfo result = blockService.move(ORIGIN, MEETING_ID,
+			final BlockInfo result = blockService.move(ORIGIN, SCOPE,
 					block.getId(), action);
 
 			assertThat(result).isEqualTo(block);
@@ -576,7 +555,7 @@ class BlockServiceTest {
 			});
 
 			final var action = new BlockAction.Move(0);
-			final BlockInfo result = blockService.move(ORIGIN, MEETING_ID,
+			final BlockInfo result = blockService.move(ORIGIN, SCOPE,
 					block.getId(), action);
 
 			assertThat(result).isEqualTo(block);
@@ -656,7 +635,7 @@ class BlockServiceTest {
 			});
 
 			final var action = new BlockAction.Move(2);
-			final BlockInfo result = blockService.move(ORIGIN, MEETING_ID,
+			final BlockInfo result = blockService.move(ORIGIN, SCOPE,
 					block.getId(), action);
 
 			assertThat(result).isEqualTo(block);
@@ -697,8 +676,8 @@ class BlockServiceTest {
 					.thenReturn(Optional.of(block));
 
 			final var action = new BlockAction.Move(block.getSequenceId());
-			final BlockInfo result = blockService.move(ORIGIN, MEETING_ID,
-					blockId, action);
+			final BlockInfo result = blockService.move(ORIGIN, SCOPE, blockId,
+					action);
 
 			assertThat(result).isEqualTo(block);
 			verifyNoInteractions(eventPublisher);
@@ -723,8 +702,8 @@ class BlockServiceTest {
 
 			final var action = new BlockAction.Move(existingBlocks.size());
 
-			assertThatThrownBy(() -> blockService.move(ORIGIN, MEETING_ID,
-					blockId, action))
+			assertThatThrownBy(
+					() -> blockService.move(ORIGIN, SCOPE, blockId, action))
 							.isInstanceOf(IllegalArgumentException.class);
 
 			verifyNoInteractions(eventPublisher);
@@ -740,8 +719,8 @@ class BlockServiceTest {
 
 			final var action = new BlockAction.Move(1);
 
-			assertThatThrownBy(() -> blockService.move(ORIGIN, MEETING_ID,
-					blockId, action))
+			assertThatThrownBy(
+					() -> blockService.move(ORIGIN, SCOPE, blockId, action))
 							.isInstanceOf(MissingEntityException.class);
 
 			verifyNoInteractions(eventPublisher);
@@ -758,8 +737,8 @@ class BlockServiceTest {
 			final long blockId = block.getId();
 			final var action = new BlockAction.Move(1);
 
-			assertThatThrownBy(() -> blockService.move(origin, MEETING_ID,
-					blockId, action))
+			assertThatThrownBy(
+					() -> blockService.move(origin, SCOPE, blockId, action))
 							.isInstanceOf(MissingEntityException.class);
 
 			verifyNoInteractions(eventPublisher);
@@ -773,7 +752,18 @@ class BlockServiceTest {
 			final var action = new BlockAction.Move(1);
 
 			assertThatThrownBy(
-					() -> blockService.move(null, MEETING_ID, blockId, action))
+					() -> blockService.move(null, SCOPE, blockId, action))
+							.isInstanceOf(NullPointerException.class);
+		}
+
+		@Test
+		void scopeNull() {
+			final long blockId = TestBlock.SPORER_PROJECT_BLOCKERS_FIRST
+					.getId();
+			final var action = new BlockAction.Move(1);
+
+			assertThatThrownBy(
+					() -> blockService.move(ORIGIN, null, blockId, action))
 							.isInstanceOf(NullPointerException.class);
 		}
 
@@ -783,23 +773,10 @@ class BlockServiceTest {
 					.getId();
 
 			assertThatThrownBy(
-					() -> blockService.move(ORIGIN, MEETING_ID, blockId, null))
+					() -> blockService.move(ORIGIN, SCOPE, blockId, null))
 							.isInstanceOf(NullPointerException.class);
 		}
 
-		@Test
-		void serialised() {
-			final TestBlock block = TestBlock.SPORER_PROJECT_BLOCKERS_FIRST;
-
-			meetingLock.withhold();
-
-			blockService.move(ORIGIN, MEETING_ID, block.getId(),
-					new BlockAction.Move(1));
-
-			verify(meetingLock.lock()).call(eq(MEETING_ID), any());
-
-			verifyNoInteractions(blockStorageGateway);
-		}
 	}
 
 	@Nested
@@ -816,11 +793,6 @@ class BlockServiceTest {
 		private static final MeetingScope SCOPE = new MeetingScope(MEETING_ID,
 				REVISION);
 
-		@BeforeEach
-		void revision() {
-			meetingLock.passThrough(REVISION);
-		}
-
 		@Test
 		void onlyBlock() {
 			final long blockId = BLOCK.getId();
@@ -833,7 +805,7 @@ class BlockServiceTest {
 			when(blockStorageGateway.findAllByTopicId(topicId))
 					.thenReturn(List.of(blockInfo));
 
-			blockService.delete(ORIGIN, MEETING_ID, blockId);
+			blockService.delete(ORIGIN, SCOPE, blockId);
 
 			verify(blockStorageGateway).delete(blockInfo);
 			final ArgumentMatcher<BlockEvent> event = e -> {
@@ -891,7 +863,7 @@ class BlockServiceTest {
 				throw new AssertionError("Unexpected update: " + update);
 			});
 
-			blockService.delete(ORIGIN, MEETING_ID, blockId);
+			blockService.delete(ORIGIN, SCOPE, blockId);
 
 			final ArgumentCaptor<BlockEvent> events = ArgumentCaptor
 					.forClass(BlockEvent.class);
@@ -946,7 +918,7 @@ class BlockServiceTest {
 			when(blockStorageGateway.findAllByTopicId(topicId))
 					.thenReturn(existingBlocks);
 
-			blockService.delete(ORIGIN, MEETING_ID, blockId);
+			blockService.delete(ORIGIN, SCOPE, blockId);
 
 			verify(blockStorageGateway).delete(blockInfo);
 			final ArgumentMatcher<BlockEvent> event = e -> {
@@ -972,7 +944,7 @@ class BlockServiceTest {
 					.thenReturn(Optional.empty());
 
 			assertThatThrownBy(
-					() -> blockService.delete(ORIGIN, MEETING_ID, blockId))
+					() -> blockService.delete(ORIGIN, SCOPE, blockId))
 							.isInstanceOf(MissingEntityException.class);
 
 			verify(blockStorageGateway, never()).delete(any());
@@ -983,21 +955,18 @@ class BlockServiceTest {
 		void originNull() {
 			final long blockId = BLOCK.getId();
 
-			assertThatThrownBy(
-					() -> blockService.delete(null, MEETING_ID, blockId))
-							.isInstanceOf(NullPointerException.class);
+			assertThatThrownBy(() -> blockService.delete(null, SCOPE, blockId))
+					.isInstanceOf(NullPointerException.class);
 		}
 
 		@Test
-		void serialised() {
-			meetingLock.withhold();
+		void scopeNull() {
+			final long blockId = BLOCK.getId();
 
-			blockService.delete(ORIGIN, MEETING_ID, BLOCK.getId());
-
-			verify(meetingLock.lock()).run(eq(MEETING_ID), any());
-
-			verifyNoInteractions(blockStorageGateway);
+			assertThatThrownBy(() -> blockService.delete(ORIGIN, null, blockId))
+					.isInstanceOf(NullPointerException.class);
 		}
+
 	}
 
 }

@@ -19,7 +19,6 @@ import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
@@ -32,7 +31,6 @@ import com.cvesters.notula.common.exception.MissingEntityException;
 import com.cvesters.notula.meeting.EventPublisher;
 import com.cvesters.notula.meeting.MeetingService;
 import com.cvesters.notula.meeting.TestMeeting;
-import com.cvesters.notula.meeting.TestMeetingLock;
 import com.cvesters.notula.meeting.bdo.MeetingScope;
 import com.cvesters.notula.organisation.TestOrganisation;
 import com.cvesters.notula.session.TestSession;
@@ -46,13 +44,12 @@ class TopicServiceTest {
 			.fromString("3f9c1a44-1d2e-4a51-8b0c-2c7e9b1d4a0e");
 
 	private final MeetingService meetingService = mock();
-	private final TestMeetingLock meetingLock = new TestMeetingLock();
 
 	private final TopicStorageGateway topicStorageGateway = mock();
 	private final EventPublisher eventPublisher = mock();
 
 	private final TopicService topicService = new TopicService(meetingService,
-			meetingLock.lock(), topicStorageGateway, eventPublisher);
+			topicStorageGateway, eventPublisher);
 
 	@Nested
 	class GetById {
@@ -150,11 +147,6 @@ class TopicServiceTest {
 		private static final MeetingScope SCOPE = new MeetingScope(MEETING_ID,
 				REVISION);
 
-		@BeforeEach
-		void revision() {
-			meetingLock.passThrough(REVISION);
-		}
-
 		private static final long TOPIC_ID = Long.MAX_VALUE;
 		private static final int TOPIC_SEQUENCE_ID = 0;
 		private static final String TOPIC_NAME = "Topic";
@@ -188,8 +180,7 @@ class TopicServiceTest {
 			final var action = new TopicAction.Create(TOPIC_SEQUENCE_ID,
 					TOPIC_NAME);
 
-			final TopicInfo result = topicService.create(ORIGIN, MEETING_ID,
-					action);
+			final TopicInfo result = topicService.create(ORIGIN, SCOPE, action);
 
 			assertThat(result).isEqualTo(created);
 
@@ -238,8 +229,7 @@ class TopicServiceTest {
 
 			final var action = new TopicAction.Create(sequenceId, TOPIC_NAME);
 
-			final TopicInfo result = topicService.create(ORIGIN, MEETING_ID,
-					action);
+			final TopicInfo result = topicService.create(ORIGIN, SCOPE, action);
 
 			assertThat(result).isEqualTo(created);
 
@@ -312,8 +302,7 @@ class TopicServiceTest {
 			final var action = new TopicAction.Create(TOPIC_SEQUENCE_ID,
 					TOPIC_NAME);
 
-			final TopicInfo result = topicService.create(ORIGIN, MEETING_ID,
-					action);
+			final TopicInfo result = topicService.create(ORIGIN, SCOPE, action);
 
 			assertThat(result).isEqualTo(created);
 
@@ -362,9 +351,8 @@ class TopicServiceTest {
 
 			final var action = new TopicAction.Create(1, TOPIC_NAME);
 
-			assertThatThrownBy(
-					() -> topicService.create(ORIGIN, MEETING_ID, action))
-							.isInstanceOf(IllegalArgumentException.class);
+			assertThatThrownBy(() -> topicService.create(ORIGIN, SCOPE, action))
+					.isInstanceOf(IllegalArgumentException.class);
 
 			verifyNoInteractions(eventPublisher);
 			verify(topicStorageGateway, never()).update(any());
@@ -376,30 +364,25 @@ class TopicServiceTest {
 			final TopicAction.Create topic = new TopicAction.Create(
 					TOPIC_SEQUENCE_ID, TOPIC_NAME);
 
-			assertThatThrownBy(
-					() -> topicService.create(null, MEETING_ID, topic))
-							.isInstanceOf(NullPointerException.class);
+			assertThatThrownBy(() -> topicService.create(null, SCOPE, topic))
+					.isInstanceOf(NullPointerException.class);
+		}
+
+		@Test
+		void scopeNull() {
+			final TopicAction.Create topic = new TopicAction.Create(
+					TOPIC_SEQUENCE_ID, TOPIC_NAME);
+
+			assertThatThrownBy(() -> topicService.create(ORIGIN, null, topic))
+					.isInstanceOf(NullPointerException.class);
 		}
 
 		@Test
 		void actionNull() {
-			assertThatThrownBy(
-					() -> topicService.create(ORIGIN, MEETING_ID, null))
-							.isInstanceOf(NullPointerException.class);
+			assertThatThrownBy(() -> topicService.create(ORIGIN, SCOPE, null))
+					.isInstanceOf(NullPointerException.class);
 		}
 
-		@Test
-		void serialised() {
-			meetingLock.withhold();
-
-			final var action = new TopicAction.Create(TOPIC_SEQUENCE_ID,
-					TOPIC_NAME);
-
-			topicService.create(ORIGIN, MEETING_ID, action);
-
-			verify(meetingLock.lock()).call(eq(MEETING_ID), any());
-			verifyNoInteractions(topicStorageGateway);
-		}
 	}
 
 	@Nested
@@ -414,11 +397,6 @@ class TopicServiceTest {
 		private static final long REVISION = MEETING.getRevision();
 		private static final MeetingScope SCOPE = new MeetingScope(MEETING_ID,
 				REVISION);
-
-		@BeforeEach
-		void revision() {
-			meetingLock.passThrough(REVISION);
-		}
 
 		@Test
 		void down() {
@@ -473,7 +451,7 @@ class TopicServiceTest {
 			});
 
 			final var action = new TopicAction.Move(2);
-			final TopicInfo result = topicService.move(ORIGIN, MEETING_ID,
+			final TopicInfo result = topicService.move(ORIGIN, SCOPE,
 					topic.getId(), action);
 
 			assertThat(result).isEqualTo(topic);
@@ -566,7 +544,7 @@ class TopicServiceTest {
 			});
 
 			final var action = new TopicAction.Move(0);
-			final TopicInfo result = topicService.move(ORIGIN, MEETING_ID,
+			final TopicInfo result = topicService.move(ORIGIN, SCOPE,
 					topic.getId(), action);
 
 			assertThat(result).isEqualTo(topic);
@@ -646,7 +624,7 @@ class TopicServiceTest {
 			});
 
 			final var action = new TopicAction.Move(2);
-			final TopicInfo result = topicService.move(ORIGIN, MEETING_ID,
+			final TopicInfo result = topicService.move(ORIGIN, SCOPE,
 					topic.getId(), action);
 
 			assertThat(result).isEqualTo(topic);
@@ -686,8 +664,8 @@ class TopicServiceTest {
 					.thenReturn(Optional.of(topic));
 
 			final var action = new TopicAction.Move(topic.getSequenceId());
-			final TopicInfo result = topicService.move(ORIGIN, MEETING_ID,
-					topicId, action);
+			final TopicInfo result = topicService.move(ORIGIN, SCOPE, topicId,
+					action);
 
 			assertThat(result).isEqualTo(topic);
 			verifyNoInteractions(eventPublisher);
@@ -712,8 +690,8 @@ class TopicServiceTest {
 
 			final var action = new TopicAction.Move(existingTopics.size());
 
-			assertThatThrownBy(() -> topicService.move(ORIGIN, MEETING_ID,
-					topicId, action))
+			assertThatThrownBy(
+					() -> topicService.move(ORIGIN, SCOPE, topicId, action))
 							.isInstanceOf(IllegalArgumentException.class);
 
 			verifyNoInteractions(eventPublisher);
@@ -728,8 +706,8 @@ class TopicServiceTest {
 
 			final var action = new TopicAction.Move(1);
 
-			assertThatThrownBy(() -> topicService.move(ORIGIN, MEETING_ID,
-					topicId, action))
+			assertThatThrownBy(
+					() -> topicService.move(ORIGIN, SCOPE, topicId, action))
 							.isInstanceOf(MissingEntityException.class);
 
 			verifyNoInteractions(eventPublisher);
@@ -748,8 +726,8 @@ class TopicServiceTest {
 
 			final var action = new TopicAction.Move(2);
 
-			assertThatThrownBy(() -> topicService.move(origin, MEETING_ID,
-					topicId, action))
+			assertThatThrownBy(
+					() -> topicService.move(origin, SCOPE, topicId, action))
 							.isInstanceOf(MissingEntityException.class);
 
 			verifyNoInteractions(eventPublisher);
@@ -762,7 +740,17 @@ class TopicServiceTest {
 			final var action = new TopicAction.Move(1);
 
 			assertThatThrownBy(
-					() -> topicService.move(null, MEETING_ID, topicId, action))
+					() -> topicService.move(null, SCOPE, topicId, action))
+							.isInstanceOf(NullPointerException.class);
+		}
+
+		@Test
+		void scopeNull() {
+			final long topicId = TestTopic.SPORER_PROJECT_BLOCKERS.getId();
+			final var action = new TopicAction.Move(1);
+
+			assertThatThrownBy(
+					() -> topicService.move(ORIGIN, null, topicId, action))
 							.isInstanceOf(NullPointerException.class);
 		}
 
@@ -771,23 +759,10 @@ class TopicServiceTest {
 			final long topicId = TestTopic.SPORER_PROJECT_BLOCKERS.getId();
 
 			assertThatThrownBy(
-					() -> topicService.move(ORIGIN, MEETING_ID, topicId, null))
+					() -> topicService.move(ORIGIN, SCOPE, topicId, null))
 							.isInstanceOf(NullPointerException.class);
 		}
 
-		@Test
-		void serialised() {
-			final TestTopic topic = TestTopic.SPORER_PROJECT_BLOCKERS;
-
-			meetingLock.withhold();
-
-			topicService.move(ORIGIN, MEETING_ID, topic.getId(),
-					new TopicAction.Move(1));
-
-			verify(meetingLock.lock()).call(eq(MEETING_ID), any());
-
-			verifyNoInteractions(topicStorageGateway);
-		}
 	}
 
 	@Nested
@@ -803,11 +778,6 @@ class TopicServiceTest {
 		private static final long REVISION = MEETING.getRevision();
 		private static final MeetingScope SCOPE = new MeetingScope(MEETING_ID,
 				REVISION);
-
-		@BeforeEach
-		void revision() {
-			meetingLock.passThrough(REVISION);
-		}
 
 		@Test
 		void success() {
@@ -834,8 +804,8 @@ class TopicServiceTest {
 
 			final TopicAction.Update action = new TopicAction.UpdateName(0, 0,
 					"Project ");
-			final TopicInfo result = topicService.update(ORIGIN, MEETING_ID,
-					topicId, action);
+			final TopicInfo result = topicService.update(ORIGIN, SCOPE, topicId,
+					action);
 
 			assertThat(result).isEqualTo(updated);
 
@@ -859,8 +829,8 @@ class TopicServiceTest {
 			final TopicAction.Update action = new TopicAction.UpdateName(0, 0,
 					"Project ");
 
-			assertThatThrownBy(() -> topicService.update(ORIGIN, MEETING_ID,
-					topicId, action))
+			assertThatThrownBy(
+					() -> topicService.update(ORIGIN, SCOPE, topicId, action))
 							.isInstanceOf(MissingEntityException.class);
 
 			verify(topicStorageGateway, never()).update(any());
@@ -874,30 +844,32 @@ class TopicServiceTest {
 			final TopicAction.Update action = new TopicAction.UpdateName(0, 0,
 					"Project ");
 
-			assertThatThrownBy(() -> topicService.update(null, MEETING_ID,
-					topicId, action)).isInstanceOf(NullPointerException.class);
+			assertThatThrownBy(
+					() -> topicService.update(null, SCOPE, topicId, action))
+							.isInstanceOf(NullPointerException.class);
+		}
+
+		@Test
+		void scopeNull() {
+			final long topicId = TOPIC.getId();
+
+			final TopicAction.Update action = new TopicAction.UpdateName(0, 0,
+					"Project ");
+
+			assertThatThrownBy(
+					() -> topicService.update(ORIGIN, null, topicId, action))
+							.isInstanceOf(NullPointerException.class);
 		}
 
 		@Test
 		void actionNull() {
 			final long topicId = TOPIC.getId();
 
-			assertThatThrownBy(() -> topicService.update(ORIGIN, MEETING_ID,
-					topicId, null)).isInstanceOf(NullPointerException.class);
+			assertThatThrownBy(
+					() -> topicService.update(ORIGIN, SCOPE, topicId, null))
+							.isInstanceOf(NullPointerException.class);
 		}
 
-		@Test
-		void serialised() {
-			meetingLock.withhold();
-
-			final var action = new TopicAction.UpdateName(0, 0, "Renamed");
-
-			topicService.update(ORIGIN, MEETING_ID, TOPIC.getId(), action);
-
-			verify(meetingLock.lock()).call(eq(MEETING_ID), any());
-
-			verifyNoInteractions(topicStorageGateway);
-		}
 	}
 
 	@Nested
@@ -914,11 +886,6 @@ class TopicServiceTest {
 		private static final MeetingScope SCOPE = new MeetingScope(MEETING_ID,
 				REVISION);
 
-		@BeforeEach
-		void revision() {
-			meetingLock.passThrough(REVISION);
-		}
-
 		@Test
 		void onlyTopic() {
 			final long meetingId = MEETING.getId();
@@ -931,7 +898,7 @@ class TopicServiceTest {
 			when(topicStorageGateway.findAllByMeetingId(meetingId))
 					.thenReturn(List.of(topicInfo));
 
-			topicService.delete(ORIGIN, MEETING_ID, topicId);
+			topicService.delete(ORIGIN, SCOPE, topicId);
 
 			verify(topicStorageGateway).delete(topicInfo);
 			final ArgumentMatcher<TopicEvent> event = e -> {
@@ -989,7 +956,7 @@ class TopicServiceTest {
 				throw new AssertionError("Unexpected update: " + update);
 			});
 
-			topicService.delete(ORIGIN, MEETING_ID, topicId);
+			topicService.delete(ORIGIN, SCOPE, topicId);
 
 			final ArgumentCaptor<TopicEvent> events = ArgumentCaptor
 					.forClass(TopicEvent.class);
@@ -1042,7 +1009,7 @@ class TopicServiceTest {
 			when(topicStorageGateway.findAllByMeetingId(meetingId))
 					.thenReturn(existingTopics);
 
-			topicService.delete(ORIGIN, MEETING_ID, topicId);
+			topicService.delete(ORIGIN, SCOPE, topicId);
 
 			verify(topicStorageGateway).delete(topicInfo);
 			final ArgumentMatcher<TopicEvent> event = e -> {
@@ -1065,7 +1032,7 @@ class TopicServiceTest {
 					.thenReturn(Optional.empty());
 
 			assertThatThrownBy(
-					() -> topicService.delete(ORIGIN, MEETING_ID, topicId))
+					() -> topicService.delete(ORIGIN, SCOPE, topicId))
 							.isInstanceOf(MissingEntityException.class);
 
 			verify(topicStorageGateway, never()).delete(any());
@@ -1076,20 +1043,17 @@ class TopicServiceTest {
 		void originNull() {
 			final long topicId = TOPIC.getId();
 
-			assertThatThrownBy(
-					() -> topicService.delete(null, MEETING_ID, topicId))
-							.isInstanceOf(NullPointerException.class);
+			assertThatThrownBy(() -> topicService.delete(null, SCOPE, topicId))
+					.isInstanceOf(NullPointerException.class);
 		}
 
 		@Test
-		void serialised() {
-			meetingLock.withhold();
+		void scopeNull() {
+			final long topicId = TOPIC.getId();
 
-			topicService.delete(ORIGIN, MEETING_ID, TOPIC.getId());
-
-			verify(meetingLock.lock()).run(eq(MEETING_ID), any());
-
-			verifyNoInteractions(topicStorageGateway);
+			assertThatThrownBy(() -> topicService.delete(ORIGIN, null, topicId))
+					.isInstanceOf(NullPointerException.class);
 		}
+
 	}
 }

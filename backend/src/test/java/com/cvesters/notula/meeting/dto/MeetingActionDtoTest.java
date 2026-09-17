@@ -5,7 +5,6 @@ import static org.assertj.core.api.Assertions.assertThat;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 
-import com.cvesters.notula.meeting.MeetingActionMatcher;
 import com.cvesters.notula.meeting.TestMeeting;
 import com.cvesters.notula.meeting.bdo.MeetingAction;
 

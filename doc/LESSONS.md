@@ -122,6 +122,26 @@ Only the last was caught by tests, and only because it changed a *value* rather
 than a type. **After a sweep, read the diff — do not just check that it
 compiles.**
 
+Never leave a failing test in the shared tree
+==
+
+Confirming a suspected bug and probing a framework's behaviour are both best
+done by writing a test that fails. Twice that test was written straight into
+`MeetingChangeWebSocketTest` and removed a few minutes later: once to show that
+a no-op move spends a revision, once to find out whether the simple broker
+answers a `SUBSCRIBE` with a `RECEIPT`. Both failed exactly as intended.
+
+In between, the person working alongside ran the suite, saw a red test with a
+name they had just been told was green, and reported it. Reproducing a failure
+that was never in the code cost more than the two probes had saved, and it
+spends the only thing a report like that relies on — that "the suite is green"
+means something.
+
+**A probe belongs in a scratch file outside the project, not in the class it is
+probing.** `mvn test -Dtest=Foo#bar` runs one method from anywhere. And a test
+filter that matches nothing still prints `Tests run: 0` and exits zero, so a
+green run of a probe is not evidence the probe ran.
+
 A reviewer's question is often a bug report
 ==
 

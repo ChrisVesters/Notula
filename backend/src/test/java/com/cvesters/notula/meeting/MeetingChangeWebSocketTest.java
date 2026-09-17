@@ -40,6 +40,11 @@ public class MeetingChangeWebSocketTest extends WebSocketTest {
 	private static final UUID CHANGE_ID = UUID
 			.fromString("6f2a9c18-3b5d-4e07-9a61-8c4d2e0b7f35");
 
+	private static final UUID REFUSED_CHANGE_ID = UUID
+			.fromString("b0d7e6a4-1c39-4f52-8e7b-2a5f9c3d04e8");
+
+	private static final long UNKNOWN_TOPIC_ID = 9999L;
+
 	private static final long REVISION = MEETING.getRevision() + 1;
 
 	private static final Duration EVENT_TIMEOUT = Duration.ofSeconds(5);
@@ -97,8 +102,77 @@ public class MeetingChangeWebSocketTest extends WebSocketTest {
 			assertThat(received.get(0)).contains("\"revision\":" + REVISION);
 			assertThat(received.get(1)).contains("\"revision\":" + REVISION);
 			assertThat(received.get(2)).contains("\"revision\":" + REVISION);
-			assertThat(received.get(3)).isEqualToIgnoringWhitespace(
-					event(REVISION + 1, scheduleMutation(DELIVERABLES.getId(), 5)));
+			assertThat(received.get(3)).isEqualToIgnoringWhitespace(event(
+					REVISION + 1, scheduleMutation(DELIVERABLES.getId(), 5)));
+		}
+	}
+
+	@Nested
+	class Acknowledge {
+
+		@Test
+		void change() throws Exception {
+			final StompSession author = connect(SESSION);
+			final FrameHandler acks = acknowledging(author);
+
+			send(author, CHANGES, CHANGE_ID, payload("""
+					{
+						"type": "SCHEDULE_TOPIC",
+						"topic": %d,
+						"minutes": 5
+					}
+					""".formatted(DELIVERABLES.getId())));
+
+			final List<String> received = acks.await(1, EVENT_TIMEOUT);
+
+			assertThat(received).hasSize(1);
+			assertThat(received.get(0)).isEqualToIgnoringWhitespace(
+					acknowledged(CHANGE_ID, REVISION));
+		}
+
+		// The refused change is sent first and one session's frames are
+		// handled in turn, so an acknowledgement for it would arrive ahead of
+		// the one asserted on rather than racing it. Its revision would too:
+		// the bump rolls back with the change, which is why the change that
+		// follows commits at the same number the refused one reached for.
+		@Test
+		void refused() throws Exception {
+			final StompSession author = connect(SESSION);
+			final FrameHandler acks = acknowledging(author);
+
+			send(author, CHANGES, REFUSED_CHANGE_ID, payload("""
+					{
+						"type": "SCHEDULE_TOPIC",
+						"topic": %d,
+						"minutes": 5
+					}
+					""".formatted(UNKNOWN_TOPIC_ID)));
+			send(author, CHANGES, CHANGE_ID, payload("""
+					{
+						"type": "SCHEDULE_TOPIC",
+						"topic": %d,
+						"minutes": 5
+					}
+					""".formatted(DELIVERABLES.getId())));
+
+			final List<String> received = acks.await(1, EVENT_TIMEOUT);
+
+			assertThat(received).hasSize(1);
+			assertThat(received.get(0)).isEqualToIgnoringWhitespace(
+					acknowledged(CHANGE_ID, REVISION));
+		}
+
+		// Subscribing and sending on one connection is ordered, but the
+		// subscription still has to reach the broker before the change is
+		// handled, and only the round trip proves that it has.
+		private FrameHandler acknowledging(final StompSession session)
+				throws Exception {
+			final FrameHandler acks = subscribeToAcknowledgements(session);
+
+			final FrameHandler snapshot = subscribe(session, SNAPSHOT);
+			assertThat(snapshot.getResponse()).succeedsWithin(EVENT_TIMEOUT);
+
+			return acks;
 		}
 	}
 
@@ -136,7 +210,18 @@ public class MeetingChangeWebSocketTest extends WebSocketTest {
 				mutation);
 	}
 
-	private static String moveMutation(final long topicId, final int sequenceId) {
+	private static String acknowledged(final UUID changeId,
+			final long revision) {
+		return """
+				{
+					"id": "%s",
+					"revision": %d
+				}
+				""".formatted(changeId, revision);
+	}
+
+	private static String moveMutation(final long topicId,
+			final int sequenceId) {
 		return """
 				{
 					"type": "MOVE_TOPIC",
@@ -146,7 +231,8 @@ public class MeetingChangeWebSocketTest extends WebSocketTest {
 				""".formatted(topicId, sequenceId);
 	}
 
-	private static String scheduleMutation(final long topicId, final int minutes) {
+	private static String scheduleMutation(final long topicId,
+			final int minutes) {
 		return """
 				{
 					"type": "SCHEDULE_TOPIC",

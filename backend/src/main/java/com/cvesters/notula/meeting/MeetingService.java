@@ -57,17 +57,12 @@ public class MeetingService {
 		return meetingStorage.create(meetingInfo);
 	}
 
-	public MeetingInfo update(final Origin origin, final long id,
+	public MeetingInfo update(final Origin origin, final MeetingScope scope,
 			final MeetingAction.Update action) {
 		Objects.requireNonNull(origin);
+		Objects.requireNonNull(scope);
 		Objects.requireNonNull(action);
 
-		return meetingLock.call(id,
-				scope -> doUpdate(origin, scope, action));
-	}
-
-	private MeetingInfo doUpdate(final Origin origin, final MeetingScope scope,
-			final MeetingAction.Update action) {
 		final MeetingInfo meetingInfo = getById(origin.principal(),
 				scope.meetingId());
 		action.apply(meetingInfo);

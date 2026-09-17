@@ -51,6 +51,15 @@ Checked against the code, not against the commit messages.
 - **The socket survives a token refresh.** `WebSocketClient.reconnect` keeps
   the subscription map; `config/WebSocketSessionRegistry` closes a connection
   whose token has expired.
+- **A change is acknowledged to its sender.** `meeting/ChangeService` is the
+  boundary of a change: it takes the lock once, dispatches the sealed
+  `ChangeDto` inside it and returns the `MeetingScope`, which
+  `MeetingWebSocket` answers with on `/user/queue/acks`. The entity services
+  lost their own `meetingLock.call` wrappers and take a `MeetingScope` instead.
+  `MeetingWebSocketClient` holds one change in flight and queues the rest,
+  releasing on the acknowledgement and dropping the queue on a refusal.
+  `SEQUENCING.md` step 4 is closed; step 7 is what makes the queue merge
+  rather than only wait.
 - **A missed change is detected, not silently absorbed.** `meetings.revision`
   is bumped inside the change's own transaction by `meeting/MeetingLock`, rides
   out on `EventDto` and the `/app/meetings/{id}` snapshot, and the meeting page
@@ -106,11 +115,16 @@ These want an answer before the phases they sit in.
   meeting to topic to block. Deleting a topic during a meeting destroys the
   notes under it for everybody, immediately, with no undo. Trash arrives in
   Phase 2; until then the risk is worth knowing.
+- **A dropped connection stalls a tab's queue.**
+  `MeetingWebSocketClient` sends the next change only once the last was
+  acknowledged, and nothing releases a change that was in flight when the
+  socket dropped, so that tab sends nothing further. Releasing on reconnect is
+  the fix; resending is not, since the change may have committed.
 - **Nothing runs the tests but a person.** There is no `.github/workflows`.
   The backend suite is substantial; the frontend one is thin. The frontend
   suite has now broken twice on its own configuration — first a stale Vitest
   browser provider, then a config that pointed at `src/**` while the tests
-  live in `test/`, which collects nothing and still exits green. A gate that
+  live in `tests/`, which collects nothing and still exits green. A gate that
   nobody runs is how that keeps happening.
 
 Phase 1 — A meeting is a real event
@@ -191,12 +205,6 @@ Phase 1 and 2 add data; this phase makes multi-person editing trustworthy.
   makes a reconnect, a closed laptop or a redeploy cheap instead of merely
   correct. Wants the operation log from `SEQUENCING.md` step 6 to have anything
   to replay, so it is worth doing after it rather than before.
-- **Acknowledge a change to its sender** (M) — the other half of
-  `SEQUENCING.md` step 4: an `ExecutorChannelInterceptor` sending
-  `{changeId, revision}` to `/user/queue/acks`, and
-  `MeetingWebSocketClient` releasing the in-flight change on it. Blocked on
-  nothing technical, but the page holds no in-flight queue yet, so the
-  acknowledgement has no consumer until one exists — build the two together.
 - **Presence** (M) — who is in the meeting right now, as avatars.
   `DetailsWebSocket` already has the subscribe hook to hang this on.
 - **Authorship attribution** (M) — who wrote which note. Nothing in `blocks`
@@ -320,9 +328,10 @@ Robustness
 - Real error handling in the frontend. `window.alert` is still how login,
   registration, organisation switching, meeting creation and deletion, and
   change rejections all report failure — eight call sites.
-- Use the rejection the server already sends. `RejectedDto` carries the
-  `change-id`, and every `MeetingWebSocketClient.send` call site drops the id
-  it gets back, so a refusal cannot be tied to the action that caused it.
+- Use the rejection the server already sends. `MeetingWebSocketClient` now
+  knows which change a refusal names — it drops its queue on one — but the
+  page is still told only a reason, and every `send` call site drops the id it
+  gets back, so a refusal still cannot be undone or retried where it happened.
 - Out-of-order resilience is handled for events, not for the rest of the page.
   Events now carry a revision the page checks, buffers against and resyncs on,
   but `REMOVE_MEETING` still navigates away with no message, and an unknown
@@ -352,8 +361,9 @@ Quality
   carries. `WebSocketTest` can now open several sessions and `FrameHandler` can
   await a sequence of frames, so the cost of the next one is the fixtures, not
   the harness.
-- Frontend tests. Four files cover three form components and one client,
-  against 1014 backend tests.
+- Frontend tests. Seven files cover three form components, one client, one
+  editor component, the text-edit splice and the change queue, against 1052
+  backend tests.
 - Mutation testing is configured (`org.pitest:pitest-maven`) but is not part
   of any routine.
 
