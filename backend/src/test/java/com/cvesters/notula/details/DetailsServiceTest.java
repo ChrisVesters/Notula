@@ -85,8 +85,8 @@ class DetailsServiceTest {
 					blocks.forEach(block -> {
 						assertThat(t.getBlocks()).anySatisfy(b -> {
 							assertThat(b.getId()).isEqualTo(block.getId());
-							assertThat(b.getSequenceId())
-									.isEqualTo(block.getSequenceId());
+							assertThat(b.getRank())
+									.isEqualTo(block.getRank());
 						});
 					});
 				});

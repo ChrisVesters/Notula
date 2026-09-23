@@ -22,8 +22,8 @@ export type MeetingMutation =
 	| { type: "REMOVE_MEETING" };
 
 export type TopicMutation =
-	| { type: "ADD_TOPIC"; topic: number; sequenceId: number; name: string }
-	| { type: "MOVE_TOPIC"; topic: number; sequenceId: number }
+	| { type: "ADD_TOPIC"; topic: number; rank: string; name: string }
+	| { type: "MOVE_TOPIC"; topic: number; rank: string }
 	| ({ type: "RENAME_TOPIC"; topic: number } & TextEdit)
 	| ({ type: "DESCRIBE_TOPIC"; topic: number } & TextEdit)
 	| { type: "SCHEDULE_TOPIC"; topic: number; minutes: number | null }
@@ -35,9 +35,9 @@ export type BlockMutation =
 			block: number;
 			topic: number;
 			blockType: BlockType;
-			sequenceId: number;
+			rank: string;
 	  }
-	| { type: "MOVE_BLOCK"; block: number; sequenceId: number }
+	| { type: "MOVE_BLOCK"; block: number; rank: string }
 	| { type: "REMOVE_BLOCK"; block: number };
 
 export type TextBlockMutation = {

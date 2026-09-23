@@ -73,7 +73,7 @@ CREATE TABLE topics(
 	id BIGINT NOT NULL GENERATED ALWAYS AS IDENTITY,
 	organisation_id BIGINT NOT NULL,
 	meeting_id BIGINT NOT NULL,
-	sequence_id INTEGER NOT NULL,
+	rank TEXT NOT NULL,
 	name TEXT NOT NULL,
 	description TEXT NOT NULL,
 	duration INTEGER,
@@ -91,7 +91,7 @@ CREATE TABLE blocks(
 	id BIGINT NOT NULL GENERATED ALWAYS AS IDENTITY,
 	organisation_id BIGINT NOT NULL,
 	topic_id BIGINT NOT NULL,
-	sequence_id INTEGER NOT NULL,
+	rank TEXT NOT NULL,
 	type INTEGER NOT NULL,
 
 	PRIMARY KEY(id),

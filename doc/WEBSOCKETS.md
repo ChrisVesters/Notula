@@ -128,7 +128,7 @@ client-id:9d4e1b06-7c52-4f38-b1a9-6e83d0c5f2b7      <- the tab
 change-id:7c6f0d54-2f70-4a1e-9f5a-1d4c8b2e0a11      <- this change
 content-type:application/json
 
-{"type":"ADD_TOPIC","sequenceId":2,"name":"Blockers"}^@
+{"type":"ADD_TOPIC","afterId":32,"name":"Blockers"}^@
 ```
 
 The ids are headers rather than body fields because a refusal has to name the
@@ -340,12 +340,13 @@ its own outstanding change ids — which it must hold anyway, to correlate
 refusals — could recognise its own events from that set. The tab identity would
 fall out of the change identity, and one client-minted UUID would do both jobs.
 
-The obstacle is fan-out. One change can produce many events: `REMOVE_TOPIC`
-emits a `Delete` plus a `Move` per following topic, so a change id cannot be
-retired when its first event arrives, and there is currently no signal saying a
-change is finished. Closing that gap means either an explicit end-of-change
-acknowledgement to the originating session, or keeping `client-id` for the
-coarse "was this mine" test and letting `change-id` do only correlation.
+The obstacle used to be fan-out: `REMOVE_TOPIC` emitted a `Delete` plus a `Move`
+per following topic, so a change id could not be retired when its first event
+arrived. Both halves of that are now gone — fractional ranks made a change
+produce a single event, and `/user/queue/acks` says explicitly which change
+committed and at what revision. What is left is a question of taste rather than
+a missing signal: whether `client-id` keeps the coarse "was this mine" test or
+`change-id` takes over both jobs.
 
 Decide it when optimistic apply lands, not before: that work determines whether
 an end-of-change signal exists, which is the fact the choice turns on. Until

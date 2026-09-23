@@ -2,8 +2,6 @@ package com.cvesters.notula.block.bdo;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.verify;
 
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -14,38 +12,34 @@ class BlockActionTest {
 	class Create {
 
 		private static final long TOPIC_ID = 32L;
+		private static final Long AFTER_ID = 61L;
 
 		@Test
 		void success() {
 			final BlockType type = BlockType.TEXT;
-			final int sequenceId = 0;
 
-			final var action = new BlockAction.Create(TOPIC_ID, type,
-					sequenceId);
+			final var action = new BlockAction.Create(TOPIC_ID, type, AFTER_ID);
 
 			assertThat(action.getTopicId()).isEqualTo(TOPIC_ID);
 			assertThat(action.getType()).isEqualTo(type);
-			assertThat(action.getSequenceId()).isEqualTo(sequenceId);
+			assertThat(action.getAfterId()).contains(AFTER_ID);
+		}
+
+		@Test
+		void first() {
+			final var action = new BlockAction.Create(TOPIC_ID, BlockType.TEXT,
+					null);
+
+			assertThat(action.getTopicId()).isEqualTo(TOPIC_ID);
+			assertThat(action.getType()).isEqualTo(BlockType.TEXT);
+			assertThat(action.getAfterId()).isEmpty();
 		}
 
 		@Test
 		void typeNull() {
-			final BlockType type = null;
-			final int sequenceId = 0;
-
 			assertThatThrownBy(
-					() -> new BlockAction.Create(TOPIC_ID, type, sequenceId))
+					() -> new BlockAction.Create(TOPIC_ID, null, AFTER_ID))
 							.isInstanceOf(NullPointerException.class);
-		}
-
-		@Test
-		void sequenceIdNegative() {
-			final BlockType type = BlockType.TEXT;
-			final int sequenceId = -1;
-
-			assertThatThrownBy(
-					() -> new BlockAction.Create(TOPIC_ID, type, sequenceId))
-							.isInstanceOf(IllegalArgumentException.class);
 		}
 	}
 
@@ -54,39 +48,16 @@ class BlockActionTest {
 
 		@Test
 		void constructor() {
-			final int sequenceId = 2;
+			final var action = new BlockAction.Move(61L);
 
-			final var action = new BlockAction.Move(sequenceId);
-
-			assertThat(action.getSequenceId()).isEqualTo(sequenceId);
+			assertThat(action.getAfterId()).contains(61L);
 		}
 
 		@Test
-		void sequenceIdNegative() {
-			final int sequenceId = -1;
+		void first() {
+			final var action = new BlockAction.Move(null);
 
-			assertThatThrownBy(() -> new BlockAction.Move(sequenceId))
-					.isInstanceOf(IllegalArgumentException.class);
-		}
-
-		@Test
-		void apply() {
-			final int sequenceId = 2;
-			final BlockInfo block = mock();
-
-			final var action = new BlockAction.Move(sequenceId);
-
-			action.apply(block);
-
-			verify(block).setSequenceId(sequenceId);
-		}
-
-		@Test
-		void blockNull() {
-			final var action = new BlockAction.Move(0);
-
-			assertThatThrownBy(() -> action.apply(null))
-					.isInstanceOf(NullPointerException.class);
+			assertThat(action.getAfterId()).isEmpty();
 		}
 	}
 

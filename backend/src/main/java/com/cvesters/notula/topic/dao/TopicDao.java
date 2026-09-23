@@ -16,6 +16,7 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 
 import com.cvesters.notula.common.domain.Minutes;
+import com.cvesters.notula.common.domain.Rank;
 import com.cvesters.notula.topic.bdo.TopicInfo;
 
 @Getter
@@ -33,8 +34,8 @@ public class TopicDao {
 	@Column(name = "meeting_id", nullable = false, updatable = false)
 	private long meetingId;
 
-	@Column(name = "sequence_id", nullable = false)
-	private int sequenceId;
+	@Column(nullable = false)
+	private String rank;
 
 	@Column(nullable = false)
 	private String name;
@@ -50,7 +51,7 @@ public class TopicDao {
 
 		this.organisationId = topic.getOrganisationId();
 		this.meetingId = topic.getMeetingId();
-		this.sequenceId = topic.getSequenceId();
+		this.rank = topic.getRank().value();
 		this.name = topic.getName();
 		this.description = topic.getDescription();
 		this.duration = topic.getDuration()
@@ -61,7 +62,7 @@ public class TopicDao {
 	public void update(final TopicInfo bdo) {
 		Objects.requireNonNull(bdo);
 
-		this.sequenceId = bdo.getSequenceId();
+		this.rank = bdo.getRank().value();
 		this.name = bdo.getName();
 		this.description = bdo.getDescription();
 		this.duration = bdo.getDuration()
@@ -76,7 +77,7 @@ public class TopicDao {
 				.map(Minutes::new)
 				.orElse(null);
 
-		return new TopicInfo(id, organisationId, meetingId, sequenceId, name,
-				description, d);
+		return new TopicInfo(id, organisationId, meetingId, new Rank(rank),
+				name, description, d);
 	}
 }

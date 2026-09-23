@@ -20,7 +20,7 @@ public final class BlockActionMatcher {
 		public void assertEquals(final BlockAction.Create actual) {
 			assertThat(actual.getTopicId()).isEqualTo(expected.getTopicId());
 			assertThat(actual.getType()).isEqualTo(expected.getType());
-			assertThat(actual.getSequenceId()).isEqualTo(expected.getSequenceId());
+			assertThat(actual.getAfterId()).isEqualTo(expected.getAfterId());
 		}
 	}
 
@@ -32,8 +32,8 @@ public final class BlockActionMatcher {
 
 		@Override
 		public void assertEquals(final BlockAction.Move actual) {
-			assertThat(actual.getSequenceId())
-					.isEqualTo(expected.getSequenceId());
+			assertThat(actual.getAfterId())
+					.isEqualTo(expected.getAfterId());
 		}
 	}
 }

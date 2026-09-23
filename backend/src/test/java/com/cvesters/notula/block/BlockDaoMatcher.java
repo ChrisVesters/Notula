@@ -26,8 +26,7 @@ public class BlockDaoMatcher {
 					.isEqualTo(expected.getOrganisationId());
 			assertThat(saved.getTopicId()).isEqualTo(expected.getTopicId());
 			assertThat(saved.getType()).isEqualTo(expected.getType());
-			assertThat(saved.getSequenceId())
-					.isEqualTo(expected.getSequenceId());
+			assertThat(saved.getRank()).isEqualTo(expected.getRank());
 			return true;
 		}, "created");
 	}
@@ -43,7 +42,7 @@ public class BlockDaoMatcher {
 					.isEqualTo(saved.getOrganisationId());
 			assertThat(found.getTopicId()).isEqualTo(saved.getTopicId());
 			assertThat(found.getType()).isEqualTo(saved.getType());
-			assertThat(found.getSequenceId()).isEqualTo(saved.getSequenceId());
+			assertThat(found.getRank()).isEqualTo(saved.getRank());
 			return true;
 		}, "found");
 

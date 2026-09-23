@@ -1,6 +1,5 @@
 package com.cvesters.notula.block;
 
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 
@@ -11,6 +10,7 @@ import com.cvesters.notula.block.bdo.BlockEvent;
 import com.cvesters.notula.block.bdo.BlockInfo;
 import com.cvesters.notula.common.domain.Origin;
 import com.cvesters.notula.common.domain.Principal;
+import com.cvesters.notula.common.domain.Rank;
 import com.cvesters.notula.common.exception.MissingEntityException;
 import com.cvesters.notula.meeting.EventPublisher;
 import com.cvesters.notula.meeting.bdo.MeetingScope;
@@ -60,31 +60,20 @@ public class BlockService {
 		final TopicInfo topic = topicService.getById(origin.principal(),
 				scope.meetingId(), action.getTopicId());
 
-		final List<BlockInfo> existingBlocks = blockStorage
+		final List<BlockInfo> siblings = blockStorage
 				.findAllByTopicId(topic.getId());
-		if (action.getSequenceId() > existingBlocks.size()) {
-			throw new IllegalArgumentException();
-		}
 
-		final var events = new ArrayList<BlockEvent>();
-		for (final BlockInfo b : existingBlocks) {
-			if (b.getSequenceId() < action.getSequenceId()) {
-				continue;
-			}
+		final BlockInfo after = action.getAfterId()
+				.map(id -> find(siblings, id))
+				.orElse(null);
 
-			final int updatedSequenceId = b.getSequenceId() + 1;
-			final var move = new BlockAction.Move(updatedSequenceId);
-			move.apply(b);
-			final BlockInfo updatedBlock = blockStorage.update(b);
-			events.add(new BlockEvent(updatedBlock, move, origin));
-		}
+		final Rank rank = Rank.after(after, siblings, BlockInfo::getRank);
 
 		final var block = new BlockInfo(topic.getOrganisationId(),
-				topic.getId(), action.getType(), action.getSequenceId());
+				topic.getId(), action.getType(), rank);
 		final BlockInfo created = blockStorage.create(block);
-		events.add(new BlockEvent(created, action, origin));
 
-		events.forEach(e -> eventPublisher.publish(scope, e));
+		eventPublisher.publish(scope, new BlockEvent(created, action, origin));
 
 		return created;
 	}
@@ -97,46 +86,25 @@ public class BlockService {
 
 		final BlockInfo block = getById(origin.principal(), scope.meetingId(),
 				blockId);
-		final int from = block.getSequenceId();
-		final int to = action.getSequenceId();
-		final int direction = Integer.signum(to - from);
-		if (direction == 0) {
-			eventPublisher.publish(scope,
-					new BlockEvent(block, action, origin));
 
-			return block;
-		}
-
-		final List<BlockInfo> existingBlocks = blockStorage
-				.findAllByTopicId(block.getTopicId());
-		if (to >= existingBlocks.size()) {
-			throw new IllegalArgumentException();
-		}
-
-		final int min = Math.min(from + direction, to);
-		final int max = Math.max(from + direction, to);
-		final List<BlockInfo> toUpdateBlocks = existingBlocks.stream()
-				.filter(b -> b.getSequenceId() >= min)
-				.filter(b -> b.getSequenceId() <= max)
+		final List<BlockInfo> siblings = blockStorage
+				.findAllByTopicId(block.getTopicId())
+				.stream()
+				.filter(b -> b.getId() != blockId)
 				.toList();
 
-		final var events = new ArrayList<BlockEvent>();
+		final BlockInfo after = action.getAfterId()
+				.map(id -> find(siblings, id))
+				.orElse(null);
 
-		action.apply(block);
+		final Rank rank = Rank.after(after, siblings, BlockInfo::getRank);
+		block.setRank(rank);
+
 		final BlockInfo updated = blockStorage.update(block);
-		events.add(new BlockEvent(updated, action, origin));
 
-		for (final BlockInfo b : toUpdateBlocks) {
-			final int updatedSequenceId = b.getSequenceId() - direction;
-			final var move = new BlockAction.Move(updatedSequenceId);
-			move.apply(b);
-			final BlockInfo updatedBlock = blockStorage.update(b);
-			events.add(new BlockEvent(updatedBlock, move, origin));
-		}
+		eventPublisher.publish(scope, new BlockEvent(updated, action, origin));
 
-		events.forEach(e -> eventPublisher.publish(scope, e));
-
-		return block;
+		return updated;
 	}
 
 	public void delete(final Origin origin, final MeetingScope scope,
@@ -144,27 +112,19 @@ public class BlockService {
 		Objects.requireNonNull(origin);
 		Objects.requireNonNull(scope);
 
-		final BlockInfo blockInfo = getById(origin.principal(),
-				scope.meetingId(), blockId);
-		blockStorage.delete(blockInfo);
+		final BlockInfo block = getById(origin.principal(), scope.meetingId(),
+				blockId);
+		blockStorage.delete(block);
 
-		final var events = new ArrayList<BlockEvent>();
-		events.add(new BlockEvent(blockInfo, new BlockAction.Delete(), origin));
+		eventPublisher.publish(scope,
+				new BlockEvent(block, new BlockAction.Delete(), origin));
+	}
 
-		final List<BlockInfo> existingBlocks = blockStorage
-				.findAllByTopicId(blockInfo.getTopicId());
-		for (final BlockInfo b : existingBlocks) {
-			if (b.getSequenceId() <= blockInfo.getSequenceId()) {
-				continue;
-			}
-
-			final int updatedSequenceId = b.getSequenceId() - 1;
-			final var move = new BlockAction.Move(updatedSequenceId);
-			move.apply(b);
-			final BlockInfo updatedBlock = blockStorage.update(b);
-			events.add(new BlockEvent(updatedBlock, move, origin));
-		}
-
-		events.forEach(e -> eventPublisher.publish(scope, e));
+	private static BlockInfo find(final List<BlockInfo> elements,
+			final long blockId) {
+		return elements.stream()
+				.filter(b -> b.getId() == blockId)
+				.findFirst()
+				.orElseThrow(MissingEntityException::new);
 	}
 }

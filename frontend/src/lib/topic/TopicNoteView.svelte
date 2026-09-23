@@ -5,11 +5,13 @@
 
 	import { BlockType } from "$lib/block/BlockTypes";
 	import BlockView from "$lib/block/BlockView.svelte";
-	import type { TopicDetails } from "$lib/details/DetailTypes";
+	import ReorderList from "$lib/common/ReorderList.svelte";
+	import type { BlockDetails, TopicDetails } from "$lib/details/DetailTypes";
 	import type { UpdateAction } from "$lib/editor/ActionTypes";
 	import Input from "$lib/editor/Input.svelte";
 	import FeedbackButton from "$lib/form/FeedbackButton.svelte";
 
+	import { Rank } from "$lib/common/Rank";
 	import MeetingWebSocketClient from "$lib/meeting/MeetingWebSocketClient";
 
 	export type TopicNoteViewProps = {
@@ -19,7 +21,7 @@
 	let { topic = $bindable() }: TopicNoteViewProps = $props();
 
 	let blocks = $derived(
-		topic.blocks.toSorted((a, b) => a.sequenceId - b.sequenceId)
+		topic.blocks.toSorted((a, b) => Rank.compare(a.rank, b.rank))
 	);
 
 	const handleUpdateTopicName = (edit: UpdateAction) => {
@@ -35,11 +37,19 @@
 			type: "ADD_BLOCK",
 			topic: topic.id,
 			blockType: BlockType.TEXT,
-			sequenceId: topic.blocks.length
+			afterId: blocks.at(-1)?.id ?? null
 		});
 
 		return Promise.resolve();
 	}
+
+	const handleMoveBlock = (blockId: number, afterId: number | null) => {
+		MeetingWebSocketClient.send({
+			type: "MOVE_BLOCK",
+			block: blockId,
+			afterId
+		});
+	};
 </script>
 
 <Input
@@ -55,16 +65,8 @@
 	</span>
 </FeedbackButton>
 
-<ul class="blocks">
-	{#each blocks as block, index (block.id)}
+<ReorderList items={blocks} onMove={handleMoveBlock}>
+	{#snippet item(_: BlockDetails, index: number)}
 		<BlockView bind:block={blocks[index]} />
-	{/each}
-</ul>
-
-<style>
-	.blocks {
-		list-style: none;
-		margin: 0;
-		padding: 0;
-	}
-</style>
+	{/snippet}
+</ReorderList>

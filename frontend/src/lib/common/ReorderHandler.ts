@@ -7,61 +7,86 @@ export const DropPosition = {
 
 export type DropPosition = (typeof DropPosition)[keyof typeof DropPosition];
 
+export type DropTarget = {
+	id: number;
+	position: DropPosition;
+};
+
 export type ReorderHandlerOptions = {
-	sequenceId: number;
-	onDragChange: (dragged: boolean) => void;
-	onDropChange: (position: DropPosition | null) => void;
-	onMove: (sequenceId: number) => void;
+	order: () => ReadonlyArray<number>;
+	onDragChange: (id: number | null) => void;
+	onDropChange: (target: DropTarget | null) => void;
+	onMove: (id: number, afterId: number | null) => void;
 };
 
-type DragSource = {
-	list: Element;
-	sequenceId: number;
-	move: (sequenceId: number) => void;
-};
-
+const ITEM = "[data-reorder-id]";
 const HANDLE = "[data-reorder-handle]";
 
-/** Only a single item can be dragged at a time. */
-let source: DragSource | null = null;
-
-/**
- * Makes an item of a sorted list re-orderable by dragging it onto one of its
- * siblings. Items can only be dropped onto siblings within the same list.
- *
- * The drag is started from the descendant marked with `data-reorder-handle`.
- */
-// TODO: review and see if you can clean up this logic
 export const reorderHandler = (
 	options: ReorderHandlerOptions
 ): Attachment<HTMLElement> => {
-	return (node: HTMLElement) => {
-		let position: DropPosition | null = null;
+	return (list: HTMLElement) => {
+		let armed: HTMLElement | null = null;
+		let dragged: number | null = null;
+		let target: DropTarget | null = null;
 
-		const setPosition = (value: DropPosition | null) => {
-			if (position === value) {
+		const itemOf = (element: EventTarget | null): HTMLElement | null => {
+			if (!(element instanceof Element)) {
+				return null;
+			}
+
+			const item = element.closest<HTMLElement>(ITEM);
+
+			return item?.parentElement === list ? item : null;
+		};
+
+		const idOf = (item: HTMLElement) => Number(item.dataset.reorderId);
+
+		const setDragged = (value: number | null) => {
+			dragged = value;
+			options.onDragChange(value);
+		};
+
+		const setTarget = (value: DropTarget | null) => {
+			if (
+				target?.id === value?.id &&
+				target?.position === value?.position
+			) {
 				return;
 			}
 
-			position = value;
+			target = value;
 			options.onDropChange(value);
 		};
 
-		const handlePointerDown = (event: PointerEvent) => {
-			// The item is only draggable while its handle is held, so that any
-			// text it contains remains selectable.
-			const target = event.target;
-
-			node.draggable =
-				target instanceof Element && target.closest(HANDLE) !== null;
+		const disarm = () => {
+			if (armed) {
+				armed.draggable = false;
+				armed = null;
+			}
 		};
 
-		const handlePointerUp = () => {
-			node.draggable = false;
+		const handlePointerDown = (event: PointerEvent) => {
+			disarm();
+
+			// The item is only draggable while its handle is held, so that any
+			// text it contains remains selectable.
+			const handle =
+				event.target instanceof Element
+					? event.target.closest(HANDLE)
+					: null;
+			const item = itemOf(handle);
+
+			if (item && item === itemOf(event.target)) {
+				item.draggable = true;
+				armed = item;
+			}
 		};
 
 		const handleDragStart = (event: DragEvent) => {
-			if (!event.dataTransfer || !node.parentElement) {
+			const item = itemOf(event.target);
+
+			if (!event.dataTransfer || !item || item !== event.target) {
 				return;
 			}
 
@@ -69,94 +94,85 @@ export const reorderHandler = (
 			// Firefox only starts a drag once data has been set.
 			event.dataTransfer.setData("text/plain", "");
 
-			source = {
-				list: node.parentElement,
-				sequenceId: options.sequenceId,
-				move: options.onMove
-			};
-
-			options.onDragChange(true);
+			setDragged(idOf(item));
 		};
 
 		const handleDragEnd = () => {
-			node.draggable = false;
-			source = null;
-
-			options.onDragChange(false);
-			setPosition(null);
+			disarm();
+			setDragged(null);
+			setTarget(null);
 		};
 
 		const handleDragOver = (event: DragEvent) => {
-			if (!event.dataTransfer || source?.list !== node.parentElement) {
+			const item = itemOf(event.target);
+
+			if (!event.dataTransfer || dragged === null || !item) {
 				return;
 			}
 
 			event.preventDefault();
 			event.dataTransfer.dropEffect = "move";
 
-			const bounds = node.getBoundingClientRect();
+			const bounds = item.getBoundingClientRect();
 			const middle = bounds.top + bounds.height / 2;
 
-			setPosition(
-				event.clientY < middle
-					? DropPosition.BEFORE
-					: DropPosition.AFTER
-			);
+			setTarget({
+				id: idOf(item),
+				position:
+					event.clientY < middle
+						? DropPosition.BEFORE
+						: DropPosition.AFTER
+			});
 		};
 
 		const handleDragLeave = (event: DragEvent) => {
-			// Moving onto one of its own descendants is not leaving the item.
-			const target = event.relatedTarget;
-
-			if (target instanceof Node && node.contains(target)) {
-				return;
+			if (itemOf(event.relatedTarget) === null) {
+				setTarget(null);
 			}
-
-			setPosition(null);
 		};
 
 		const handleDrop = (event: DragEvent) => {
-			const dropped = source;
-			const droppedAt = position;
+			const id = dragged;
+			const at = target;
 
-			setPosition(null);
+			setTarget(null);
 
-			if (!dropped || droppedAt === null) {
+			if (id === null || at === null) {
 				return;
 			}
 
 			event.preventDefault();
 
-			// The index of the gap the item is dropped in, before removal.
-			const gap =
-				droppedAt === DropPosition.BEFORE
-					? options.sequenceId
-					: options.sequenceId + 1;
-			const sequenceId = gap > dropped.sequenceId ? gap - 1 : gap;
+			const order = options.order();
+			const previousOf = (other: number) =>
+				order[order.indexOf(other) - 1] ?? null;
 
-			if (sequenceId === dropped.sequenceId) {
+			const afterId =
+				at.position === DropPosition.BEFORE ? previousOf(at.id) : at.id;
+
+			if (afterId === id || afterId === previousOf(id)) {
 				return;
 			}
 
-			dropped.move(sequenceId);
+			options.onMove(id, afterId);
 		};
 
-		node.addEventListener("pointerdown", handlePointerDown);
-		node.addEventListener("pointerup", handlePointerUp);
-		node.addEventListener("dragstart", handleDragStart);
-		node.addEventListener("dragend", handleDragEnd);
-		node.addEventListener("dragover", handleDragOver);
-		node.addEventListener("dragleave", handleDragLeave);
-		node.addEventListener("drop", handleDrop);
+		list.addEventListener("pointerdown", handlePointerDown);
+		list.addEventListener("pointerup", disarm);
+		list.addEventListener("dragstart", handleDragStart);
+		list.addEventListener("dragend", handleDragEnd);
+		list.addEventListener("dragover", handleDragOver);
+		list.addEventListener("dragleave", handleDragLeave);
+		list.addEventListener("drop", handleDrop);
 
 		return () => {
-			node.removeEventListener("pointerdown", handlePointerDown);
-			node.removeEventListener("pointerup", handlePointerUp);
-			node.removeEventListener("dragstart", handleDragStart);
-			node.removeEventListener("dragend", handleDragEnd);
-			node.removeEventListener("dragover", handleDragOver);
-			node.removeEventListener("dragleave", handleDragLeave);
-			node.removeEventListener("drop", handleDrop);
+			list.removeEventListener("pointerdown", handlePointerDown);
+			list.removeEventListener("pointerup", disarm);
+			list.removeEventListener("dragstart", handleDragStart);
+			list.removeEventListener("dragend", handleDragEnd);
+			list.removeEventListener("dragover", handleDragOver);
+			list.removeEventListener("dragleave", handleDragLeave);
+			list.removeEventListener("drop", handleDrop);
 		};
 	};
 };

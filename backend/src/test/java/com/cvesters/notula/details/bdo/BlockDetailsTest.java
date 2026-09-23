@@ -23,8 +23,7 @@ class BlockDetailsTest {
 			final var details = new BlockDetails(blockInfo, content);
 
 			assertThat(details.getId()).isEqualTo(block.getId());
-			assertThat(details.getSequenceId())
-					.isEqualTo(block.getSequenceId());
+			assertThat(details.getRank()).isEqualTo(block.getRank());
 			assertThat(details.getContent()).isEqualTo(content);
 		}
 

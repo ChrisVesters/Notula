@@ -67,7 +67,7 @@ class MeetingWebSocketTest extends WebSocketTest {
 			send(ENDPOINT, CHANGE_ID, payload("""
 					{
 						"type": "ADD_TOPIC",
-						"sequenceId": 2,
+						"afterId": 2,
 						"name": "Blockers"
 					}
 					"""));
@@ -76,7 +76,7 @@ class MeetingWebSocketTest extends WebSocketTest {
 					.apply(eq(ORIGIN), eq(MEETING.getId()), argThat(change -> {
 						final var add = (TopicChangeDto.Add) change;
 
-						assertThat(add.sequenceId()).isEqualTo(2);
+						assertThat(add.afterId()).isEqualTo(2L);
 						assertThat(add.name()).isEqualTo("Blockers");
 						return true;
 					}));
@@ -151,7 +151,7 @@ class MeetingWebSocketTest extends WebSocketTest {
 			connect(SESSION);
 			final FrameHandler rejections = subscribeToRejections();
 			send(ENDPOINT, CHANGE_ID, payload("""
-					{ "type": "ADD_TOPIC", "sequenceId": -1, "name": "x" }
+					{ "type": "ADD_TOPIC", "afterId": -1, "name": "x" }
 					"""));
 
 			assertThat(rejections.getResponse())

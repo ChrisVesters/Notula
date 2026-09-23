@@ -42,6 +42,7 @@ class ChangeServiceTest {
 
 	private static final long TOPIC_ID = 32L;
 	private static final long BLOCK_ID = 61L;
+	private static final Long AFTER_ID = 7L;
 
 	private final TestMeetingLock meetingLock = new TestMeetingLock();
 
@@ -57,7 +58,7 @@ class ChangeServiceTest {
 	class Apply {
 
 		@BeforeEach
-		void revision() {
+		void setup() {
 			meetingLock.passThrough(REVISION);
 		}
 
@@ -79,10 +80,10 @@ class ChangeServiceTest {
 		@Test
 		void addTopic() {
 			changeService.apply(ORIGIN, MEETING_ID,
-					new TopicChangeDto.Add(2, "Blockers"));
+					new TopicChangeDto.Add(AFTER_ID, "Blockers"));
 
 			verify(topics).create(eq(ORIGIN), eq(SCOPE), argThat(action -> {
-				assertThat(action.getSequenceId()).isEqualTo(2);
+				assertThat(action.getAfterId()).contains(AFTER_ID);
 				assertThat(action.getName()).isEqualTo("Blockers");
 				return true;
 			}));
@@ -91,11 +92,11 @@ class ChangeServiceTest {
 		@Test
 		void moveTopic() {
 			changeService.apply(ORIGIN, MEETING_ID,
-					new TopicChangeDto.Move(TOPIC_ID, 1));
+					new TopicChangeDto.Move(TOPIC_ID, AFTER_ID));
 
 			verify(topics).move(eq(ORIGIN), eq(SCOPE), eq(TOPIC_ID),
 					argThat(action -> {
-						assertThat(action.getSequenceId()).isEqualTo(1);
+						assertThat(action.getAfterId()).contains(AFTER_ID);
 						return true;
 					}));
 		}
@@ -116,8 +117,6 @@ class ChangeServiceTest {
 					}));
 		}
 
-		// The duration is only readable by applying the action, so routing to
-		// update rather than move is all this can assert here.
 		@Test
 		void scheduleTopic() {
 			changeService.apply(ORIGIN, MEETING_ID,
@@ -138,12 +137,12 @@ class ChangeServiceTest {
 		@Test
 		void addBlock() {
 			changeService.apply(ORIGIN, MEETING_ID,
-					new BlockChangeDto.Add(TOPIC_ID, BlockType.TEXT, 1));
+					new BlockChangeDto.Add(TOPIC_ID, BlockType.TEXT, AFTER_ID));
 
 			verify(blocks).create(eq(ORIGIN), eq(SCOPE), argThat(action -> {
 				assertThat(action.getTopicId()).isEqualTo(TOPIC_ID);
 				assertThat(action.getType()).isEqualTo(BlockType.TEXT);
-				assertThat(action.getSequenceId()).isEqualTo(1);
+				assertThat(action.getAfterId()).contains(AFTER_ID);
 				return true;
 			}));
 		}
@@ -151,11 +150,11 @@ class ChangeServiceTest {
 		@Test
 		void moveBlock() {
 			changeService.apply(ORIGIN, MEETING_ID,
-					new BlockChangeDto.Move(BLOCK_ID, 3));
+					new BlockChangeDto.Move(BLOCK_ID, AFTER_ID));
 
 			verify(blocks).move(eq(ORIGIN), eq(SCOPE), eq(BLOCK_ID),
 					argThat(action -> {
-						assertThat(action.getSequenceId()).isEqualTo(3);
+						assertThat(action.getAfterId()).contains(AFTER_ID);
 						return true;
 					}));
 		}

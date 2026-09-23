@@ -13,6 +13,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.InvalidDataAccessApiUsageException;
 import org.springframework.test.context.jdbc.Sql;
 
+import com.cvesters.notula.common.domain.Rank;
 import com.cvesters.notula.meeting.TestMeeting;
 import com.cvesters.notula.meeting.dao.MeetingDao;
 import com.cvesters.notula.organisation.TestOrganisation;
@@ -93,11 +94,11 @@ class TopicRepositoryTest extends RepositoryTest {
 		void success() {
 			final TestMeeting meeting = TestMeeting.SPORER_Q2_PLANNING;
 			final TestOrganisation organisation = meeting.getOrganisation();
-			final int sequenceId = 0;
+			final var rank = new Rank("1");
 			final String name = "New Product Launches";
 
 			final var bdo = new TopicInfo(organisation.getId(), meeting.getId(),
-					sequenceId, name);
+					rank, name);
 			final var dao = new TopicDao(bdo);
 
 			final TopicDao saved = topicRepository.save(dao);
@@ -106,7 +107,7 @@ class TopicRepositoryTest extends RepositoryTest {
 			assertThat(saved.getOrganisationId())
 					.isEqualTo(organisation.getId());
 			assertThat(saved.getMeetingId()).isEqualTo(meeting.getId());
-			assertThat(saved.getSequenceId()).isEqualTo(sequenceId);
+			assertThat(saved.getRank()).isEqualTo(rank.value());
 			assertThat(saved.getName()).isEqualTo(name);
 			assertThat(saved.getDescription()).isEmpty();
 			assertThat(saved.getDuration()).isNull();
@@ -118,7 +119,7 @@ class TopicRepositoryTest extends RepositoryTest {
 			assertThat(found.getOrganisationId())
 					.isEqualTo(saved.getOrganisationId());
 			assertThat(found.getMeetingId()).isEqualTo(saved.getMeetingId());
-			assertThat(found.getSequenceId()).isEqualTo(saved.getSequenceId());
+			assertThat(found.getRank()).isEqualTo(saved.getRank());
 			assertThat(found.getName()).isEqualTo(saved.getName());
 			assertThat(found.getDescription()).isEmpty();
 			assertThat(found.getDuration()).isNull();
@@ -178,7 +179,7 @@ class TopicRepositoryTest extends RepositoryTest {
 		assertThat(dao.getOrganisationId())
 				.isEqualTo(topic.getMeeting().getOrganisation().getId());
 		assertThat(dao.getMeetingId()).isEqualTo(topic.getMeeting().getId());
-		assertThat(dao.getSequenceId()).isEqualTo(topic.getSequenceId());
+		assertThat(dao.getRank()).isEqualTo(topic.getRank().value());
 		assertThat(dao.getName()).isEqualTo(topic.getName());
 		assertThat(dao.getDescription()).isEqualTo(topic.getDescription());
 		assertThat(dao.getDuration()).isEqualTo(topic.getDuration().value());

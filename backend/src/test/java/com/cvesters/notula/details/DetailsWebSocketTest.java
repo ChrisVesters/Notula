@@ -134,9 +134,9 @@ public class DetailsWebSocketTest extends WebSocketTest {
 					"duration": %s,
 					"id": %d,
 					"name": "%s",
-					"sequenceId": %d
+					"rank": "%s"
 				}
 				""".formatted(topic.getDescription(), duration, topic.getId(),
-				topic.getName(), topic.getSequenceId());
+				topic.getName(), topic.getRank().value());
 	}
 }

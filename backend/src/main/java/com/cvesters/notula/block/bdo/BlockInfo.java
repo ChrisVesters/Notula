@@ -6,6 +6,8 @@ import org.apache.commons.lang3.Validate;
 
 import lombok.Getter;
 
+import com.cvesters.notula.common.domain.Rank;
+
 @Getter
 public class BlockInfo {
 
@@ -13,23 +15,23 @@ public class BlockInfo {
 	private final long organisationId;
 	private final long topicId;
 	private final BlockType type;
-	private int sequenceId;
+	private Rank rank;
 
 	public BlockInfo(final long organisationId, final long topicId,
-			final BlockType type, final int sequenceId) {
-		this(null, organisationId, topicId, type, sequenceId);
+			final BlockType type, final Rank rank) {
+		this(null, organisationId, topicId, type, rank);
 	}
 
 	public BlockInfo(final Long id, final long organisationId,
-			final long topicId, final BlockType type, final int sequenceId) {
+			final long topicId, final BlockType type, final Rank rank) {
 		Objects.requireNonNull(type);
-		Validate.isTrue(sequenceId >= 0);
+		Objects.requireNonNull(rank);
 
 		this.id = id;
 		this.organisationId = organisationId;
 		this.topicId = topicId;
 		this.type = type;
-		this.sequenceId = sequenceId;
+		this.rank = rank;
 	}
 
 	public long getId() {
@@ -38,9 +40,9 @@ public class BlockInfo {
 		return id;
 	}
 
-	public void setSequenceId(final int sequenceId) {
-		Validate.isTrue(sequenceId >= 0);
+	public void setRank(final Rank rank) {
+		Objects.requireNonNull(rank);
 
-		this.sequenceId = sequenceId;
+		this.rank = rank;
 	}
 }

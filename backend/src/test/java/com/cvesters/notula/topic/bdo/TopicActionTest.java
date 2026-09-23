@@ -21,30 +21,27 @@ class TopicActionTest {
 
 		@Test
 		void success() {
-			final int sequenceId = 0;
+			final Long afterId = 7L;
 			final String name = "Name";
-			final var action = new TopicAction.Create(sequenceId, name);
+			final var action = new TopicAction.Create(afterId, name);
 
-			assertThat(action.getSequenceId()).isEqualTo(sequenceId);
+			assertThat(action.getAfterId()).contains(afterId);
 			assertThat(action.getName()).isEqualTo(name);
 		}
 
 		@Test
-		void invalidSequenceId() {
-			final int sequenceId = -1;
-			final String name = "Name";
-			assertThatThrownBy(
-					() -> new TopicAction.Create(sequenceId, name))
-							.isInstanceOf(IllegalArgumentException.class);
+		void first() {
+			final var action = new TopicAction.Create(null, "Name");
+
+			assertThat(action.getAfterId()).isEmpty();
+			assertThat(action.getName()).isEqualTo("Name");
+
 		}
 
 		@Test
 		void nameNull() {
-			final int sequenceId = 0;
-			final String name = null;
-			assertThatThrownBy(
-					() -> new TopicAction.Create(sequenceId, name))
-							.isInstanceOf(NullPointerException.class);
+			assertThatThrownBy(() -> new TopicAction.Create(7L, null))
+					.isInstanceOf(NullPointerException.class);
 		}
 	}
 
@@ -53,39 +50,16 @@ class TopicActionTest {
 
 		@Test
 		void constructor() {
-			final int sequenceId = 2;
+			final var action = new TopicAction.Move(7L);
 
-			final var action = new TopicAction.Move(sequenceId);
-
-			assertThat(action.getSequenceId()).isEqualTo(sequenceId);
+			assertThat(action.getAfterId()).contains(7L);
 		}
 
 		@Test
-		void sequenceIdNegative() {
-			final int sequenceId = -1;
+		void first() {
+			final var action = new TopicAction.Move(null);
 
-			assertThatThrownBy(() -> new TopicAction.Move(sequenceId))
-					.isInstanceOf(IllegalArgumentException.class);
-		}
-
-		@Test
-		void apply() {
-			final int sequenceId = 2;
-			final TopicInfo topic = mock();
-
-			final var action = new TopicAction.Move(sequenceId);
-
-			action.apply(topic);
-
-			verify(topic).setSequenceId(sequenceId);
-		}
-
-		@Test
-		void topicNull() {
-			final var action = new TopicAction.Move(0);
-
-			assertThatThrownBy(() -> action.apply(null))
-					.isInstanceOf(NullPointerException.class);
+			assertThat(action.getAfterId()).isEmpty();
 		}
 	}
 

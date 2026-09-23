@@ -2,6 +2,7 @@ package com.cvesters.notula.meeting.dto;
 
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Positive;
 import jakarta.validation.constraints.PositiveOrZero;
 
 import com.fasterxml.jackson.annotation.JsonUnwrapped;
@@ -11,17 +12,17 @@ import com.cvesters.notula.topic.bdo.TopicAction;
 
 public sealed interface TopicChangeDto extends ChangeDto {
 
-	record Add(@PositiveOrZero int sequenceId, @NotNull String name)
+	record Add(@Positive Long afterId, @NotNull String name)
 			implements TopicChangeDto {
 		public TopicAction.Create toBdo() {
-			return new TopicAction.Create(sequenceId, name);
+			return new TopicAction.Create(afterId, name);
 		}
 	}
 
-	record Move(long topic, @PositiveOrZero int sequenceId)
+	record Move(long topic, @Positive Long afterId)
 			implements TopicChangeDto {
 		public TopicAction.Move toBdo() {
-			return new TopicAction.Move(sequenceId);
+			return new TopicAction.Move(afterId);
 		}
 	}
 

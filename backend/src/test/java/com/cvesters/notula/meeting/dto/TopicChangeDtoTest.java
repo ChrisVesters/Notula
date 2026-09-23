@@ -12,6 +12,8 @@ import com.cvesters.notula.topic.bdo.TopicAction;
 
 class TopicChangeDtoTest {
 
+	private static final Long AFTER_ID = 7L;
+
 	private static final TestTopic TOPIC = TestTopic.SPORER_PROJECT_BLOCKERS;
 
 	private static final TextEditDto EDIT = new TextEditDto(4, 12, "Updated");
@@ -21,12 +23,12 @@ class TopicChangeDtoTest {
 
 		@Test
 		void toBdo() {
-			final var dto = new TopicChangeDto.Add(TOPIC.getSequenceId(),
+			final var dto = new TopicChangeDto.Add(AFTER_ID,
 					TOPIC.getName());
 
 			final TopicAction.Create bdo = dto.toBdo();
 
-			final var expected = new TopicAction.Create(TOPIC.getSequenceId(),
+			final var expected = new TopicAction.Create(AFTER_ID,
 					TOPIC.getName());
 			final var matcher = new TopicActionMatcher.Create(expected);
 			assertThat(bdo).is(matcher.equal());
@@ -38,12 +40,12 @@ class TopicChangeDtoTest {
 
 		@Test
 		void toBdo() {
-			final var dto = new TopicChangeDto.Move(TOPIC.getId(), 2);
+			final var dto = new TopicChangeDto.Move(TOPIC.getId(), AFTER_ID);
 
 			final TopicAction.Move bdo = dto.toBdo();
 
 			final var matcher = new TopicActionMatcher.Move(
-					new TopicAction.Move(2));
+					new TopicAction.Move(AFTER_ID));
 			assertThat(bdo).is(matcher.equal());
 		}
 	}

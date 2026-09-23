@@ -1,5 +1,6 @@
 package com.cvesters.notula.block;
 
+import java.util.Comparator;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
@@ -35,6 +36,7 @@ public class BlockStorageGateway {
 		return blockRepository.findAllByTopicId(topicId)
 				.stream()
 				.map(BlockDao::toBdo)
+				.sorted(Comparator.comparing(BlockInfo::getRank))
 				.toList();
 	}
 

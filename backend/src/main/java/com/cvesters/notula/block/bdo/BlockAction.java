@@ -1,8 +1,7 @@
 package com.cvesters.notula.block.bdo;
 
 import java.util.Objects;
-
-import org.apache.commons.lang3.Validate;
+import java.util.Optional;
 
 import lombok.Getter;
 
@@ -13,40 +12,33 @@ public sealed interface BlockAction {
 
 		private final long topicId;
 		private final BlockType type;
-		private final int sequenceId;
+		private final Long afterId;
 
 		public Create(final long topicId, final BlockType type,
-				final int sequenceId) {
+				final Long afterId) {
 			Objects.requireNonNull(type);
-			Validate.isTrue(sequenceId >= 0);
 
 			this.topicId = topicId;
 			this.type = type;
-			this.sequenceId = sequenceId;
+			this.afterId = afterId;
 		}
-	}
 
-	sealed interface Update extends BlockAction {
-
-		void apply(final BlockInfo block);
+		public Optional<Long> getAfterId() {
+			return Optional.ofNullable(afterId);
+		}
 	}
 
 	@Getter
-	final class Move implements BlockAction.Update {
+	final class Move implements BlockAction {
 
-		private final int sequenceId;
+		private final Long afterId;
 
-		public Move(final int sequenceId) {
-			Validate.isTrue(sequenceId >= 0);
-
-			this.sequenceId = sequenceId;
+		public Move(final Long afterId) {
+			this.afterId = afterId;
 		}
 
-		@Override
-		public void apply(final BlockInfo block) {
-			Objects.requireNonNull(block);
-
-			block.setSequenceId(sequenceId);
+		public Optional<Long> getAfterId() {
+			return Optional.ofNullable(afterId);
 		}
 	}
 

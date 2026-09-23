@@ -11,7 +11,7 @@ export type MeetingDetails = {
 
 export type TopicDetails = {
 	id: number;
-	sequenceId: number;
+	rank: string;
 	name: string;
 	description: string;
 	duration: number | null;
@@ -21,7 +21,7 @@ export type TopicDetails = {
 
 export type BlockDetails = {
 	id: number;
-	sequenceId: number;
+	rank: string;
 } & BlockContent;
 
 export type BlockContent = TextBlockContent;

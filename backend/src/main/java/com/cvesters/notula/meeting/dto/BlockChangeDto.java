@@ -1,7 +1,7 @@
 package com.cvesters.notula.meeting.dto;
 
 import jakarta.validation.constraints.NotNull;
-import jakarta.validation.constraints.PositiveOrZero;
+import jakarta.validation.constraints.Positive;
 
 import com.cvesters.notula.block.bdo.BlockAction;
 import com.cvesters.notula.block.bdo.BlockType;
@@ -9,16 +9,16 @@ import com.cvesters.notula.block.bdo.BlockType;
 public sealed interface BlockChangeDto extends ChangeDto {
 
 	record Add(long topic, @NotNull BlockType blockType,
-			@PositiveOrZero int sequenceId) implements BlockChangeDto {
+			@Positive Long afterId) implements BlockChangeDto {
 		public BlockAction.Create toBdo() {
-			return new BlockAction.Create(topic, blockType, sequenceId);
+			return new BlockAction.Create(topic, blockType, afterId);
 		}
 	}
 
-	record Move(long block, @PositiveOrZero int sequenceId)
+	record Move(long block, @Positive Long afterId)
 			implements BlockChangeDto {
 		public BlockAction.Move toBdo() {
-			return new BlockAction.Move(sequenceId);
+			return new BlockAction.Move(afterId);
 		}
 	}
 

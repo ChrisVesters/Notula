@@ -10,6 +10,7 @@ import java.util.UUID;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 
+import com.cvesters.notula.common.domain.Rank;
 import com.cvesters.notula.common.domain.Minutes;
 import com.cvesters.notula.common.domain.Origin;
 import com.cvesters.notula.session.TestSession;
@@ -29,30 +30,34 @@ class TopicMutationDtoTest {
 
 	private static final long TOPIC_ID = 32L;
 
+	private static final String RANK = "a1";
+
 	@Nested
 	class Of {
 
 		private static MutationDto of(final TopicAction action) {
 			final TopicInfo topic = mock();
 			when(topic.getId()).thenReturn(TOPIC_ID);
+			when(topic.getRank()).thenReturn(new Rank(RANK));
 
 			return TopicMutationDto.of(new TopicEvent(topic, action, ORIGIN));
 		}
 
 		@Test
 		void create() {
-			final var dto = of(new TopicAction.Create(2, "Blockers"));
+			final var dto = of(new TopicAction.Create(2L, "Blockers"));
 
-			final var expected = new TopicMutationDto.Add(TOPIC_ID, 2,
+			final var expected = new TopicMutationDto.Add(TOPIC_ID, RANK,
 					"Blockers");
 			assertThat(dto).isEqualTo(expected);
 		}
 
 		@Test
 		void move() {
-			final var dto = of(new TopicAction.Move(2));
+			final var dto = of(new TopicAction.Move(2L));
 
-			assertThat(dto).isEqualTo(new TopicMutationDto.Move(TOPIC_ID, 2));
+			assertThat(dto)
+					.isEqualTo(new TopicMutationDto.Move(TOPIC_ID, RANK));
 		}
 
 		@Test
@@ -120,13 +125,13 @@ class TopicMutationDtoTest {
 		@Test
 		void add() {
 			final String json = write(
-					new TopicMutationDto.Add(TOPIC_ID, 2, "Blockers"));
+					new TopicMutationDto.Add(TOPIC_ID, RANK, "Blockers"));
 
 			assertThat(json).isEqualToIgnoringWhitespace("""
 					{
 						"type": "ADD_TOPIC",
 						"topic": 32,
-						"sequenceId": 2,
+						"rank": "a1",
 						"name": "Blockers"
 					}
 					""");
@@ -134,13 +139,14 @@ class TopicMutationDtoTest {
 
 		@Test
 		void move() {
-			final String json = write(new TopicMutationDto.Move(TOPIC_ID, 2));
+			final String json = write(
+					new TopicMutationDto.Move(TOPIC_ID, RANK));
 
 			assertThat(json).isEqualToIgnoringWhitespace("""
 					{
 						"type": "MOVE_TOPIC",
 						"topic": 32,
-						"sequenceId": 2
+						"rank": "a1"
 					}
 					""");
 		}

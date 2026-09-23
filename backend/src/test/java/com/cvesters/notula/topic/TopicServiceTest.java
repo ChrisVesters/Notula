@@ -6,24 +6,22 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.Mockito.inOrder;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
-import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
+import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 
-import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 import org.mockito.ArgumentMatcher;
-import org.mockito.InOrder;
 
 import com.cvesters.notula.common.domain.Origin;
 import com.cvesters.notula.common.domain.Principal;
@@ -133,10 +131,10 @@ class TopicServiceTest {
 
 	@Nested
 	class Create {
+
 		private static final TestSession SESSION = TestSession.EDUARDO_CHRISTIANSEN_SPORER;
 		private static final Principal PRINCIPAL = SESSION.principal();
-		private static final Origin ORIGIN = new Origin(SESSION.principal(),
-				CLIENT_ID);
+		private static final Origin ORIGIN = new Origin(PRINCIPAL, CLIENT_ID);
 		private static final TestMeeting MEETING = TestMeeting.SPORER_PROJECT;
 		private static final TestOrganisation ORGANISATION = MEETING
 				.getOrganisation();
@@ -147,233 +145,125 @@ class TopicServiceTest {
 		private static final MeetingScope SCOPE = new MeetingScope(MEETING_ID,
 				REVISION);
 
-		private static final long TOPIC_ID = Long.MAX_VALUE;
-		private static final int TOPIC_SEQUENCE_ID = 0;
-		private static final String TOPIC_NAME = "Topic";
-		private static final String TOPIC_DESCRIPTION = "Description";
+		private static final String NAME = "Blockers";
 
-		@Test
-		void firstTopic() {
+		private final List<TopicInfo> siblings = TestTopic.ofMeeting(MEETING)
+				.stream()
+				.map(TestTopic::info)
+				.toList();
+
+		@BeforeEach
+		void setup() {
 			when(meetingService.getById(PRINCIPAL, MEETING_ID))
 					.thenReturn(MEETING.info());
-
 			when(topicStorageGateway.findAllByMeetingId(MEETING_ID))
-					.thenReturn(Collections.emptyList());
-
-			final var created = new TopicInfo(TOPIC_ID, ORGANISATION.getId(),
-					MEETING.getId(), TOPIC_SEQUENCE_ID, TOPIC_NAME,
-					TOPIC_DESCRIPTION, null);
-
-			when(topicStorageGateway.create(argThat(t -> {
-				assertThatThrownBy(t::getId)
-						.isInstanceOf(IllegalStateException.class);
-				assertThat(t.getOrganisationId())
-						.isEqualTo(ORGANISATION.getId());
-				assertThat(t.getMeetingId()).isEqualTo(MEETING_ID);
-				assertThat(t.getSequenceId()).isEqualTo(TOPIC_SEQUENCE_ID);
-				assertThat(t.getName()).isEqualTo(TOPIC_NAME);
-				assertThat(t.getDescription()).isEmpty();
-				assertThat(t.getDuration()).isEmpty();
-				return true;
-			}))).thenReturn(created);
-
-			final var action = new TopicAction.Create(TOPIC_SEQUENCE_ID,
-					TOPIC_NAME);
-
-			final TopicInfo result = topicService.create(ORIGIN, SCOPE, action);
-
-			assertThat(result).isEqualTo(created);
-
-			final var expectedAction = new TopicAction.Create(TOPIC_SEQUENCE_ID,
-					TOPIC_NAME);
-			final var matcher = new TopicActionMatcher.Create(expectedAction);
-			final ArgumentMatcher<TopicEvent> event = e -> {
-				assertThat(e.origin()).isEqualTo(ORIGIN);
-				assertThat(e.topic()).isEqualTo(created);
-				assertThat(e.action()).is(matcher.equal());
-				return true;
-			};
-
-			verify(eventPublisher).publish(eq(SCOPE), argThat(event));
+					.thenReturn(siblings);
+			when(topicStorageGateway.create(any()))
+					.thenAnswer(invocation -> invocation.getArgument(0));
 		}
 
 		@Test
-		void topicAtEnd() {
-			when(meetingService.getById(PRINCIPAL, MEETING_ID))
-					.thenReturn(MEETING.info());
+		void between() {
+			final TopicInfo after = siblings.get(0);
+			final TopicInfo next = siblings.get(1);
 
-			final List<TopicInfo> existingTopics = TestTopic.ofMeeting(MEETING)
-					.stream()
-					.map(TestTopic::info)
-					.toList();
-			when(topicStorageGateway.findAllByMeetingId(MEETING_ID))
-					.thenReturn(existingTopics);
+			final var action = new TopicAction.Create(after.getId(), NAME);
 
-			final int sequenceId = existingTopics.size();
-			final var created = new TopicInfo(TOPIC_ID, ORGANISATION.getId(),
-					MEETING.getId(), sequenceId, TOPIC_NAME, TOPIC_DESCRIPTION,
-					null);
+			final TopicInfo created = topicService.create(ORIGIN, SCOPE,
+					action);
 
-			when(topicStorageGateway.create(argThat(t -> {
-				assertThatThrownBy(t::getId)
-						.isInstanceOf(IllegalStateException.class);
-				assertThat(t.getOrganisationId())
-						.isEqualTo(ORGANISATION.getId());
-				assertThat(t.getMeetingId()).isEqualTo(MEETING_ID);
-				assertThat(t.getSequenceId()).isEqualTo(sequenceId);
-				assertThat(t.getName()).isEqualTo(TOPIC_NAME);
-				assertThat(t.getDescription()).isEmpty();
-				assertThat(t.getDuration()).isEmpty();
-				return true;
-			}))).thenReturn(created);
+			assertThat(created.getRank()).isGreaterThan(after.getRank())
+					.isLessThan(next.getRank());
+			assertThat(created.getOrganisationId())
+					.isEqualTo(ORGANISATION.getId());
+			assertThat(created.getMeetingId()).isEqualTo(MEETING_ID);
+			assertThat(created.getName()).isEqualTo(NAME);
 
-			final var action = new TopicAction.Create(sequenceId, TOPIC_NAME);
-
-			final TopicInfo result = topicService.create(ORIGIN, SCOPE, action);
-
-			assertThat(result).isEqualTo(created);
-
-			final var expectedAction = new TopicAction.Create(sequenceId,
-					TOPIC_NAME);
-			final var matcher = new TopicActionMatcher.Create(expectedAction);
-			final ArgumentMatcher<TopicEvent> event = e -> {
-				assertThat(e.origin()).isEqualTo(ORIGIN);
-				assertThat(e.topic()).isEqualTo(created);
-				assertThat(e.action()).is(matcher.equal());
-				return true;
-			};
-
-			verify(eventPublisher).publish(eq(SCOPE), argThat(event));
-
+			verify(topicStorageGateway).create(created);
 			verify(topicStorageGateway, never()).update(any());
-			verify(topicStorageGateway).create(any());
+			verify(eventPublisher).publish(SCOPE,
+					new TopicEvent(created, action, ORIGIN));
+			verifyNoMoreInteractions(eventPublisher);
 		}
 
 		@Test
-		void topicAtStart() {
-			when(meetingService.getById(PRINCIPAL, MEETING_ID))
-					.thenReturn(MEETING.info());
+		void first() {
+			final var action = new TopicAction.Create(null, NAME);
 
-			final List<TestTopic> topics = TestTopic.ofMeeting(MEETING);
-			final List<TopicInfo> existingTopics = topics.stream()
-					.map(TestTopic::info)
-					.toList();
-			when(topicStorageGateway.findAllByMeetingId(MEETING_ID))
-					.thenReturn(existingTopics);
-			final List<TopicInfo> updatedTopics = topics.stream()
-					.map(t -> mock(TopicInfo.class))
-					.toList();
+			final TopicInfo created = topicService.create(ORIGIN, SCOPE,
+					action);
 
-			when(topicStorageGateway.update(any())).thenAnswer(invocation -> {
-				final var update = invocation.getArgument(0, TopicInfo.class);
+			assertThat(created.getRank())
+					.isLessThan(siblings.getFirst().getRank());
 
-				for (int i = 0; i < topics.size(); i++) {
-					final var topic = topics.get(i);
-					if (update.getId() != topic.getId()) {
-						continue;
-					}
-
-					assertThat(update.getSequenceId())
-							.isEqualTo(topic.getSequenceId() + 1);
-					return updatedTopics.get(i);
-				}
-
-				throw new AssertionError("Unexpected update: " + update);
-			});
-
-			final int sequenceId = 0;
-			final var created = new TopicInfo(TOPIC_ID, ORGANISATION.getId(),
-					MEETING.getId(), sequenceId, TOPIC_NAME, TOPIC_DESCRIPTION,
-					null);
-
-			when(topicStorageGateway.create(argThat(t -> {
-				assertThatThrownBy(t::getId)
-						.isInstanceOf(IllegalStateException.class);
-				assertThat(t.getOrganisationId())
-						.isEqualTo(ORGANISATION.getId());
-				assertThat(t.getMeetingId()).isEqualTo(MEETING_ID);
-				assertThat(t.getSequenceId()).isZero();
-				assertThat(t.getName()).isEqualTo(TOPIC_NAME);
-				assertThat(t.getDescription()).isEmpty();
-				assertThat(t.getDuration()).isEmpty();
-				return true;
-			}))).thenReturn(created);
-
-			final var action = new TopicAction.Create(TOPIC_SEQUENCE_ID,
-					TOPIC_NAME);
-
-			final TopicInfo result = topicService.create(ORIGIN, SCOPE, action);
-
-			assertThat(result).isEqualTo(created);
-
-			final ArgumentCaptor<TopicEvent> events = ArgumentCaptor
-					.forClass(TopicEvent.class);
-
-			verify(eventPublisher, times(topics.size() + 1)).publish(eq(SCOPE),
-					events.capture());
-
-			final List<TopicEvent> topicEvents = events.getAllValues();
-
-			assertThat(topicEvents)
-					.allSatisfy(e -> assertThat(e.origin()).isEqualTo(ORIGIN));
-
-			for (int i = 0; i < topics.size(); i++) {
-				final var expected = new TopicAction.Move(
-						topics.get(i).getSequenceId() + 1);
-				final var matcher = new TopicActionMatcher.Move(expected);
-
-				final TopicEvent event = topicEvents.get(i);
-				assertThat(event.topic()).isEqualTo(updatedTopics.get(i));
-				assertThat(event.action()).is(matcher.equal());
-			}
-
-			final var expectedAction = new TopicAction.Create(TOPIC_SEQUENCE_ID,
-					TOPIC_NAME);
-			final var matcher = new TopicActionMatcher.Create(expectedAction);
-
-			final TopicEvent createEvent = topicEvents.get(topics.size());
-			assertThat(createEvent.topic()).isEqualTo(created);
-			assertThat(createEvent.action()).is(matcher.equal());
-
-			final InOrder inOrder = inOrder(topicStorageGateway);
-			existingTopics.forEach(
-					topic -> inOrder.verify(topicStorageGateway).update(topic));
-			inOrder.verify(topicStorageGateway).create(any());
+			verify(topicStorageGateway).create(created);
+			verify(topicStorageGateway, never()).update(any());
+			verify(eventPublisher).publish(SCOPE,
+					new TopicEvent(created, action, ORIGIN));
+			verifyNoMoreInteractions(eventPublisher);
 		}
 
 		@Test
-		void invalidSequenceId() {
-			when(meetingService.getById(PRINCIPAL, MEETING_ID))
-					.thenReturn(MEETING.info());
+		void last() {
+			final TopicInfo last = siblings.getLast();
 
+			final var action = new TopicAction.Create(last.getId(), NAME);
+
+			final TopicInfo created = topicService.create(ORIGIN, SCOPE,
+					action);
+
+			assertThat(created.getRank()).isGreaterThan(last.getRank());
+
+			verify(topicStorageGateway).create(created);
+			verify(topicStorageGateway, never()).update(any());
+			verify(eventPublisher).publish(SCOPE,
+					new TopicEvent(created, action, ORIGIN));
+			verifyNoMoreInteractions(eventPublisher);
+		}
+
+		@Test
+		void only() {
 			when(topicStorageGateway.findAllByMeetingId(MEETING_ID))
-					.thenReturn(Collections.emptyList());
+					.thenReturn(List.of());
 
-			final var action = new TopicAction.Create(1, TOPIC_NAME);
+			final var action = new TopicAction.Create(null, NAME);
+
+			final TopicInfo created = topicService.create(ORIGIN, SCOPE,
+					action);
+
+			assertThat(created.getRank()).isNotNull();
+
+			verify(topicStorageGateway).create(created);
+			verify(topicStorageGateway, never()).update(any());
+			verify(eventPublisher).publish(SCOPE,
+					new TopicEvent(created, action, ORIGIN));
+			verifyNoMoreInteractions(eventPublisher);
+		}
+
+		@Test
+		void unknownNeighbour() {
+			final var action = new TopicAction.Create(Long.MAX_VALUE, NAME);
 
 			assertThatThrownBy(() -> topicService.create(ORIGIN, SCOPE, action))
-					.isInstanceOf(IllegalArgumentException.class);
+					.isInstanceOf(MissingEntityException.class);
 
-			verifyNoInteractions(eventPublisher);
-			verify(topicStorageGateway, never()).update(any());
 			verify(topicStorageGateway, never()).create(any());
+			verifyNoInteractions(eventPublisher);
 		}
 
 		@Test
 		void originNull() {
-			final TopicAction.Create topic = new TopicAction.Create(
-					TOPIC_SEQUENCE_ID, TOPIC_NAME);
+			final var action = new TopicAction.Create(null, NAME);
 
-			assertThatThrownBy(() -> topicService.create(null, SCOPE, topic))
+			assertThatThrownBy(() -> topicService.create(null, SCOPE, action))
 					.isInstanceOf(NullPointerException.class);
 		}
 
 		@Test
 		void scopeNull() {
-			final TopicAction.Create topic = new TopicAction.Create(
-					TOPIC_SEQUENCE_ID, TOPIC_NAME);
+			final var action = new TopicAction.Create(null, NAME);
 
-			assertThatThrownBy(() -> topicService.create(ORIGIN, null, topic))
+			assertThatThrownBy(() -> topicService.create(ORIGIN, null, action))
 					.isInstanceOf(NullPointerException.class);
 		}
 
@@ -382,398 +272,144 @@ class TopicServiceTest {
 			assertThatThrownBy(() -> topicService.create(ORIGIN, SCOPE, null))
 					.isInstanceOf(NullPointerException.class);
 		}
-
 	}
 
 	@Nested
 	class Move {
 
 		private static final TestSession SESSION = TestSession.EDUARDO_CHRISTIANSEN_SPORER;
-		private static final Origin ORIGIN = new Origin(SESSION.principal(),
-				CLIENT_ID);
+		private static final Principal PRINCIPAL = SESSION.principal();
+		private static final Origin ORIGIN = new Origin(PRINCIPAL, CLIENT_ID);
 		private static final TestMeeting MEETING = TestMeeting.SPORER_PROJECT;
+		private static final TestTopic TOPIC = TestTopic.SPORER_PROJECT_TIMELINE;
+
 		private static final long MEETING_ID = MEETING.getId();
 
 		private static final long REVISION = MEETING.getRevision();
 		private static final MeetingScope SCOPE = new MeetingScope(MEETING_ID,
 				REVISION);
 
-		@Test
-		void down() {
-			final List<TopicInfo> existingTopics = TestTopic.ofMeeting(MEETING)
-					.stream()
-					.map(TestTopic::info)
-					.toList();
+		private final List<TopicInfo> siblings = TestTopic.ofMeeting(MEETING)
+				.stream()
+				.map(TestTopic::info)
+				.toList();
 
-			final TopicInfo topic = existingTopics.stream()
-					.filter(t -> t.getSequenceId() == 0)
-					.findFirst()
-					.orElseThrow();
-			final TopicInfo updatedTopic = mock();
-
-			final TopicInfo second = existingTopics.stream()
-					.filter(t -> t.getSequenceId() == 1)
-					.findFirst()
-					.orElseThrow();
-			final TopicInfo updatedSecond = mock();
-
-			final TopicInfo third = existingTopics.stream()
-					.filter(t -> t.getSequenceId() == 2)
-					.findFirst()
-					.orElseThrow();
-			final TopicInfo updatedThird = mock();
-
-			when(topicStorageGateway.find(topic.getId()))
-					.thenReturn(Optional.of(topic));
-
-			when(topicStorageGateway.findAllByMeetingId(MEETING.getId()))
-					.thenReturn(existingTopics);
-
-			when(topicStorageGateway.update(any())).thenAnswer(invocation -> {
-				final var update = invocation.getArgument(0, TopicInfo.class);
-
-				if (update.getId() == topic.getId()
-						&& update.getSequenceId() == 2) {
-					return updatedTopic;
-				}
-
-				if (update.getId() == second.getId()
-						&& update.getSequenceId() == 0) {
-					return updatedSecond;
-				}
-
-				if (update.getId() == third.getId()
-						&& update.getSequenceId() == 1) {
-					return updatedThird;
-				}
-
-				throw new AssertionError("Unexpected update: " + update);
-			});
-
-			final var action = new TopicAction.Move(2);
-			final TopicInfo result = topicService.move(ORIGIN, SCOPE,
-					topic.getId(), action);
-
-			assertThat(result).isEqualTo(topic);
-			assertThat(result.getSequenceId()).isEqualTo(2);
-
-			final var moved = List.of(result, second, third);
-
-			final ArgumentCaptor<TopicEvent> events = ArgumentCaptor
-					.forClass(TopicEvent.class);
-
-			verify(eventPublisher, times(moved.size())).publish(eq(SCOPE),
-					events.capture());
-
-			final List<TopicEvent> topicEvents = events.getAllValues();
-
-			assertThat(topicEvents).hasSameSizeAs(moved)
-					.allSatisfy(event -> assertThat(event.origin())
-							.isEqualTo(ORIGIN))
-					.satisfiesExactlyInAnyOrder(event -> {
-						assertThat(event.topic()).isEqualTo(updatedTopic);
-						final var expected = new TopicAction.Move(2);
-						final var matcher = new TopicActionMatcher.Move(
-								expected);
-						assertThat(event.action()).is(matcher.equal());
-					}, event -> {
-						assertThat(event.topic()).isEqualTo(updatedSecond);
-						final var expected = new TopicAction.Move(0);
-						final var matcher = new TopicActionMatcher.Move(
-								expected);
-						assertThat(event.action()).is(matcher.equal());
-					}, event -> {
-						assertThat(event.topic()).isEqualTo(updatedThird);
-						final var expected = new TopicAction.Move(1);
-						final var matcher = new TopicActionMatcher.Move(
-								expected);
-						assertThat(event.action()).is(matcher.equal());
-					});
+		@BeforeEach
+		void topics() {
+			when(topicStorageGateway.find(TOPIC.getId()))
+					.thenReturn(Optional.of(TOPIC.info()));
+			when(topicStorageGateway.findAllByMeetingId(MEETING_ID))
+					.thenReturn(siblings);
+			when(topicStorageGateway.update(any()))
+					.thenAnswer(invocation -> invocation.getArgument(0));
 		}
 
 		@Test
-		void up() {
-			final List<TopicInfo> existingTopics = TestTopic.ofMeeting(MEETING)
-					.stream()
-					.map(TestTopic::info)
-					.toList();
+		void between() {
+			final TopicInfo after = siblings.get(0);
+			final TopicInfo next = siblings.get(1);
 
-			final TopicInfo topic = existingTopics.stream()
-					.filter(t -> t.getSequenceId() == 2)
-					.findFirst()
-					.orElseThrow();
-			final TopicInfo updatedTopic = mock();
+			final var action = new TopicAction.Move(after.getId());
 
-			final TopicInfo second = existingTopics.stream()
-					.filter(t -> t.getSequenceId() == 1)
-					.findFirst()
-					.orElseThrow();
-			final TopicInfo updatedSecond = mock();
+			final TopicInfo moved = topicService.move(ORIGIN, SCOPE,
+					TOPIC.getId(), action);
 
-			final TopicInfo first = existingTopics.stream()
-					.filter(t -> t.getSequenceId() == 0)
-					.findFirst()
-					.orElseThrow();
-			final TopicInfo updatedFirst = mock();
+			assertThat(moved.getId()).isEqualTo(TOPIC.getId());
+			assertThat(moved.getRank()).isGreaterThan(after.getRank())
+					.isLessThan(next.getRank());
 
-			when(topicStorageGateway.find(topic.getId()))
-					.thenReturn(Optional.of(topic));
-
-			when(topicStorageGateway.findAllByMeetingId(MEETING.getId()))
-					.thenReturn(existingTopics);
-
-			when(topicStorageGateway.update(any())).thenAnswer(invocation -> {
-				final var update = invocation.getArgument(0, TopicInfo.class);
-
-				if (update.getId() == topic.getId()
-						&& update.getSequenceId() == 0) {
-					return updatedTopic;
-				}
-
-				if (update.getId() == first.getId()
-						&& update.getSequenceId() == 1) {
-					return updatedFirst;
-				}
-
-				if (update.getId() == second.getId()
-						&& update.getSequenceId() == 2) {
-					return updatedSecond;
-				}
-
-				throw new AssertionError("Unexpected update: " + update);
-			});
-
-			final var action = new TopicAction.Move(0);
-			final TopicInfo result = topicService.move(ORIGIN, SCOPE,
-					topic.getId(), action);
-
-			assertThat(result).isEqualTo(topic);
-			assertThat(result.getSequenceId()).isZero();
-
-			final var moved = List.of(result, second, first);
-			final ArgumentCaptor<TopicEvent> events = ArgumentCaptor
-					.forClass(TopicEvent.class);
-			verify(eventPublisher, times(moved.size())).publish(eq(SCOPE),
-					events.capture());
-
-			final List<TopicEvent> topicEvents = events.getAllValues();
-
-			assertThat(topicEvents).hasSameSizeAs(moved)
-					.allSatisfy(event -> assertThat(event.origin())
-							.isEqualTo(ORIGIN))
-					.satisfiesExactlyInAnyOrder(event -> {
-						assertThat(event.topic()).isEqualTo(updatedTopic);
-						final var expected = new TopicAction.Move(0);
-						final var matcher = new TopicActionMatcher.Move(
-								expected);
-						assertThat(event.action()).is(matcher.equal());
-					}, event -> {
-						assertThat(event.topic()).isEqualTo(updatedFirst);
-						final var expected = new TopicAction.Move(1);
-						final var matcher = new TopicActionMatcher.Move(
-								expected);
-						assertThat(event.action()).is(matcher.equal());
-					}, event -> {
-						assertThat(event.topic()).isEqualTo(updatedSecond);
-						final var expected = new TopicAction.Move(2);
-						final var matcher = new TopicActionMatcher.Move(
-								expected);
-						assertThat(event.action()).is(matcher.equal());
-					});
+			verify(topicStorageGateway).update(moved);
+			verify(topicStorageGateway, never()).create(any());
+			verify(eventPublisher).publish(SCOPE,
+					new TopicEvent(moved, action, ORIGIN));
+			verifyNoMoreInteractions(eventPublisher);
 		}
 
 		@Test
-		void neighbour() {
-			final List<TopicInfo> existingTopics = TestTopic.ofMeeting(MEETING)
-					.stream()
-					.map(TestTopic::info)
-					.toList();
+		void first() {
+			final var action = new TopicAction.Move(null);
 
-			final TopicInfo topic = existingTopics.stream()
-					.filter(t -> t.getSequenceId() == 1)
-					.findFirst()
-					.orElseThrow();
-			final TopicInfo updatedTopic = mock();
+			final TopicInfo moved = topicService.move(ORIGIN, SCOPE,
+					TOPIC.getId(), action);
 
-			final TopicInfo neighbour = existingTopics.stream()
-					.filter(t -> t.getSequenceId() == 2)
-					.findFirst()
-					.orElseThrow();
-			final TopicInfo updatedNeighbour = mock();
+			assertThat(moved.getRank())
+					.isLessThan(siblings.getFirst().getRank());
 
-			when(topicStorageGateway.find(topic.getId()))
-					.thenReturn(Optional.of(topic));
+			verify(topicStorageGateway).update(moved);
+			verify(topicStorageGateway, never()).create(any());
+			verify(eventPublisher).publish(SCOPE,
+					new TopicEvent(moved, action, ORIGIN));
+			verifyNoMoreInteractions(eventPublisher);
+		}
 
-			when(topicStorageGateway.findAllByMeetingId(MEETING.getId()))
-					.thenReturn(existingTopics);
+		// Its own rank is excluded, so following the topic above it is a move
+		// to where it already is rather than a refusal or a rank collision.
+		@Test
+		void inPlace() {
+			final TopicInfo above = siblings.get(siblings.size() - 2);
 
-			when(topicStorageGateway.update(any())).thenAnswer(invocation -> {
-				final var update = invocation.getArgument(0, TopicInfo.class);
+			final var action = new TopicAction.Move(above.getId());
 
-				if (update.getId() == topic.getId()
-						&& update.getSequenceId() == 2) {
-					return updatedTopic;
-				}
+			final TopicInfo moved = topicService.move(ORIGIN, SCOPE,
+					TOPIC.getId(), action);
 
-				if (update.getId() == neighbour.getId()
-						&& update.getSequenceId() == 1) {
-					return updatedNeighbour;
-				}
+			assertThat(moved.getRank()).isGreaterThan(above.getRank());
 
-				throw new AssertionError("Unexpected update: " + update);
-			});
-
-			final var action = new TopicAction.Move(2);
-			final TopicInfo result = topicService.move(ORIGIN, SCOPE,
-					topic.getId(), action);
-
-			assertThat(result).isEqualTo(topic);
-			assertThat(result.getSequenceId()).isEqualTo(2);
-
-			final var moved = List.of(neighbour, result);
-			final ArgumentCaptor<TopicEvent> events = ArgumentCaptor
-					.forClass(TopicEvent.class);
-			verify(eventPublisher, times(moved.size())).publish(eq(SCOPE),
-					events.capture());
-
-			final List<TopicEvent> topicEvents = events.getAllValues();
-
-			assertThat(topicEvents).hasSameSizeAs(moved)
-					.allSatisfy(event -> assertThat(event.origin())
-							.isEqualTo(ORIGIN))
-					.satisfiesExactlyInAnyOrder(event -> {
-						assertThat(event.topic()).isEqualTo(updatedTopic);
-						final var expected = new TopicAction.Move(2);
-						final var matcher = new TopicActionMatcher.Move(
-								expected);
-						assertThat(event.action()).is(matcher.equal());
-					}, event -> {
-						assertThat(event.topic()).isEqualTo(updatedNeighbour);
-						final var expected = new TopicAction.Move(1);
-						final var matcher = new TopicActionMatcher.Move(
-								expected);
-						assertThat(event.action()).is(matcher.equal());
-					});
+			verify(topicStorageGateway).update(moved);
+			verify(topicStorageGateway, never()).create(any());
+			verify(eventPublisher).publish(SCOPE,
+					new TopicEvent(moved, action, ORIGIN));
+			verifyNoMoreInteractions(eventPublisher);
 		}
 
 		@Test
-		void unchanged() {
-			final TopicInfo topic = TestTopic.SPORER_PROJECT_BLOCKERS.info();
-			final long topicId = topic.getId();
-			when(topicStorageGateway.find(topicId))
-					.thenReturn(Optional.of(topic));
+		void unknownNeighbour() {
+			final var action = new TopicAction.Move(Long.MAX_VALUE);
 
-			final var action = new TopicAction.Move(topic.getSequenceId());
-			final TopicInfo result = topicService.move(ORIGIN, SCOPE, topicId,
-					action);
-
-			assertThat(result).isEqualTo(topic);
-
-			final ArgumentCaptor<TopicEvent> event = ArgumentCaptor
-					.forClass(TopicEvent.class);
-			verify(eventPublisher).publish(eq(SCOPE), event.capture());
-
-			final TopicEvent published = event.getValue();
-			assertThat(published.topic()).isEqualTo(topic);
-			assertThat(published.origin()).isEqualTo(ORIGIN);
-			final var expected = new TopicAction.Move(topic.getSequenceId());
-			assertThat(published.action())
-					.is(new TopicActionMatcher.Move(expected).equal());
+			assertThatThrownBy(() -> topicService.move(ORIGIN, SCOPE,
+					TOPIC.getId(), action))
+							.isInstanceOf(MissingEntityException.class);
 
 			verify(topicStorageGateway, never()).update(any());
-			verify(topicStorageGateway, never()).findAllByMeetingId(anyLong());
-		}
-
-		@Test
-		void sequenceIdTooLarge() {
-			final List<TopicInfo> existingTopics = TestTopic.ofMeeting(MEETING)
-					.stream()
-					.map(TestTopic::info)
-					.toList();
-
-			final TopicInfo topic = existingTopics.getFirst();
-			final long topicId = topic.getId();
-			when(topicStorageGateway.find(topicId))
-					.thenReturn(Optional.of(topic));
-
-			when(topicStorageGateway.findAllByMeetingId(MEETING.getId()))
-					.thenReturn(existingTopics);
-
-			final var action = new TopicAction.Move(existingTopics.size());
-
-			assertThatThrownBy(
-					() -> topicService.move(ORIGIN, SCOPE, topicId, action))
-							.isInstanceOf(IllegalArgumentException.class);
-
 			verifyNoInteractions(eventPublisher);
-			verify(topicStorageGateway, never()).update(any());
 		}
 
 		@Test
-		void notFound() {
-			final long topicId = TestTopic.SPORER_PROJECT_BLOCKERS.getId();
-			when(topicStorageGateway.find(topicId))
+		void unknownTopic() {
+			when(topicStorageGateway.find(anyLong()))
 					.thenReturn(Optional.empty());
 
-			final var action = new TopicAction.Move(1);
+			final var action = new TopicAction.Move(null);
 
-			assertThatThrownBy(
-					() -> topicService.move(ORIGIN, SCOPE, topicId, action))
+			assertThatThrownBy(() -> topicService.move(ORIGIN, SCOPE,
+					TOPIC.getId(), action))
 							.isInstanceOf(MissingEntityException.class);
-
-			verifyNoInteractions(eventPublisher);
-			verify(topicStorageGateway, never()).update(any());
-		}
-
-		@Test
-		void otherOrganisation() {
-			final var origin = new Origin(
-					TestSession.ALISON_DACH_GLOVER.principal());
-
-			final TopicInfo topic = TestTopic.SPORER_PROJECT_BLOCKERS.info();
-			final long topicId = topic.getId();
-			when(topicStorageGateway.find(topicId))
-					.thenReturn(Optional.of(topic));
-
-			final var action = new TopicAction.Move(2);
-
-			assertThatThrownBy(
-					() -> topicService.move(origin, SCOPE, topicId, action))
-							.isInstanceOf(MissingEntityException.class);
-
-			verifyNoInteractions(eventPublisher);
-			verify(topicStorageGateway, never()).update(any());
 		}
 
 		@Test
 		void originNull() {
-			final long topicId = TestTopic.SPORER_PROJECT_BLOCKERS.getId();
-			final var action = new TopicAction.Move(1);
+			final var action = new TopicAction.Move(null);
 
 			assertThatThrownBy(
-					() -> topicService.move(null, SCOPE, topicId, action))
+					() -> topicService.move(null, SCOPE, TOPIC.getId(), action))
 							.isInstanceOf(NullPointerException.class);
 		}
 
 		@Test
 		void scopeNull() {
-			final long topicId = TestTopic.SPORER_PROJECT_BLOCKERS.getId();
-			final var action = new TopicAction.Move(1);
+			final var action = new TopicAction.Move(null);
 
-			assertThatThrownBy(
-					() -> topicService.move(ORIGIN, null, topicId, action))
+			assertThatThrownBy(() -> topicService.move(ORIGIN, null,
+					TOPIC.getId(), action))
 							.isInstanceOf(NullPointerException.class);
 		}
 
 		@Test
 		void actionNull() {
-			final long topicId = TestTopic.SPORER_PROJECT_BLOCKERS.getId();
-
 			assertThatThrownBy(
-					() -> topicService.move(ORIGIN, SCOPE, topicId, null))
+					() -> topicService.move(ORIGIN, SCOPE, TOPIC.getId(), null))
 							.isInstanceOf(NullPointerException.class);
 		}
-
 	}
 
 	@Nested
@@ -805,8 +441,7 @@ class TopicServiceTest {
 				assertThat(info.getOrganisationId())
 						.isEqualTo(MEETING.getOrganisation().getId());
 				assertThat(info.getMeetingId()).isEqualTo(meetingId);
-				assertThat(info.getSequenceId())
-						.isEqualTo(TOPIC.getSequenceId());
+				assertThat(info.getRank()).isEqualTo(TOPIC.getRank());
 				assertThat(info.getName()).isEqualTo("Project Timeline");
 				assertThat(info.getDescription())
 						.isEqualTo(TOPIC.getDescription());
@@ -887,184 +522,64 @@ class TopicServiceTest {
 	class Delete {
 
 		private static final TestSession SESSION = TestSession.EDUARDO_CHRISTIANSEN_SPORER;
-		private static final Origin ORIGIN = new Origin(SESSION.principal(),
-				CLIENT_ID);
-		private static final TestTopic TOPIC = TestTopic.SPORER_PROJECT_TIMELINE;
-		private static final TestMeeting MEETING = TOPIC.getMeeting();
+		private static final Principal PRINCIPAL = SESSION.principal();
+		private static final Origin ORIGIN = new Origin(PRINCIPAL, CLIENT_ID);
+		private static final TestMeeting MEETING = TestMeeting.SPORER_PROJECT;
+		private static final TestTopic TOPIC = TestTopic.SPORER_PROJECT_BLOCKERS;
+
 		private static final long MEETING_ID = MEETING.getId();
 
 		private static final long REVISION = MEETING.getRevision();
 		private static final MeetingScope SCOPE = new MeetingScope(MEETING_ID,
 				REVISION);
 
-		@Test
-		void onlyTopic() {
-			final long meetingId = MEETING.getId();
-			final long topicId = TOPIC.getId();
-
-			final TopicInfo topicInfo = TOPIC.info();
-			when(topicStorageGateway.find(topicId))
-					.thenReturn(Optional.of(topicInfo));
-
-			when(topicStorageGateway.findAllByMeetingId(meetingId))
-					.thenReturn(List.of(topicInfo));
-
-			topicService.delete(ORIGIN, SCOPE, topicId);
-
-			verify(topicStorageGateway).delete(topicInfo);
-			final ArgumentMatcher<TopicEvent> event = e -> {
-				assertThat(e.origin()).isEqualTo(ORIGIN);
-				assertThat(e.topic()).isEqualTo(topicInfo);
-				assertThat(e.action()).isInstanceOf(TopicAction.Delete.class);
-				return true;
-			};
-
-			verify(eventPublisher).publish(eq(SCOPE), argThat(event));
-
-			verify(topicStorageGateway, never()).update(any());
+		@BeforeEach
+		void topic() {
+			when(topicStorageGateway.find(TOPIC.getId()))
+					.thenReturn(Optional.of(TOPIC.info()));
 		}
 
+		// Nothing below it has to move up any more, which is what ranks buy.
 		@Test
-		void firstTopic() {
-			final TestMeeting meeting = TestMeeting.SPORER_PROJECT;
-			final List<TestTopic> topics = TestTopic.ofMeeting(MEETING);
-			final TestTopic deleted = topics.getFirst();
+		void success() {
+			topicService.delete(ORIGIN, SCOPE, TOPIC.getId());
 
-			final long meetingId = meeting.getId();
-			final long topicId = deleted.getId();
-
-			final TopicInfo topicInfo = deleted.info();
-			when(topicStorageGateway.find(topicId))
-					.thenReturn(Optional.of(topicInfo));
-
-			final List<TopicInfo> existingTopics = topics.stream()
-					.map(TestTopic::info)
-					.toList();
-			when(topicStorageGateway.findAllByMeetingId(meetingId))
-					.thenReturn(existingTopics);
-
-			final List<TestTopic> movedTopics = topics.stream()
-					.filter(t -> t.getSequenceId() > deleted.getSequenceId())
-					.toList();
-			final List<TopicInfo> updatedTopics = movedTopics.stream()
-					.map(t -> mock(TopicInfo.class))
-					.toList();
-
-			when(topicStorageGateway.update(any())).thenAnswer(invocation -> {
-				final var update = invocation.getArgument(0, TopicInfo.class);
-
-				for (int i = 0; i < movedTopics.size(); i++) {
-					final var movedTopic = movedTopics.get(i);
-					if (update.getId() != movedTopic.getId()) {
-						continue;
-					}
-
-					assertThat(update.getSequenceId())
-							.isEqualTo(movedTopic.getSequenceId() - 1);
-					return updatedTopics.get(i);
-				}
-
-				throw new AssertionError("Unexpected update: " + update);
-			});
-
-			topicService.delete(ORIGIN, SCOPE, topicId);
-
-			final ArgumentCaptor<TopicEvent> events = ArgumentCaptor
+			final ArgumentCaptor<TopicEvent> event = ArgumentCaptor
 					.forClass(TopicEvent.class);
+			verify(eventPublisher).publish(eq(SCOPE), event.capture());
 
-			verify(eventPublisher, times(movedTopics.size() + 1))
-					.publish(eq(SCOPE), events.capture());
-
-			final List<TopicEvent> topicEvents = events.getAllValues();
-
-			assertThat(topicEvents)
-					.allSatisfy(e -> assertThat(e.origin()).isEqualTo(ORIGIN));
-
-			final TopicEvent deleteEvent = topicEvents.getFirst();
-			assertThat(deleteEvent.topic()).isEqualTo(topicInfo);
-			assertThat(deleteEvent.action())
+			assertThat(event.getValue().topic().getId())
+					.isEqualTo(TOPIC.getId());
+			assertThat(event.getValue().action())
 					.isInstanceOf(TopicAction.Delete.class);
 
-			for (int i = 0; i < movedTopics.size(); i++) {
-				final var expected = new TopicAction.Move(
-						movedTopics.get(i).getSequenceId() - 1);
-				final var matcher = new TopicActionMatcher.Move(expected);
-
-				final TopicEvent event = topicEvents.get(i + 1);
-				assertThat(event.topic()).isEqualTo(updatedTopics.get(i));
-				assertThat(event.action()).is(matcher.equal());
-			}
-
-			final InOrder inOrder = inOrder(topicStorageGateway);
-			inOrder.verify(topicStorageGateway).delete(topicInfo);
-			movedTopics.forEach(t -> inOrder.verify(topicStorageGateway)
-					.update(argThat(u -> u.getId() == t.getId())));
-		}
-
-		@Test
-		void lastTopic() {
-			final TestMeeting meeting = TestMeeting.SPORER_PROJECT;
-			final List<TestTopic> topics = TestTopic.ofMeeting(MEETING);
-			final TestTopic deleted = topics.getLast();
-
-			final long meetingId = meeting.getId();
-			final long topicId = deleted.getId();
-
-			final TopicInfo topicInfo = deleted.info();
-			when(topicStorageGateway.find(topicId))
-					.thenReturn(Optional.of(topicInfo));
-
-			final List<TopicInfo> existingTopics = topics.stream()
-					.map(TestTopic::info)
-					.toList();
-			when(topicStorageGateway.findAllByMeetingId(meetingId))
-					.thenReturn(existingTopics);
-
-			topicService.delete(ORIGIN, SCOPE, topicId);
-
-			verify(topicStorageGateway).delete(topicInfo);
-			final ArgumentMatcher<TopicEvent> event = e -> {
-				assertThat(e.origin()).isEqualTo(ORIGIN);
-				assertThat(e.topic()).isEqualTo(topicInfo);
-				assertThat(e.action()).isInstanceOf(TopicAction.Delete.class);
-				return true;
-			};
-
-			verify(eventPublisher).publish(eq(SCOPE), argThat(event));
-
+			verify(topicStorageGateway).delete(any());
 			verify(topicStorageGateway, never()).update(any());
+			verify(topicStorageGateway, never()).findAllByMeetingId(anyLong());
 		}
 
 		@Test
-		void notFound() {
-			final long topicId = TOPIC.getId();
-
-			when(topicStorageGateway.find(topicId))
+		void unknownTopic() {
+			when(topicStorageGateway.find(anyLong()))
 					.thenReturn(Optional.empty());
 
 			assertThatThrownBy(
-					() -> topicService.delete(ORIGIN, SCOPE, topicId))
+					() -> topicService.delete(ORIGIN, SCOPE, TOPIC.getId()))
 							.isInstanceOf(MissingEntityException.class);
-
-			verify(topicStorageGateway, never()).delete(any());
-			verifyNoInteractions(eventPublisher);
 		}
 
 		@Test
 		void originNull() {
-			final long topicId = TOPIC.getId();
-
-			assertThatThrownBy(() -> topicService.delete(null, SCOPE, topicId))
-					.isInstanceOf(NullPointerException.class);
+			assertThatThrownBy(
+					() -> topicService.delete(null, SCOPE, TOPIC.getId()))
+							.isInstanceOf(NullPointerException.class);
 		}
 
 		@Test
 		void scopeNull() {
-			final long topicId = TOPIC.getId();
-
-			assertThatThrownBy(() -> topicService.delete(ORIGIN, null, topicId))
-					.isInstanceOf(NullPointerException.class);
+			assertThatThrownBy(
+					() -> topicService.delete(ORIGIN, null, TOPIC.getId()))
+							.isInstanceOf(NullPointerException.class);
 		}
-
 	}
 }

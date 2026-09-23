@@ -16,6 +16,7 @@ import lombok.NoArgsConstructor;
 
 import com.cvesters.notula.block.bdo.BlockInfo;
 import com.cvesters.notula.block.bdo.BlockType;
+import com.cvesters.notula.common.domain.Rank;
 
 @Getter
 @NoArgsConstructor(access = AccessLevel.PRIVATE)
@@ -35,8 +36,8 @@ public class BlockDao {
 	@Column(name = "type", nullable = false, updatable = false)
 	private BlockType type;
 
-	@Column(name = "sequence_id", nullable = false)
-	private int sequenceId;
+	@Column(nullable = false)
+	private String rank;
 
 	public BlockDao(final BlockInfo bdo) {
 		Objects.requireNonNull(bdo);
@@ -44,18 +45,19 @@ public class BlockDao {
 		this.organisationId = bdo.getOrganisationId();
 		this.topicId = bdo.getTopicId();
 		this.type = bdo.getType();
-		this.sequenceId = bdo.getSequenceId();
+		this.rank = bdo.getRank().value();
 	}
 
 	public void update(final BlockInfo bdo) {
 		Objects.requireNonNull(bdo);
 
-		this.sequenceId = bdo.getSequenceId();
+		this.rank = bdo.getRank().value();
 	}
 
 	public BlockInfo toBdo() {
 		Validate.validState(id != null);
 
-		return new BlockInfo(id, organisationId, topicId, type, sequenceId);
+		return new BlockInfo(id, organisationId, topicId, type,
+				new Rank(rank));
 	}
 }

@@ -5,17 +5,18 @@
 	import { page } from "$app/state";
 
 	import { BlockType } from "$lib/block/BlockTypes";
-	import Loading from "$lib/common/Loading.svelte";
 	import { isOwnEvent } from "$lib/common/EventTypes";
+	import Loading from "$lib/common/Loading.svelte";
+	import { Rank } from "$lib/common/Rank";
 	import type {
 		BlockDetails,
 		MeetingDetails,
 		TopicDetails
 	} from "$lib/details/DetailTypes";
 	import { applied } from "$lib/editor/TextEdit";
-	import MeetingInfoView from "$lib/meeting/MeetingInfoView.svelte";
 	import type { Rejected } from "$lib/meeting/change/ChangeTypes";
 	import type { MeetingEvent } from "$lib/meeting/event/EventTypes";
+	import MeetingInfoView from "$lib/meeting/MeetingInfoView.svelte";
 	import MeetingWebSocketClient from "$lib/meeting/MeetingWebSocketClient";
 	import TopicsAgendaView from "$lib/topic/TopicsAgendaView.svelte";
 	import TopicsNoteView from "$lib/topic/TopicsNoteView.svelte";
@@ -24,7 +25,7 @@
 
 	let meeting: MeetingDetails | undefined = $state();
 	let topics = $derived(
-		meeting?.topics?.toSorted((a, b) => a.sequenceId - b.sequenceId) ?? []
+		meeting?.topics?.toSorted((a, b) => Rank.compare(a.rank, b.rank)) ?? []
 	);
 
 	let revision: number | undefined = $state();
@@ -160,7 +161,7 @@
 			case "ADD_TOPIC":
 				meeting?.topics.push({
 					id: mutation.topic,
-					sequenceId: mutation.sequenceId,
+					rank: mutation.rank,
 					name: mutation.name,
 					description: "",
 					duration: null,
@@ -170,7 +171,7 @@
 			case "MOVE_TOPIC": {
 				const topic = findTopic(mutation.topic);
 				if (topic) {
-					topic.sequenceId = mutation.sequenceId;
+					topic.rank = mutation.rank;
 				}
 				break;
 			}
@@ -223,7 +224,7 @@
 					topic.blocks.push({
 						id: mutation.block,
 						type: mutation.blockType,
-						sequenceId: mutation.sequenceId,
+						rank: mutation.rank,
 						content: ""
 					});
 				} else {
@@ -234,7 +235,7 @@
 			case "MOVE_BLOCK": {
 				const block = findBlock(mutation.block);
 				if (block) {
-					block.sequenceId = mutation.sequenceId;
+					block.rank = mutation.rank;
 				}
 				break;
 			}

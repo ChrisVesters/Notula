@@ -1,5 +1,6 @@
 package com.cvesters.notula.topic;
 
+import java.util.Comparator;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
@@ -35,6 +36,7 @@ public class TopicStorageGateway {
 		return topicRepository.findAllByMeetingId(meetingId)
 				.stream()
 				.map(TopicDao::toBdo)
+				.sorted(Comparator.comparing(TopicInfo::getRank))
 				.toList();
 	}
 

@@ -11,6 +11,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 
+import com.cvesters.notula.common.domain.Rank;
 import com.cvesters.notula.block.bdo.BlockAction;
 import com.cvesters.notula.block.bdo.BlockEvent;
 import com.cvesters.notula.block.bdo.BlockInfo;
@@ -50,6 +51,9 @@ class EventPublisherTest {
 			REVISION);
 	private static final long TOPIC_ID = 32L;
 	private static final long BLOCK_ID = 61L;
+
+	private static final String TOPIC_RANK = "a1";
+	private static final String BLOCK_RANK = "b2";
 
 	private static final String DESTINATION = "/topic/meetings/" + MEETING_ID;
 
@@ -130,26 +134,28 @@ class EventPublisherTest {
 			@BeforeEach
 			void topic() {
 				when(topic.getId()).thenReturn(TOPIC_ID);
+				when(topic.getRank()).thenReturn(new Rank(TOPIC_RANK));
 			}
 
 			@Test
 			void create() {
-				final var action = new TopicAction.Create(3, "New");
+				final var action = new TopicAction.Create(3L, "New");
 				final var event = new TopicEvent(topic, action, ORIGIN);
 
 				eventPublisher.publish(SCOPE, event);
 
-				verifySent(new TopicMutationDto.Add(TOPIC_ID, 3, "New"));
+				verifySent(new TopicMutationDto.Add(TOPIC_ID, TOPIC_RANK,
+						"New"));
 			}
 
 			@Test
 			void move() {
-				final var action = new TopicAction.Move(3);
+				final var action = new TopicAction.Move(3L);
 				final var event = new TopicEvent(topic, action, ORIGIN);
 
 				eventPublisher.publish(SCOPE, event);
 
-				verifySent(new TopicMutationDto.Move(TOPIC_ID, 3));
+				verifySent(new TopicMutationDto.Move(TOPIC_ID, TOPIC_RANK));
 			}
 
 			@Test
@@ -202,28 +208,29 @@ class EventPublisherTest {
 			@BeforeEach
 			void block() {
 				when(block.getId()).thenReturn(BLOCK_ID);
+				when(block.getRank()).thenReturn(new Rank(BLOCK_RANK));
 			}
 
 			@Test
 			void create() {
 				final var action = new BlockAction.Create(TOPIC_ID,
-						BlockType.TEXT, 3);
+						BlockType.TEXT, 3L);
 				final var event = new BlockEvent(block, action, ORIGIN);
 
 				eventPublisher.publish(SCOPE, event);
 
 				verifySent(new BlockMutationDto.Add(BLOCK_ID, TOPIC_ID,
-						new BlockTypeDto(BlockType.TEXT), 3));
+						new BlockTypeDto(BlockType.TEXT), BLOCK_RANK));
 			}
 
 			@Test
 			void move() {
-				final var action = new BlockAction.Move(3);
+				final var action = new BlockAction.Move(3L);
 				final var event = new BlockEvent(block, action, ORIGIN);
 
 				eventPublisher.publish(SCOPE, event);
 
-				verifySent(new BlockMutationDto.Move(BLOCK_ID, 3));
+				verifySent(new BlockMutationDto.Move(BLOCK_ID, BLOCK_RANK));
 			}
 
 			@Test

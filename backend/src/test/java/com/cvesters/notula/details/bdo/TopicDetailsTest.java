@@ -32,7 +32,7 @@ class TopicDetailsTest {
 			final var details = new TopicDetails(topicInfo, blocksDetails);
 
 			assertThat(details.getId()).isEqualTo(TOPICS.getId());
-			assertThat(details.getSequenceId()).isEqualTo(TOPICS.getSequenceId());
+			assertThat(details.getRank()).isEqualTo(TOPICS.getRank());
 			assertThat(details.getName()).isEqualTo(TOPICS.getName());
 			assertThat(details.getDescription()).isEqualTo(TOPICS.getDescription());
 			assertThat(details.getDuration()).contains(TOPICS.getDuration());

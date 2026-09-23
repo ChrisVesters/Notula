@@ -9,6 +9,7 @@ import static org.mockito.Mockito.when;
 
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Optional;
 
@@ -16,6 +17,7 @@ import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.mockito.InOrder;
 
+import com.cvesters.notula.common.domain.Rank;
 import com.cvesters.notula.common.exception.MissingEntityException;
 import com.cvesters.notula.meeting.TestMeeting;
 import com.cvesters.notula.topic.bdo.TopicInfo;
@@ -35,6 +37,7 @@ class TopicStorageGatewayTest {
 		void success() {
 			final TopicDao created = mock();
 			final TopicInfo bdo = mock();
+			when(bdo.getRank()).thenReturn(new Rank("1"));
 			when(created.toBdo()).thenReturn(bdo);
 
 			when(topicRepository.save(argThat(dao -> {
@@ -123,19 +126,21 @@ class TopicStorageGatewayTest {
 
 		@Test
 		void multiple() {
-			final long meetingId = TestMeeting.SPORER_Q2_PLANNING.getId();
-			final List<TestTopic> found = TestTopic
-					.ofMeeting(TestMeeting.SPORER_Q2_PLANNING);
+			final long meetingId = TestMeeting.SPORER_PROJECT.getId();
+			final List<TestTopic> found = List.of(
+					TestTopic.SPORER_PROJECT_TIMELINE,
+					TestTopic.SPORER_PROJECT_DELIVERABLES,
+					TestTopic.SPORER_PROJECT_BLOCKERS);
 
 			final var daos = new ArrayList<TopicDao>();
-			final var bdos = new ArrayList<TopicInfo>();
+			final var bdos = new HashMap<TestTopic, TopicInfo>();
 			for (final TestTopic topic : found) {
 				final TopicDao dao = mock();
 				final TopicInfo bdo = topic.info();
 				when(dao.toBdo()).thenReturn(bdo);
 
 				daos.add(dao);
-				bdos.add(bdo);
+				bdos.put(topic, bdo);
 			}
 
 			when(topicRepository.findAllByMeetingId(meetingId))
@@ -144,7 +149,10 @@ class TopicStorageGatewayTest {
 			final List<TopicInfo> result = gateway
 					.findAllByMeetingId(meetingId);
 
-			assertThat(result).isEqualTo(bdos);
+			assertThat(result).containsExactly(
+					bdos.get(TestTopic.SPORER_PROJECT_DELIVERABLES),
+					bdos.get(TestTopic.SPORER_PROJECT_BLOCKERS),
+					bdos.get(TestTopic.SPORER_PROJECT_TIMELINE));
 		}
 
 		@Test

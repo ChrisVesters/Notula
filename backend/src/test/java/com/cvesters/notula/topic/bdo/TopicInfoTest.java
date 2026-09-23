@@ -7,6 +7,7 @@ import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 
 import com.cvesters.notula.common.domain.Minutes;
+import com.cvesters.notula.common.domain.Rank;
 import com.cvesters.notula.meeting.TestMeeting;
 import com.cvesters.notula.organisation.TestOrganisation;
 import com.cvesters.notula.topic.TestTopic;
@@ -24,14 +25,14 @@ class TopicInfoTest {
 		@Test
 		void withoutId() {
 			final var result = new TopicInfo(ORGANISATION.getId(),
-					MEETING.getId(), TOPIC.getSequenceId(), TOPIC.getName());
+					MEETING.getId(), TOPIC.getRank(), TOPIC.getName());
 
 			assertThatThrownBy(result::getId)
 					.isInstanceOf(IllegalStateException.class);
 			assertThat(result.getOrganisationId())
 					.isEqualTo(ORGANISATION.getId());
 			assertThat(result.getMeetingId()).isEqualTo(MEETING.getId());
-			assertThat(result.getSequenceId()).isEqualTo(TOPIC.getSequenceId());
+			assertThat(result.getRank()).isEqualTo(TOPIC.getRank());
 			assertThat(result.getName()).isEqualTo(TOPIC.getName());
 			assertThat(result.getDescription()).isEmpty();
 			assertThat(result.getDuration()).isEmpty();
@@ -42,36 +43,35 @@ class TopicInfoTest {
 			final long topicId = TOPIC.getId();
 			final long orgId = ORGANISATION.getId();
 			final long meetingId = MEETING.getId();
-			final int sequenceId = TOPIC.getSequenceId();
+			final Rank rank = TOPIC.getRank();
 			final String name = TOPIC.getName();
 			final String description = TOPIC.getDescription();
 			final var duration = TOPIC.getDuration();
 
 			final var result = new TopicInfo(topicId, orgId, meetingId,
-					sequenceId, name, description, duration);
+					rank, name, description, duration);
 
 			assertThat(result.getId()).isEqualTo(topicId);
 			assertThat(result.getOrganisationId()).isEqualTo(orgId);
 			assertThat(result.getMeetingId()).isEqualTo(meetingId);
-			assertThat(result.getSequenceId()).isEqualTo(sequenceId);
+			assertThat(result.getRank()).isEqualTo(rank);
 			assertThat(result.getName()).isEqualTo(name);
 			assertThat(result.getDescription()).isEqualTo(description);
 			assertThat(result.getDuration()).hasValue(duration);
 		}
 
 		@Test
-		void sequenceIdInvalid() {
+		void rankNull() {
 			final long id = TOPIC.getId();
 			final long organisationId = ORGANISATION.getId();
 			final long meetingId = MEETING.getId();
-			final int sequenceId = -1;
 			final String name = TOPIC.getName();
 			final String description = TOPIC.getDescription();
-			final var duration = TOPIC.getDuration();
+			final Minutes duration = TOPIC.getDuration();
 
 			assertThatThrownBy(() -> new TopicInfo(id, organisationId,
-					meetingId, sequenceId, name, description, duration))
-							.isInstanceOf(IllegalArgumentException.class);
+					meetingId, null, name, description, duration))
+							.isInstanceOf(NullPointerException.class);
 		}
 
 		@Test
@@ -79,13 +79,13 @@ class TopicInfoTest {
 			final long id = TOPIC.getId();
 			final long organisationId = ORGANISATION.getId();
 			final long meetingId = MEETING.getId();
-			final int sequenceId = TOPIC.getSequenceId();
+			final Rank rank = TOPIC.getRank();
 			final String name = null;
 			final String description = TOPIC.getDescription();
 			final var duration = TOPIC.getDuration();
 
 			assertThatThrownBy(() -> new TopicInfo(id, organisationId,
-					meetingId, sequenceId, name, description, duration))
+					meetingId, rank, name, description, duration))
 							.isInstanceOf(NullPointerException.class);
 		}
 
@@ -94,36 +94,36 @@ class TopicInfoTest {
 			final long id = TOPIC.getId();
 			final long organisationId = ORGANISATION.getId();
 			final long meetingId = MEETING.getId();
-			final int sequenceId = TOPIC.getSequenceId();
+			final Rank rank = TOPIC.getRank();
 			final String name = TOPIC.getName();
 			final String description = null;
 			final var duration = TOPIC.getDuration();
 
 			assertThatThrownBy(() -> new TopicInfo(id, organisationId,
-					meetingId, sequenceId, name, description, duration))
+					meetingId, rank, name, description, duration))
 							.isInstanceOf(NullPointerException.class);
 		}
 	}
 
 	@Nested
-	class SetSequenceId {
+	class SetRank {
 
 		@Test
 		void success() {
 			final var topicInfo = TOPIC.info();
-			final int sequenceId = TOPIC.getSequenceId() + 5;
+			final var rank = new Rank("z");
 
-			topicInfo.setSequenceId(sequenceId);
+			topicInfo.setRank(rank);
 
-			assertThat(topicInfo.getSequenceId()).isEqualTo(sequenceId);
+			assertThat(topicInfo.getRank()).isEqualTo(rank);
 		}
 
 		@Test
-		void sequenceIdNegative() {
+		void rankNull() {
 			final var topicInfo = TOPIC.info();
 
-			assertThatThrownBy(() -> topicInfo.setSequenceId(-1))
-					.isInstanceOf(IllegalArgumentException.class);
+			assertThatThrownBy(() -> topicInfo.setRank(null))
+					.isInstanceOf(NullPointerException.class);
 		}
 	}
 
