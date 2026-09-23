@@ -11,7 +11,7 @@ import com.fasterxml.jackson.annotation.JsonUnwrapped;
 public class BlockDetailsDto {
 
 	private final long id;
-	private final int sequenceId;
+	private final String rank;
 
 	@JsonUnwrapped
 	private final BlockContentDto content;
@@ -20,7 +20,7 @@ public class BlockDetailsDto {
 		Objects.requireNonNull(details);
 
 		this.id = details.getId();
-		this.sequenceId = details.getSequenceId();
+		this.rank = details.getRank().value();
 		this.content = BlockContentDto.of(details.getContent());
 	}
 }

@@ -18,6 +18,7 @@ import org.springframework.test.context.jdbc.Sql;
 import com.cvesters.notula.block.bdo.BlockInfo;
 import com.cvesters.notula.block.bdo.BlockType;
 import com.cvesters.notula.block.dao.BlockDao;
+import com.cvesters.notula.common.domain.Rank;
 import com.cvesters.notula.organisation.TestOrganisation;
 import com.cvesters.notula.test.RepositoryTest;
 import com.cvesters.notula.topic.TestTopic;
@@ -97,7 +98,7 @@ public class BlockRepositoryTest extends RepositoryTest {
 			final TestOrganisation organisation = topic.getOrganisation();
 
 			final var bdo = new BlockInfo(organisation.getId(), topic.getId(),
-					BlockType.TEXT, 0);
+					BlockType.TEXT, new Rank("1"));
 			final var dao = new BlockDao(bdo);
 
 			final BlockDao saved = blockRepository.save(dao);
@@ -114,7 +115,7 @@ public class BlockRepositoryTest extends RepositoryTest {
 			final TestOrganisation organisation = topic.getOrganisation();
 
 			final var bdo = new BlockInfo(organisation.getId(), topic.getId(),
-					BlockType.TEXT, 0);
+					BlockType.TEXT, new Rank("1"));
 			final var dao = new BlockDao(bdo);
 
 			assertThatThrownBy(() -> blockRepository.save(dao))
@@ -179,6 +180,6 @@ public class BlockRepositoryTest extends RepositoryTest {
 				block.getTopic().getMeeting().getOrganisation().getId());
 		assertThat(dao.getTopicId()).isEqualTo(block.getTopic().getId());
 		assertThat(dao.getType()).isEqualTo(block.getType());
-		assertThat(dao.getSequenceId()).isEqualTo(block.getSequenceId());
+		assertThat(dao.getRank()).isEqualTo(block.getRank().value());
 	}
 }

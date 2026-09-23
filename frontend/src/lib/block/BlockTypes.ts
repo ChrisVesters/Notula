@@ -8,5 +8,5 @@ export type BlockInfo = {
 	id: number;
 	topicId: number;
 	type: BlockType;
-	sequenceId: number;
+	rank: string;
 };

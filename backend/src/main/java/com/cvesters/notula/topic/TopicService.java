@@ -1,6 +1,5 @@
 package com.cvesters.notula.topic;
 
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 
@@ -8,6 +7,7 @@ import org.springframework.stereotype.Service;
 
 import com.cvesters.notula.common.domain.Origin;
 import com.cvesters.notula.common.domain.Principal;
+import com.cvesters.notula.common.domain.Rank;
 import com.cvesters.notula.common.exception.MissingEntityException;
 import com.cvesters.notula.meeting.EventPublisher;
 import com.cvesters.notula.meeting.MeetingService;
@@ -62,31 +62,20 @@ public class TopicService {
 		final MeetingInfo meeting = meetingService.getById(origin.principal(),
 				scope.meetingId());
 
-		final List<TopicInfo> existingTopics = topicStorage
+		final List<TopicInfo> siblings = topicStorage
 				.findAllByMeetingId(meeting.getId());
-		if (action.getSequenceId() > existingTopics.size()) {
-			throw new IllegalArgumentException();
-		}
 
-		final var events = new ArrayList<TopicEvent>();
-		for (final TopicInfo t : existingTopics) {
-			if (t.getSequenceId() < action.getSequenceId()) {
-				continue;
-			}
+		final TopicInfo after = action.getAfterId()
+				.map(id -> find(siblings, id))
+				.orElse(null);
 
-			final int updatedSequenceId = t.getSequenceId() + 1;
-			final var move = new TopicAction.Move(updatedSequenceId);
-			move.apply(t);
-			final TopicInfo updatedTopic = topicStorage.update(t);
-			events.add(new TopicEvent(updatedTopic, move, origin));
-		}
+		final Rank rank = Rank.after(after, siblings, TopicInfo::getRank);
 
 		final var topic = new TopicInfo(meeting.getOrganisationId(),
-				meeting.getId(), action.getSequenceId(), action.getName());
+				meeting.getId(), rank, action.getName());
 		final TopicInfo created = topicStorage.create(topic);
-		events.add(new TopicEvent(created, action, origin));
 
-		events.forEach(e -> eventPublisher.publish(scope, e));
+		eventPublisher.publish(scope, new TopicEvent(created, action, origin));
 
 		return created;
 	}
@@ -99,46 +88,25 @@ public class TopicService {
 
 		final TopicInfo topic = getById(origin.principal(), scope.meetingId(),
 				topicId);
-		final int from = topic.getSequenceId();
-		final int to = action.getSequenceId();
-		final int direction = Integer.signum(to - from);
-		if (direction == 0) {
-			eventPublisher.publish(scope,
-					new TopicEvent(topic, action, origin));
 
-			return topic;
-		}
-
-		final List<TopicInfo> existingTopics = topicStorage
-				.findAllByMeetingId(topic.getMeetingId());
-		if (to >= existingTopics.size()) {
-			throw new IllegalArgumentException();
-		}
-
-		final int min = Math.min(from + direction, to);
-		final int max = Math.max(from + direction, to);
-		final List<TopicInfo> toUpdateTopics = existingTopics.stream()
-				.filter(t -> t.getSequenceId() >= min)
-				.filter(t -> t.getSequenceId() <= max)
+		final List<TopicInfo> siblings = topicStorage
+				.findAllByMeetingId(topic.getMeetingId())
+				.stream()
+				.filter(t -> t.getId() != topicId)
 				.toList();
 
-		final var events = new ArrayList<TopicEvent>();
+		final TopicInfo after = action.getAfterId()
+				.map(id -> find(siblings, id))
+				.orElse(null);
 
-		action.apply(topic);
+		final Rank rank = Rank.after(after, siblings, TopicInfo::getRank);
+		topic.setRank(rank);
+
 		final TopicInfo updated = topicStorage.update(topic);
-		events.add(new TopicEvent(updated, action, origin));
 
-		for (final TopicInfo t : toUpdateTopics) {
-			final int updatedSequenceId = t.getSequenceId() - direction;
-			final var move = new TopicAction.Move(updatedSequenceId);
-			move.apply(t);
-			final TopicInfo updatedTopic = topicStorage.update(t);
-			events.add(new TopicEvent(updatedTopic, move, origin));
-		}
+		eventPublisher.publish(scope, new TopicEvent(updated, action, origin));
 
-		events.forEach(e -> eventPublisher.publish(scope, e));
-
-		return topic;
+		return updated;
 	}
 
 	public TopicInfo update(final Origin origin, final MeetingScope scope,
@@ -163,28 +131,19 @@ public class TopicService {
 		Objects.requireNonNull(origin);
 		Objects.requireNonNull(scope);
 
-		final TopicInfo topicInfo = getById(origin.principal(),
-				scope.meetingId(), topicId);
-		topicStorage.delete(topicInfo);
+		final TopicInfo topic = getById(origin.principal(), scope.meetingId(),
+				topicId);
+		topicStorage.delete(topic);
 
-		final var events = new ArrayList<TopicEvent>();
-		events.add(new TopicEvent(topicInfo, new TopicAction.Delete(), origin));
-
-		final List<TopicInfo> existingTopics = topicStorage
-				.findAllByMeetingId(topicInfo.getMeetingId());
-		for (final TopicInfo t : existingTopics) {
-			if (t.getSequenceId() <= topicInfo.getSequenceId()) {
-				continue;
-			}
-
-			final int updatedSequenceId = t.getSequenceId() - 1;
-			final var move = new TopicAction.Move(updatedSequenceId);
-			move.apply(t);
-			final TopicInfo updatedTopic = topicStorage.update(t);
-			events.add(new TopicEvent(updatedTopic, move, origin));
-		}
-
-		events.forEach(e -> eventPublisher.publish(scope, e));
+		eventPublisher.publish(scope,
+				new TopicEvent(topic, new TopicAction.Delete(), origin));
 	}
 
+	private static TopicInfo find(final List<TopicInfo> elements,
+			final long topicId) {
+		return elements.stream()
+				.filter(b -> b.getId() == topicId)
+				.findFirst()
+				.orElseThrow(MissingEntityException::new);
+	}
 }

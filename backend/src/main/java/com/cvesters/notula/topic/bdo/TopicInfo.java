@@ -8,6 +8,7 @@ import org.apache.commons.lang3.Validate;
 import lombok.Getter;
 
 import com.cvesters.notula.common.domain.Minutes;
+import com.cvesters.notula.common.domain.Rank;
 
 @Getter
 public class TopicInfo {
@@ -15,27 +16,27 @@ public class TopicInfo {
 	private final Long id;
 	private final long organisationId;
 	private final long meetingId;
-	private int sequenceId;
+	private Rank rank;
 	private String name;
 	private String description;
 	private Minutes duration;
 
 	public TopicInfo(final long organisationId, final long meetingId,
-			final int sequenceId, final String name) {
-		this(null, organisationId, meetingId, sequenceId, name, "", null);
+			final Rank rank, final String name) {
+		this(null, organisationId, meetingId, rank, name, "", null);
 	}
 
 	public TopicInfo(final Long id, final long organisationId,
-			final long meetingId, final int sequenceId, final String name,
+			final long meetingId, final Rank rank, final String name,
 			final String description, final Minutes duration) {
-		Validate.isTrue(sequenceId >= 0);
+		Objects.requireNonNull(rank);
 		Objects.requireNonNull(name);
 		Objects.requireNonNull(description);
 
 		this.id = id;
 		this.organisationId = organisationId;
 		this.meetingId = meetingId;
-		this.sequenceId = sequenceId;
+		this.rank = rank;
 		this.name = name;
 		this.description = description;
 		this.duration = duration;
@@ -51,10 +52,10 @@ public class TopicInfo {
 		return Optional.ofNullable(duration);
 	}
 
-	public void setSequenceId(final int sequenceId) {
-		Validate.isTrue(sequenceId >= 0);
+	public void setRank(final Rank rank) {
+		Objects.requireNonNull(rank);
 
-		this.sequenceId = sequenceId;
+		this.rank = rank;
 	}
 
 	public void setName(final String name) {

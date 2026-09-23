@@ -7,13 +7,14 @@ import java.util.Optional;
 import lombok.Getter;
 
 import com.cvesters.notula.common.domain.Minutes;
+import com.cvesters.notula.common.domain.Rank;
 import com.cvesters.notula.topic.bdo.TopicInfo;
 
 @Getter
 public class TopicDetails {
 
 	private final long id;
-	private final int sequenceId;
+	private final Rank rank;
 	private final String name;
 	private final String description;
 	private final Minutes duration;
@@ -25,7 +26,7 @@ public class TopicDetails {
 		Objects.requireNonNull(blocks);
 
 		this.id = info.getId();
-		this.sequenceId = info.getSequenceId();
+		this.rank = info.getRank();
 		this.name = info.getName();
 		this.description = info.getDescription();
 		this.duration = info.getDuration().orElse(null);

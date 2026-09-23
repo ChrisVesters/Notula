@@ -26,7 +26,7 @@ class BlockDetailsDtoTest {
 			final var dto = new BlockDetailsDto(details);
 
 			assertThat(dto.getId()).isEqualTo(details.getId());
-			assertThat(dto.getSequenceId()).isEqualTo(details.getSequenceId());
+			assertThat(dto.getRank()).isEqualTo(details.getRank().value());
 			assertThat(dto.getContent())
 					.isInstanceOf(BlockContentDto.Text.class);
 		}

@@ -555,32 +555,51 @@ outstanding change safe rather than hopeful.
 Step 5 — Fractional ranks instead of dense sequence ids (M)
 --
 
-Replace `topics.sequence_id` and `blocks.sequence_id` with a `rank TEXT` that
-sorts lexicographically, backfilled from the current sequence. Inserting between
-two siblings picks a value between their ranks; a base-62 midpoint utility with
-exhaustive tests is the whole algorithm.
+*Landed.* `topics.sequence_id` and `blocks.sequence_id` are a `rank TEXT`,
+backfilled by `V2__ranks.sql` from the sequence they replaced.
+`common/domain/Rank` is the whole algorithm: base-62 digits in ASCII order, so
+lexicographic comparison *is* the ordering, and `Rank.between(lower, upper)`
+answers for every pair, with either end open. A rank may not end in the first
+digit of the alphabet, because such a rank has nothing below it but its own
+prefixes and those run out — that one invariant is what lets `before` always
+find room. The repositories sort by `(rank, id)`, so two ranks that do collide
+still have a deterministic total order.
 
-A move then writes **one row** and publishes **one event**. Creates and deletes
-touch no siblings at all, which removes the `ArrayList<TopicEvent>` and
-`ArrayList<BlockEvent>` shifting loops from `TopicService` and `BlockService`
-entirely. Two concurrent moves converge on their own; sort by `(rank, id)` so a
-rank collision still has a deterministic total order rather than needing a
-unique constraint that would reject one of two valid drags.
+A move writes **one row** and publishes **one event**. Creates and deletes touch
+no siblings at all, and the `ArrayList<TopicEvent>` and `ArrayList<BlockEvent>`
+shifting loops are gone from `TopicService` and `BlockService`.
 
-On the frontend, `ReorderHandler.handleDrop` computes a rank between the
-neighbours either side of the gap rather than an index, and the move action
-carries that rank.
+**The server computes the rank, not the client.** The design above said the
+frontend should compute one and put it on the action. It should not: two people
+dropping into the same gap compute the *same* string from the same neighbours,
+and while `(rank, id)` keeps the order total, nothing can ever be inserted
+between those two afterwards — there is no midpoint between equal ranks. Jitter
+makes that unlikely rather than impossible. Computing server-side removes the
+class: `MeetingLock` serialises a meeting's changes, so the second move reads
+the first one's committed rank and gets a genuinely distinct midpoint.
 
-Ranks make a move write one row, which exposes something the shifting loops were
-hiding: `TopicDao.update` copies *every* mutable field off the BDO —
-`sequenceId`, `name`, `description`, `duration` — so the one row a move writes
-carries back the name and description that were read with it. A rename
-committing in between is lost to an unrelated drag. Every action already names a
-single field, so the fix is to write only that field: dirty tracking on the BDO,
-whose setters are already the single choke point, or applying the action to the
-DAO rather than mutating a BDO and copying it wholesale. Then a move and a
-rename on the same topic stop conflicting at all — the same trick ranks play for
-ordering, one level down, on columns.
+So a change names the sibling it follows rather than a position:
+`MOVE_TOPIC {topic, afterId}`, `ADD_BLOCK {topic, blockType, afterId}`, with
+`afterId` null for the front. `TopicService.rankAfter` computes between that
+neighbour and its current successor, excluding the moved entity from its own
+bounds. The outbound mutation carries the resulting `rank`, read off the saved
+entity rather than off the action. A stale client now sends something that still
+means what it said — *after Blockers* — where a stale index was simply wrong.
+
+`TopicAction.Move` is therefore no longer a `TopicAction.Update`: it names a
+neighbour rather than a value, so only the service holding the siblings can turn
+it into a rank, and there is nothing for `apply` to do. `BlockAction.Update`
+held only `Move` and is gone entirely.
+
+**Considered and rejected: writing only the field that changed.** Ranks make a
+move write one row, which exposes that `TopicDao.update` copies every mutable
+field off the BDO, so the row a move writes carries back the name it was read
+with. That loses a rename only if two writers touch one meeting at once, and
+`MeetingLock` means they cannot: every change is serialised and re-reads inside
+its own transaction. The DAO stays a whole-object mirror of the BDO, which is
+where the logic is guarded. When the in-process lock stops holding — horizontal
+scaling — the answer is optimistic locking on a version column, not partial
+writes: it keeps the write whole and fails loudly instead of silently merging.
 
 *Why here:* it is the largest structural win available and it depends on nothing
 above, but it wants step 4's acknowledgement in place first so the one-event
@@ -596,7 +615,9 @@ the gap check stops having a blind spot. Treat that as the invariant this step
 owes the ones above it, not as a bonus.
 
 *Done when:* dragging a topic in a long agenda produces a single event, and two
-people reordering the same list concurrently end up with the same order.
+people reordering the same list concurrently end up with the same order. Both
+done — `MeetingChangeWebSocketTest.move` pins the first, and the second follows
+from ranks being computed under the lock and sorted by `(rank, id)`.
 
 Step 6 — Operation log, per-block version, transformation (L)
 --

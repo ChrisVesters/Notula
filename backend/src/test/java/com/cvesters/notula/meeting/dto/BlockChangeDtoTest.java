@@ -12,6 +12,8 @@ import com.cvesters.notula.topic.TestTopic;
 
 class BlockChangeDtoTest {
 
+	private static final Long AFTER_ID = 7L;
+
 	private static final TestBlock BLOCK = TestBlock.SPORER_PROJECT_BLOCKERS_FIRST;
 	private static final TestTopic TOPIC = BLOCK.getTopic();
 
@@ -21,12 +23,12 @@ class BlockChangeDtoTest {
 		@Test
 		void toBdo() {
 			final var dto = new BlockChangeDto.Add(TOPIC.getId(),
-					BLOCK.getType(), BLOCK.getSequenceId());
+					BLOCK.getType(), AFTER_ID);
 
 			final BlockAction.Create bdo = dto.toBdo();
 
 			final var expected = new BlockAction.Create(TOPIC.getId(),
-					BLOCK.getType(), BLOCK.getSequenceId());
+					BLOCK.getType(), AFTER_ID);
 			final var matcher = new BlockActionMatcher.Create(expected);
 			assertThat(bdo).is(matcher.equal());
 		}
@@ -37,12 +39,12 @@ class BlockChangeDtoTest {
 
 		@Test
 		void toBdo() {
-			final var dto = new BlockChangeDto.Move(BLOCK.getId(), 2);
+			final var dto = new BlockChangeDto.Move(BLOCK.getId(), AFTER_ID);
 
 			final BlockAction.Move bdo = dto.toBdo();
 
 			final var matcher = new BlockActionMatcher.Move(
-					new BlockAction.Move(2));
+					new BlockAction.Move(AFTER_ID));
 			assertThat(bdo).is(matcher.equal());
 		}
 	}

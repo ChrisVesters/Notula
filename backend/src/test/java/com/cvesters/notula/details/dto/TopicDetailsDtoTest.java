@@ -37,7 +37,7 @@ class TopicDetailsDtoTest {
 			final TopicDetailsDto dto = new TopicDetailsDto(details);
 
 			assertThat(dto.getId()).isEqualTo(details.getId());
-			assertThat(dto.getSequenceId()).isEqualTo(details.getSequenceId());
+			assertThat(dto.getRank()).isEqualTo(details.getRank().value());
 			assertThat(dto.getName()).isEqualTo(details.getName());
 			assertThat(dto.getDescription())
 					.isEqualTo(details.getDescription());
@@ -47,8 +47,8 @@ class TopicDetailsDtoTest {
 			blocks.forEach(block -> {
 				assertThat(dto.getBlocks()).anySatisfy(b -> {
 					assertThat(b.getId()).isEqualTo(block.getId());
-					assertThat(b.getSequenceId())
-							.isEqualTo(block.getSequenceId());
+					assertThat(b.getRank())
+							.isEqualTo(block.getRank().value());
 				});
 			});
 		}

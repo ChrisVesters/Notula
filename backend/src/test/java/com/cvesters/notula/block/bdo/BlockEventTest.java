@@ -29,7 +29,7 @@ class BlockEventTest {
 		void success() {
 			final BlockInfo block = mock();
 			final var action = new BlockAction.Create(TOPIC_ID, BlockType.TEXT,
-					0);
+					null);
 			final var event = new BlockEvent(block, action, ORIGIN);
 
 			assertThat(event.block()).isEqualTo(block);
@@ -40,7 +40,7 @@ class BlockEventTest {
 		@Test
 		void blockNull() {
 			final var action = new BlockAction.Create(TOPIC_ID, BlockType.TEXT,
-					0);
+					null);
 
 			assertThatThrownBy(() -> new BlockEvent(null, action, ORIGIN))
 					.isInstanceOf(NullPointerException.class);
@@ -58,7 +58,7 @@ class BlockEventTest {
 		void originNull() {
 			final BlockInfo block = mock();
 			final var action = new BlockAction.Create(TOPIC_ID, BlockType.TEXT,
-					0);
+					null);
 
 			assertThatThrownBy(() -> new BlockEvent(block, action, null))
 					.isInstanceOf(NullPointerException.class);

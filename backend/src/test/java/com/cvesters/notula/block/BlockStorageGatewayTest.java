@@ -17,6 +17,7 @@ import org.mockito.InOrder;
 
 import com.cvesters.notula.block.bdo.BlockInfo;
 import com.cvesters.notula.block.dao.BlockDao;
+import com.cvesters.notula.common.domain.Rank;
 import com.cvesters.notula.common.exception.MissingEntityException;
 import com.cvesters.notula.organisation.TestOrganisation;
 import com.cvesters.notula.topic.TestTopic;
@@ -117,17 +118,24 @@ class BlockStorageGatewayTest {
 			final BlockDao dao1 = mock();
 			final BlockInfo bdo1 = mock();
 			when(dao1.toBdo()).thenReturn(bdo1);
+			when(bdo1.getRank()).thenReturn(new Rank("2"));
 
 			final BlockDao dao2 = mock();
 			final BlockInfo bdo2 = mock();
 			when(dao2.toBdo()).thenReturn(bdo2);
+			when(bdo2.getRank()).thenReturn(new Rank("3"));
+
+			final BlockDao dao3 = mock();
+			final BlockInfo bdo3 = mock();
+			when(dao3.toBdo()).thenReturn(bdo3);
+			when(bdo3.getRank()).thenReturn(new Rank("1"));
 
 			when(blockRepository.findAllByTopicId(TOPIC_ID))
-					.thenReturn(List.of(dao1, dao2));
+					.thenReturn(List.of(dao1, dao2, dao3));
 
 			final List<BlockInfo> result = gateway.findAllByTopicId(TOPIC_ID);
 
-			assertThat(result).containsExactly(bdo1, bdo2);
+			assertThat(result).containsExactly(bdo3, bdo1, bdo2);
 		}
 
 		@Test

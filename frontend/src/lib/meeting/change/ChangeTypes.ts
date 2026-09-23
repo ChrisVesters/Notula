@@ -11,8 +11,8 @@ export type MeetingChange =
 	| ({ type: "DESCRIBE_MEETING" } & TextEdit);
 
 export type TopicChange =
-	| { type: "ADD_TOPIC"; sequenceId: number; name: string }
-	| { type: "MOVE_TOPIC"; topic: number; sequenceId: number }
+	| { type: "ADD_TOPIC"; afterId: number | null; name: string }
+	| { type: "MOVE_TOPIC"; topic: number; afterId: number | null }
 	| ({ type: "RENAME_TOPIC"; topic: number } & TextEdit)
 	| ({ type: "DESCRIBE_TOPIC"; topic: number } & TextEdit)
 	| { type: "SCHEDULE_TOPIC"; topic: number; minutes: number | null }
@@ -23,9 +23,9 @@ export type BlockChange =
 			type: "ADD_BLOCK";
 			topic: number;
 			blockType: BlockType;
-			sequenceId: number;
+			afterId: number | null;
 	  }
-	| { type: "MOVE_BLOCK"; block: number; sequenceId: number }
+	| { type: "MOVE_BLOCK"; block: number; afterId: number | null }
 	| { type: "REMOVE_BLOCK"; block: number };
 
 export type TextBlockChange = {

@@ -25,8 +25,7 @@ public class TopicDaoMatcher {
 			assertThat(saved.getOrganisationId())
 					.isEqualTo(expected.getOrganisationId());
 			assertThat(saved.getMeetingId()).isEqualTo(expected.getMeetingId());
-			assertThat(saved.getSequenceId())
-					.isEqualTo(expected.getSequenceId());
+			assertThat(saved.getRank()).isEqualTo(expected.getRank());
 			assertThat(saved.getName()).isEqualTo(expected.getName());
 			assertThat(saved.getDescription())
 					.isEqualTo(expected.getDescription());
@@ -45,7 +44,7 @@ public class TopicDaoMatcher {
 			assertThat(found.getOrganisationId())
 					.isEqualTo(saved.getOrganisationId());
 			assertThat(found.getMeetingId()).isEqualTo(saved.getMeetingId());
-			assertThat(found.getSequenceId()).isEqualTo(saved.getSequenceId());
+			assertThat(found.getRank()).isEqualTo(saved.getRank());
 			assertThat(found.getName()).isEqualTo(saved.getName());
 			assertThat(found.getDescription())
 					.isEqualTo(saved.getDescription());

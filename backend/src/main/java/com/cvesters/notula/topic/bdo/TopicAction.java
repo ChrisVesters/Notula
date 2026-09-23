@@ -1,8 +1,7 @@
 package com.cvesters.notula.topic.bdo;
 
 import java.util.Objects;
-
-import org.apache.commons.lang3.Validate;
+import java.util.Optional;
 
 import lombok.Getter;
 
@@ -14,40 +13,24 @@ public sealed interface TopicAction {
 	@Getter
 	final class Create implements TopicAction {
 
-		private final int sequenceId;
+		private final Long afterId;
 		private final String name;
 
-		public Create(final int sequenceId, final String name) {
-			Validate.isTrue(sequenceId >= 0);
+		public Create(final Long afterId, final String name) {
 			Objects.requireNonNull(name);
 
-			this.sequenceId = sequenceId;
+			this.afterId = afterId;
 			this.name = name;
+		}
+
+		public Optional<Long> getAfterId() {
+			return Optional.ofNullable(afterId);
 		}
 	}
 
 	sealed interface Update extends TopicAction {
 
 		void apply(final TopicInfo object);
-	}
-
-	@Getter
-	final class Move implements TopicAction.Update {
-
-		private final int sequenceId;
-
-		public Move(final int sequenceId) {
-			Validate.isTrue(sequenceId >= 0);
-
-			this.sequenceId = sequenceId;
-		}
-
-		@Override
-		public void apply(final TopicInfo object) {
-			Objects.requireNonNull(object);
-
-			object.setSequenceId(sequenceId);
-		}
 	}
 
 	@Getter
@@ -86,6 +69,20 @@ public sealed interface TopicAction {
 			Objects.requireNonNull(object);
 
 			object.setDuration(duration);
+		}
+	}
+
+	@Getter
+	final class Move implements TopicAction {
+
+		private final Long afterId;
+
+		public Move(final Long afterId) {
+			this.afterId = afterId;
+		}
+
+		public Optional<Long> getAfterId() {
+			return Optional.ofNullable(afterId);
 		}
 	}
 

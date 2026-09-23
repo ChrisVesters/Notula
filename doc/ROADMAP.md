@@ -35,9 +35,10 @@ Checked against the code, not against the commit messages.
   commit.
 - **Rejections name the change.** `change-id` travels on the frame and comes
   back on `RejectedDto`, built with `RejectedDto.permanent` / `.temporary`.
-- **Move events are broadcast.** `TopicService` and `BlockService` publish a
-  move for every row whose `sequence_id` shifts, and the meeting page applies
-  them. The old `// TODO: publish move action/event!!` is gone.
+- **Move events are broadcast.** `TopicService` and `BlockService` publish the
+  move and the meeting page applies it. The old
+  `// TODO: publish move action/event!!` is gone, and since ranks there is one
+  event rather than one per shifted sibling.
 - **Drag-and-drop reordering.** `common/ReorderHandler` with `IconDrag` in
   `TopicAgendaView` and `BlockView`, sending `MOVE_TOPIC` / `MOVE_BLOCK`.
 - **One event envelope.** Events leave as `meeting/dto/EventDto` — `origin`
@@ -51,6 +52,13 @@ Checked against the code, not against the commit messages.
 - **The socket survives a token refresh.** `WebSocketClient.reconnect` keeps
   the subscription map; `config/WebSocketSessionRegistry` closes a connection
   whose token has expired.
+- **Fractional ranks.** `topics.rank` and `blocks.rank` replace the dense
+  sequence ids, so a move writes one row and publishes one event and the
+  shifting loops are gone. `common/domain/Rank` is a base-62 fractional index
+  with exhaustive tests; the server computes every rank inside the lock, and a
+  change names the sibling it follows (`afterId`) rather than a position.
+  `SEQUENCING.md` step 5, and with it *one change, one event, one revision* is
+  true rather than aspired to.
 - **A move that changes nothing says so.** `TopicService.move` and
   `BlockService.move` publish the move for the entity at the position it
   already holds rather than returning silently, so the revision the change

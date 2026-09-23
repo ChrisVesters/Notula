@@ -3,6 +3,7 @@
 
 	import IconPlus from "$lib/assets/icons/IconPlus.svelte";
 
+	import ReorderList from "$lib/common/ReorderList.svelte";
 	import type { TopicDetails } from "$lib/details/DetailTypes";
 	import FeedbackButton from "$lib/form/FeedbackButton.svelte";
 
@@ -18,12 +19,20 @@
 	function addTopic(): Promise<void> {
 		MeetingWebSocketClient.send({
 			type: "ADD_TOPIC",
-			sequenceId: topics.length,
+			afterId: topics.at(-1)?.id ?? null,
 			name: ""
 		});
 
 		return Promise.resolve();
 	}
+
+	const handleMoveTopic = (topicId: number, afterId: number | null) => {
+		MeetingWebSocketClient.send({
+			type: "MOVE_TOPIC",
+			topic: topicId,
+			afterId
+		});
+	};
 </script>
 
 <h2>{$t("common.agenda")}</h2>
@@ -35,16 +44,8 @@
 	</span>
 </FeedbackButton>
 
-<ul class="topics">
-	{#each topics as topic, index (topic.id)}
+<ReorderList items={topics} onMove={handleMoveTopic}>
+	{#snippet item(_: TopicDetails, index: number)}
 		<TopicAgendaView bind:topic={topics[index]} />
-	{/each}
-</ul>
-
-<style>
-	.topics {
-		list-style: none;
-		margin: 0;
-		padding: 0;
-	}
-</style>
+	{/snippet}
+</ReorderList>

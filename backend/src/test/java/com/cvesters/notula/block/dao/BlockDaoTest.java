@@ -8,6 +8,7 @@ import java.lang.reflect.Field;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 
+import com.cvesters.notula.common.domain.Rank;
 import com.cvesters.notula.block.TestBlock;
 import com.cvesters.notula.block.bdo.BlockInfo;
 import com.cvesters.notula.meeting.TestMeeting;
@@ -33,7 +34,7 @@ class BlockDaoTest {
 			assertThat(dao.getOrganisationId()).isEqualTo(ORGANISATION.getId());
 			assertThat(dao.getTopicId()).isEqualTo(TOPIC.getId());
 			assertThat(dao.getType()).isEqualTo(BLOCK.getType());
-			assertThat(dao.getSequenceId()).isEqualTo(BLOCK.getSequenceId());
+			assertThat(dao.getRank()).isEqualTo(BLOCK.getRank().value());
 		}
 
 		@Test
@@ -51,11 +52,11 @@ class BlockDaoTest {
 		@Test
 		void success() {
 			final var updated = new BlockInfo(BLOCK.getId(), ORGANISATION.getId(),
-					TOPIC.getId(), BLOCK.getType(), BLOCK.getSequenceId() + 1);
+					TOPIC.getId(), BLOCK.getType(), new Rank("z"));
 
 			dao.update(updated);
 
-			assertThat(dao.getSequenceId()).isEqualTo(updated.getSequenceId());
+			assertThat(dao.getRank()).isEqualTo(updated.getRank().value());
 		}
 
 		@Test
@@ -82,7 +83,7 @@ class BlockDaoTest {
 			assertThat(bdo.getOrganisationId()).isEqualTo(ORGANISATION.getId());
 			assertThat(bdo.getTopicId()).isEqualTo(TOPIC.getId());
 			assertThat(bdo.getType()).isEqualTo(BLOCK.getType());
-			assertThat(bdo.getSequenceId()).isEqualTo(BLOCK.getSequenceId());
+			assertThat(bdo.getRank()).isEqualTo(BLOCK.getRank());
 		}
 
 		@Test

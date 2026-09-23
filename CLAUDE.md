@@ -144,6 +144,22 @@ carries `topic`, `ADD_BLOCK` carries `block` and `topic`, and the meeting
 mutations carry no id at all, because the destination already named the
 meeting.
 
+**Order is a rank, and the server owns it.** `topics.rank` and `blocks.rank` are
+base-62 fractional indexes — `common/domain/Rank`, where lexicographic order
+*is* the order, and a rank never ends in the alphabet's first digit so that
+`Rank.between` can always find room below one. A change names the sibling it
+follows and never a position: `MOVE_TOPIC {topic, afterId}`, `ADD_TOPIC
+{afterId, name}`, `afterId` null meaning the front. The service computes the
+rank between that neighbour and its current successor, inside the lock, and the
+outbound mutation carries the resulting `rank`, read off the saved entity.
+
+Do not move that computation to the client, however convenient the neighbours
+are there: two people dropping into one gap compute the same string, and while
+`(rank, id)` keeps the order total, nothing can ever be inserted between the two
+afterwards. `TopicAction.Move` is not a `TopicAction.Update` for the same
+reason — it names a neighbour, not a value, so there is nothing for `apply` to
+do.
+
 **There is no `Change` in `bdo`.** A change DTO converts straight to the
 entity's `*Action` — `TopicChangeDto.Rename.toBdo()` returns a
 `TopicAction.UpdateName` — and `meeting/ChangeService` switches on the DTO and
@@ -170,9 +186,9 @@ A change that carries no payload (`REMOVE_TOPIC`, `REMOVE_BLOCK`) declares no
 Variants are grouped by **the service method they route to**, not by what they
 resemble. `TopicChangeDto.Update` is a sealed level over `Rename`, `Describe`
 and `Schedule` declaring `topic()` and `toBdo()`, which is what lets one switch
-case serve all three. `Move` is deliberately *not* under it even though
-`TopicAction.Move` is a `TopicAction.Update` in the `bdo` — it goes to
-`TopicService.move`, which resequences siblings. Do not "fix" that.
+case serve all three. `Move` is deliberately *not* under it: it goes to
+`TopicService.move`, which resolves a neighbour into a rank. `TopicAction.Move`
+is not a `TopicAction.Update` either, for the same reason. Do not "fix" that.
 
 A `TextEditDto` is `@JsonUnwrapped`, so a text edit rides **flat** on the change
 (`{"type": "EDIT_TEXT_BLOCK", "block": 9, "position": 4, "length": 12, …}`),
@@ -312,11 +328,19 @@ Every domain package is `<domain>/` with `bdo/`, `dao/` and `dto/` beneath it:
 - **`dto`** — transport. Validated with Jakarta Validation; converts to domain
   with `toBdo()`.
 - **`bdo`** — business domain objects. **Data, not behaviour** — records and
-  sealed interfaces. Logic lives in services.
+  sealed interfaces. Logic lives in services. The exception that earns its
+  place is a value type whose own arithmetic belongs to it: `common/domain/Rank`
+  computes a rank between two ranks, as `TextUpdate` splices text.
 - **`dao`** — JPA entities.
 
 Conversions are explicit at each boundary. `*StorageGateway` wraps the Spring
 Data repository and does the DAO ↔ BDO conversion; services never see DAOs.
+
+**`*Dao.update` copies every mutable field, on purpose.** The DAO is a whole
+mirror of the BDO, and the BDO is what guards the logic — do not add dirty
+tracking to make a write partial. The lost update that would justify it needs
+two writers on one meeting at once, which `MeetingLock` prevents; when that
+stops holding, the answer is optimistic locking, not a partial write.
 
 Every row below the organisation carries `organisation_id` directly, so
 authorisation is a direct check rather than a tree walk. Do not add a
@@ -335,6 +359,12 @@ acknowledgement and dropping both the change and the queue on a refusal —
 whatever was waiting was composed against a change that never happened. Nothing
 is ever resent: whether a change in flight committed is unknowable, and a text
 edit applied twice corrupts where a lost one does not.
+
+**A list owns its `<li>`; an item component does not render one.** Wrapping
+itself in an `<li>` ties a component to one kind of parent. `common/ReorderList`
+renders the `<ul>`/`<li>` and owns drag-and-drop: it knows the order, so it
+turns a drop into an `afterId` and sends nothing for a drop that moves nothing.
+Items only mark a `data-reorder-handle` and take no `previousId`.
 
 **A lost connection is not recovered from, on purpose.** `WebSocketClient` sets
 `reconnectDelay: 0`, overriding stompjs's default of five seconds. Reconnecting
@@ -374,26 +404,21 @@ several events of one change resync once. A new operation needs no client-side
 plumbing to be gap-checked; it needs its events published under the change's own
 `MeetingScope`, which `MeetingLock` already guarantees.
 
-**Aim for one change, one event, one revision.** Because the revision numbers
-a change and not an event, the gap check sees a jump *between* changes and is
-blind to receiving part of one: three of a drag's five moves apply cleanly and
-leave two topics on a stale sequence with nothing to notice. Several events at
-one revision is therefore tolerated, not endorsed — it exists because dense
-`sequence_id`s make a move shift its siblings, and `SEQUENCING.md` step 5
-removes that. So a new operation should write a single row and publish a single
-event where it can, and one that wants to publish a list of them is a question
-rather than a judgement call. Do not close the blind spot by numbering events
-within a change; that field dies with step 5.
+**One change, one event, one revision.** This holds now that ranks removed the
+sibling shifting, and it is what the gap check rests on: the revision numbers a
+change, so if a change could still arrive in pieces the check would be blind to
+receiving part of one. A new operation therefore writes a single row and
+publishes a single event; one that wants to publish a list of them is a question
+rather than a judgement call. Do not close any remaining gap by numbering events
+within a change.
 
-**A change that accepts and writes nothing still publishes.** A move to the
-position something already holds is accepted, so it spends a revision, so it
-has to be broadcast — otherwise the next change arrives two above what every
-other client holds and they all resync. `TopicService.move` and
-`BlockService.move` publish the move at the unchanged sequence id and write no
-row. Refusing it was the other candidate: a request for a state that already
-holds is not an error, and a refusal costs the sender the changes queued
-behind it. `ReorderHandler.handleDrop` still filters it client-side to save the
-round trip, but the invariant no longer rests on that.
+**A change that accepts and changes nothing still publishes.** A move to where
+something already sits is accepted, so it spends a revision, so it has to be
+broadcast — otherwise the next change arrives two above what every other client
+holds and they all resync. Refusing it was the other candidate: a request for a
+state that already holds is not an error, and a refusal costs the sender the
+changes queued behind it. `ReorderHandler.handleDrop` still filters it
+client-side to save the round trip, but the invariant no longer rests on that.
 
 ## Conventions
 
@@ -407,6 +432,11 @@ call — ask before writing.**
   Claude usage. This rule outranks any skill that asks for an artifact, and
   publishing is not to be offered as an alternative either.
 - Package names are `bdo` / `dao` / `dto`. Not `domain` / `store` / `web`.
+- **There is one migration, `V1__init.sql`, and a schema change edits it.**
+  Nothing is deployed yet, so there is no history to preserve: a `V2__*.sql`
+  was written for the ranks change and folded back in. Fold the change into
+  `V1`, update the seed data under `src/test/resources/db/`, and drop the
+  database locally rather than adding a file Flyway would have to replay.
 - Primary keys are server-assigned `BIGINT`. No client-generated ids as keys;
   client-minted UUIDs are correlation handles (`Submission.id`, `change-id`) and
   stay UUIDs.
@@ -452,8 +482,8 @@ call — ask before writing.**
   called more than once, so a test can watch what a *second* subscriber
   receives; `subscribe` and `send` take a session, or default to the first one
   connected. `FrameHandler.getResponse` is the first frame only — use
-  `await(count, timeout)` for a sequence, since one change can publish several
-  events. It returns what arrived rather than throwing, so assert on the size.
+  `await(count, timeout)` for several frames — and asking for one more than
+  expected is how a test proves a change published no others. It returns what arrived rather than throwing, so assert on the size.
 - **Nothing orders frames across two connections.** A test that subscribes on
   one session and sends on another must know the subscription is registered
   before it sends, or the broadcast goes to nobody and the test fails only on a
@@ -471,6 +501,12 @@ call — ask before writing.**
   `success`, `value`, `unnamed`, `otherMeeting`, `timeout`. Not
   `namesTheChangeItCouldNotRead`. The assertions describe the test; the name
   only has to tell it apart from its siblings.
+- **Duplicate assertions rather than extract them.** Each test spells out its
+  own verifications inline, even when the next test repeats them word for
+  word: a test is read on its own, and a `verifyCreated(...)` helper hides
+  what it checks. The DRY instinct is for production code. Assertions that
+  hold for every successful case go *in* every successful case, not in a
+  separate `event` or `oneRow` test.
 - `Test<Entity>` classes hold shared fixtures; `<Entity>Matcher` extends
   `test/Matcher` for structural assertions.
 - No test-only accessors on production classes. A method that exists so a test

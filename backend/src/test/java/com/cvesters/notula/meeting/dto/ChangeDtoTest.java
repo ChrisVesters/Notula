@@ -59,12 +59,12 @@ class ChangeDtoTest {
 			final ChangeDto change = read("""
 					{
 						"type": "ADD_TOPIC",
-						"sequenceId": 2,
+						"afterId": 7,
 						"name": "Blockers"
 					}
 					""");
 
-			final var expected = new TopicChangeDto.Add(2, "Blockers");
+			final var expected = new TopicChangeDto.Add(7L, "Blockers");
 			assertThat(change).isEqualTo(expected);
 		}
 
@@ -74,11 +74,11 @@ class ChangeDtoTest {
 					{
 						"type": "MOVE_TOPIC",
 						"topic": 7,
-						"sequenceId": 2
+						"afterId": 7
 					}
 					""");
 
-			final var expected = new TopicChangeDto.Move(7, 2);
+			final var expected = new TopicChangeDto.Move(7, 7L);
 			assertThat(change).isEqualTo(expected);
 		}
 
@@ -162,11 +162,11 @@ class ChangeDtoTest {
 						"type": "ADD_BLOCK",
 						"topic": 7,
 						"blockType": "TEXT",
-						"sequenceId": 2
+						"afterId": 7
 					}
 					""");
 
-			final var expected = new BlockChangeDto.Add(7, BlockType.TEXT, 2);
+			final var expected = new BlockChangeDto.Add(7, BlockType.TEXT, 7L);
 			assertThat(change).isEqualTo(expected);
 		}
 
@@ -176,11 +176,11 @@ class ChangeDtoTest {
 					{
 						"type": "MOVE_BLOCK",
 						"block": 9,
-						"sequenceId": 2
+						"afterId": 7
 					}
 					""");
 
-			final var expected = new BlockChangeDto.Move(9, 2);
+			final var expected = new BlockChangeDto.Move(9, 7L);
 			assertThat(change).isEqualTo(expected);
 		}
 

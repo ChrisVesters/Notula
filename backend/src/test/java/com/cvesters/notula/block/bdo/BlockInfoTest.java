@@ -7,6 +7,7 @@ import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 
 import com.cvesters.notula.block.TestBlock;
+import com.cvesters.notula.common.domain.Rank;
 import com.cvesters.notula.meeting.TestMeeting;
 import com.cvesters.notula.organisation.TestOrganisation;
 import com.cvesters.notula.topic.TestTopic;
@@ -25,7 +26,7 @@ class BlockInfoTest {
 		@Test
 		void withoutId() {
 			final var result = new BlockInfo(ORGANISATION.getId(),
-					TOPIC.getId(), BLOCK.getType(), BLOCK.getSequenceId());
+					TOPIC.getId(), BLOCK.getType(), BLOCK.getRank());
 
 			assertThatThrownBy(result::getId)
 					.isInstanceOf(IllegalStateException.class);
@@ -33,21 +34,21 @@ class BlockInfoTest {
 					.isEqualTo(ORGANISATION.getId());
 			assertThat(result.getTopicId()).isEqualTo(TOPIC.getId());
 			assertThat(result.getType()).isEqualTo(BLOCK.getType());
-			assertThat(result.getSequenceId()).isEqualTo(BLOCK.getSequenceId());
+			assertThat(result.getRank()).isEqualTo(BLOCK.getRank());
 		}
 
 		@Test
 		void withId() {
 			final var result = new BlockInfo(BLOCK.getId(),
 					ORGANISATION.getId(), TOPIC.getId(), BLOCK.getType(),
-					BLOCK.getSequenceId());
+					BLOCK.getRank());
 
 			assertThat(result.getId()).isEqualTo(TOPIC.getId());
 			assertThat(result.getOrganisationId())
 					.isEqualTo(ORGANISATION.getId());
 			assertThat(result.getTopicId()).isEqualTo(TOPIC.getId());
 			assertThat(result.getType()).isEqualTo(BLOCK.getType());
-			assertThat(result.getSequenceId()).isEqualTo(BLOCK.getSequenceId());
+			assertThat(result.getRank()).isEqualTo(BLOCK.getRank());
 		}
 
 		@Test
@@ -56,45 +57,43 @@ class BlockInfoTest {
 			final long organisationId = ORGANISATION.getId();
 			final long topicId = TOPIC.getId();
 			final BlockType type = null;
-			final int sequenceId = BLOCK.getSequenceId();
+			final Rank rank = BLOCK.getRank();
 
 			assertThatThrownBy(() -> new BlockInfo(id, organisationId, topicId,
-					type, sequenceId)).isInstanceOf(NullPointerException.class);
+					type, rank)).isInstanceOf(NullPointerException.class);
 		}
 
 		@Test
-		void sequenceIdNegative() {
+		void rankNull() {
 			final long id = BLOCK.getId();
 			final long organisationId = ORGANISATION.getId();
 			final long topicId = TOPIC.getId();
 			final BlockType type = BLOCK.getType();
-			final int sequenceId = -1;
 
 			assertThatThrownBy(() -> new BlockInfo(id, organisationId, topicId,
-					type, sequenceId))
-							.isInstanceOf(IllegalArgumentException.class);
+					type, null)).isInstanceOf(NullPointerException.class);
 		}
 	}
 
 	@Nested
-	class SetSequenceId {
+	class SetRank {
 
 		@Test
 		void success() {
 			final var blockInfo = BLOCK.info();
-			final int sequenceId = BLOCK.getSequenceId() + 5;
+			final var rank = new Rank("z");
 
-			blockInfo.setSequenceId(sequenceId);
+			blockInfo.setRank(rank);
 
-			assertThat(blockInfo.getSequenceId()).isEqualTo(sequenceId);
+			assertThat(blockInfo.getRank()).isEqualTo(rank);
 		}
 
 		@Test
-		void sequenceIdNegative() {
+		void rankNull() {
 			final var blockInfo = BLOCK.info();
 
-			assertThatThrownBy(() -> blockInfo.setSequenceId(-1))
-					.isInstanceOf(IllegalArgumentException.class);
+			assertThatThrownBy(() -> blockInfo.setRank(null))
+					.isInstanceOf(NullPointerException.class);
 		}
 	}
 }

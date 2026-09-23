@@ -4,7 +4,6 @@
 	import IconDelete from "$lib/assets/icons/IconDelete.svelte";
 	import IconDrag from "$lib/assets/icons/IconDrag.svelte";
 
-	import { DropPosition, reorderHandler } from "$lib/common/ReorderHandler";
 	import type { TopicDetails } from "$lib/details/DetailTypes";
 	import type { UpdateAction } from "$lib/editor/ActionTypes";
 	import Input from "$lib/editor/Input.svelte";
@@ -18,27 +17,6 @@
 	};
 
 	let { topic = $bindable() }: TopicAgendaViewProps = $props();
-
-	let dragged = $state(false);
-	let dropPosition: DropPosition | null = $state(null);
-
-	const handleMoveTopic = (sequenceId: number) => {
-		MeetingWebSocketClient.send({
-			type: "MOVE_TOPIC",
-			topic: topic.id,
-			sequenceId
-		});
-	};
-
-	const handleReorder = $derived(
-		reorderHandler({
-			sequenceId: topic.sequenceId,
-			onDragChange: (value: boolean) => (dragged = value),
-			onDropChange: (value: DropPosition | null) =>
-				(dropPosition = value),
-			onMove: handleMoveTopic
-		})
-	);
 
 	const handleUpdateTopicName = (edit: UpdateAction) => {
 		MeetingWebSocketClient.send({
@@ -72,13 +50,7 @@
 	};
 </script>
 
-<li
-	class="topic"
-	class:dragged
-	class:drop-before={dropPosition === DropPosition.BEFORE}
-	class:drop-after={dropPosition === DropPosition.AFTER}
-	{@attach handleReorder}
->
+<div class="topic">
 	<Input
 		className="h2"
 		bind:value={topic.name}
@@ -117,35 +89,11 @@
 		</button>
 		<IconButton icon={IconDelete} onClick={handleDeleteTopic} />
 	</div>
-</li>
+</div>
 
 <style>
 	.topic {
 		position: relative;
-		margin-top: 1rem;
-	}
-
-	.topic.dragged {
-		opacity: 0.4;
-	}
-
-	.topic.drop-before::before,
-	.topic.drop-after::after {
-		content: "";
-
-		position: absolute;
-		left: 0;
-		right: 0;
-
-		border-top: 2px solid var(--color-primary-500);
-	}
-
-	.topic.drop-before::before {
-		top: -0.5rem;
-	}
-
-	.topic.drop-after::after {
-		bottom: -0.5rem;
 	}
 
 	.actions {

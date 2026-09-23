@@ -8,30 +8,31 @@ import lombok.Getter;
 import com.cvesters.notula.block.bdo.BlockInfo;
 import com.cvesters.notula.block.bdo.BlockType;
 import com.cvesters.notula.block.dto.BlockTypeDto;
+import com.cvesters.notula.common.domain.Rank;
 import com.cvesters.notula.topic.TestTopic;
 
 @Getter
 public enum TestBlock {
 	SPORER_PROJECT_DELIVERABLES_FIRST(1L, TestTopic.SPORER_PROJECT_DELIVERABLES,
-			BlockType.TEXT, 0),
+			BlockType.TEXT, "1"),
 	SPORER_PROJECT_BLOCKERS_FIRST(2L, TestTopic.SPORER_PROJECT_BLOCKERS,
-			BlockType.TEXT, 0),
+			BlockType.TEXT, "1"),
 	SPORER_PROJECT_BLOCKERS_SECOND(3L, TestTopic.SPORER_PROJECT_BLOCKERS,
-			BlockType.TEXT, 1),
+			BlockType.TEXT, "2"),
 	SPORER_PROJECT_BLOCKERS_THIRD(4L, TestTopic.SPORER_PROJECT_BLOCKERS,
-			BlockType.TEXT, 2);
+			BlockType.TEXT, "3");
 
 	private final long id;
 	private final TestTopic topic;
 	private final BlockType type;
-	private final int sequenceId;
+	private final Rank rank;
 
 	TestBlock(final long id, final TestTopic topic, final BlockType type,
-			final int sequenceId) {
+			final String rank) {
 		this.id = id;
 		this.topic = topic;
 		this.type = type;
-		this.sequenceId = sequenceId;
+		this.rank = new Rank(rank);
 	}
 
 	public static List<TestBlock> ofTopic(final TestTopic topic) {
@@ -42,7 +43,7 @@ public enum TestBlock {
 
 	public BlockInfo info() {
 		return new BlockInfo(id, topic.getOrganisation().getId(), topic.getId(),
-				type, sequenceId);
+				type, rank);
 	}
 
 	public BlockTypeDto getTypeDto() {

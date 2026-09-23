@@ -2,7 +2,6 @@
 	import IconDelete from "$lib/assets/icons/IconDelete.svelte";
 	import IconDrag from "$lib/assets/icons/IconDrag.svelte";
 
-	import { DropPosition, reorderHandler } from "$lib/common/ReorderHandler";
 	import type { BlockDetails } from "$lib/details/DetailTypes";
 	import IconButton from "$lib/form/IconButton.svelte";
 	import TextBlockView from "$lib/textblock/TextBlockView.svelte";
@@ -17,27 +16,6 @@
 
 	let { block = $bindable() }: BlockViewProps = $props();
 
-	let dragged = $state(false);
-	let dropPosition: DropPosition | null = $state(null);
-
-	const handleMoveBlock = (sequenceId: number) => {
-		MeetingWebSocketClient.send({
-			type: "MOVE_BLOCK",
-			block: block.id,
-			sequenceId
-		});
-	};
-
-	const handleReorder = $derived(
-		reorderHandler({
-			sequenceId: block.sequenceId,
-			onDragChange: (value: boolean) => (dragged = value),
-			onDropChange: (value: DropPosition | null) =>
-				(dropPosition = value),
-			onMove: handleMoveBlock
-		})
-	);
-
 	const handleDeleteBlock = (blockId: number) => {
 		MeetingWebSocketClient.send({
 			type: "REMOVE_BLOCK",
@@ -46,13 +24,7 @@
 	};
 </script>
 
-<li
-	class="block"
-	class:dragged
-	class:drop-before={dropPosition === DropPosition.BEFORE}
-	class:drop-after={dropPosition === DropPosition.AFTER}
-	{@attach handleReorder}
->
+<div class="block">
 	{#if block.type === BlockType.TEXT}
 		<TextBlockView blockId={block.id} bind:content={block} />
 	{/if}
@@ -71,35 +43,11 @@
 			onClick={() => handleDeleteBlock(block.id)}
 		/>
 	</div>
-</li>
+</div>
 
 <style>
 	.block {
 		position: relative;
-		margin-top: 1rem;
-	}
-
-	.block.dragged {
-		opacity: 0.4;
-	}
-
-	.block.drop-before::before,
-	.block.drop-after::after {
-		content: "";
-
-		position: absolute;
-		left: 0;
-		right: 0;
-
-		border-top: 2px solid var(--color-primary-500);
-	}
-
-	.block.drop-before::before {
-		top: -0.5rem;
-	}
-
-	.block.drop-after::after {
-		bottom: -0.5rem;
 	}
 
 	.actions {

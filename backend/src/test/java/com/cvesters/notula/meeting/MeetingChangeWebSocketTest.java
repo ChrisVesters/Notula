@@ -61,19 +61,15 @@ public class MeetingChangeWebSocketTest extends WebSocketTest {
 					{
 						"type": "MOVE_TOPIC",
 						"topic": %d,
-						"sequenceId": 0
+						"afterId": null
 					}
 					""".formatted(TIMELINE.getId())));
 
-			final List<String> received = events.await(3, EVENT_TIMEOUT);
+			final List<String> received = events.await(1, EVENT_TIMEOUT);
 
-			assertThat(received).hasSize(3);
-			assertThat(received.get(0)).isEqualToIgnoringWhitespace(
-					event(REVISION, moveMutation(TIMELINE.getId(), 0)));
-			assertThat(received.get(1)).isEqualToIgnoringWhitespace(
-					event(REVISION, moveMutation(DELIVERABLES.getId(), 1)));
-			assertThat(received.get(2)).isEqualToIgnoringWhitespace(
-					event(REVISION, moveMutation(BLOCKERS.getId(), 2)));
+			assertThat(received).hasSize(1);
+			assertThat(received.getFirst()).isEqualToIgnoringWhitespace(
+					event(REVISION, moveMutation(TIMELINE.getId(), "0V")));
 		}
 
 		@Test
@@ -85,9 +81,9 @@ public class MeetingChangeWebSocketTest extends WebSocketTest {
 					{
 						"type": "MOVE_TOPIC",
 						"topic": %d,
-						"sequenceId": %d
+						"afterId": %d
 					}
-					""".formatted(TIMELINE.getId(), TIMELINE.getSequenceId())));
+					""".formatted(TIMELINE.getId(), BLOCKERS.getId())));
 			send(author, CHANGES, CHANGE_ID, payload("""
 					{
 						"type": "SCHEDULE_TOPIC",
@@ -99,9 +95,9 @@ public class MeetingChangeWebSocketTest extends WebSocketTest {
 			final List<String> received = events.await(2, EVENT_TIMEOUT);
 
 			assertThat(received).hasSize(2);
-			assertThat(received.get(0)).isEqualToIgnoringWhitespace(event(
-					REVISION,
-					moveMutation(TIMELINE.getId(), TIMELINE.getSequenceId())));
+			assertThat(received.get(0)).isEqualToIgnoringWhitespace(
+					event(REVISION, moveMutation(TIMELINE.getId(),
+							TIMELINE.getRank().value())));
 			assertThat(received.get(1)).isEqualToIgnoringWhitespace(event(
 					REVISION + 1, scheduleMutation(DELIVERABLES.getId(), 5)));
 		}
@@ -115,7 +111,7 @@ public class MeetingChangeWebSocketTest extends WebSocketTest {
 					{
 						"type": "MOVE_TOPIC",
 						"topic": %d,
-						"sequenceId": 0
+						"afterId": null
 					}
 					""".formatted(TIMELINE.getId())));
 			send(author, CHANGES, CHANGE_ID, payload("""
@@ -126,13 +122,12 @@ public class MeetingChangeWebSocketTest extends WebSocketTest {
 					}
 					""".formatted(DELIVERABLES.getId())));
 
-			final List<String> received = events.await(4, EVENT_TIMEOUT);
+			final List<String> received = events.await(2, EVENT_TIMEOUT);
 
-			assertThat(received).hasSize(4);
-			assertThat(received.get(0)).contains("\"revision\":" + REVISION);
-			assertThat(received.get(1)).contains("\"revision\":" + REVISION);
-			assertThat(received.get(2)).contains("\"revision\":" + REVISION);
-			assertThat(received.get(3)).isEqualToIgnoringWhitespace(event(
+			assertThat(received).hasSize(2);
+			assertThat(received.get(0)).isEqualToIgnoringWhitespace(
+					event(REVISION, moveMutation(TIMELINE.getId(), "0V")));
+			assertThat(received.get(1)).isEqualToIgnoringWhitespace(event(
 					REVISION + 1, scheduleMutation(DELIVERABLES.getId(), 5)));
 		}
 	}
@@ -250,15 +245,14 @@ public class MeetingChangeWebSocketTest extends WebSocketTest {
 				""".formatted(changeId, revision);
 	}
 
-	private static String moveMutation(final long topicId,
-			final int sequenceId) {
+	private static String moveMutation(final long topicId, final String rank) {
 		return """
 				{
 					"type": "MOVE_TOPIC",
 					"topic": %d,
-					"sequenceId": %d
+					"rank": "%s"
 				}
-				""".formatted(topicId, sequenceId);
+				""".formatted(topicId, rank);
 	}
 
 	private static String scheduleMutation(final long topicId,
