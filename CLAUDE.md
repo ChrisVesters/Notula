@@ -431,6 +431,14 @@ call — ask before writing.**
   published to claude.ai once and the project then surfaced in someone else's
   Claude usage. This rule outranks any skill that asks for an artifact, and
   publishing is not to be offered as an alternative either.
+- **Work in small, committed steps.** A change that spans layers is planned as
+  a sequence of steps. Each step compiles, passes `mvn clean test`, moves its
+  design doc along with the code, and stops for review before the next. Do not
+  start a refactor on top of uncommitted feature work. Never delete a file that
+  has local modifications. Text rebasing was built in one sixty-file piece with
+  a refactor on top, and had to be stashed whole: `doc/LESSONS.md`, *Step 6, the
+  first time*. The design and the order to rebuild it are in `SEQUENCING.md`
+  step 6.
 - Package names are `bdo` / `dao` / `dto`. Not `domain` / `store` / `web`.
 - **There is one migration, `V1__init.sql`, and a schema change edits it.**
   Nothing is deployed yet, so there is no history to preserve: a `V2__*.sql`
