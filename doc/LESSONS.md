@@ -196,6 +196,50 @@ Still open, and stated plainly rather than buried:
   needs. It is the seam that one plugs into.
 - **The frontend has no tests at all.**
 
+Step 6, the first time
+==
+
+Concurrent text editing (`SEQUENCING.md`, step 6) was built end to end and
+worked. It was built as a `base-revision` header, an `events` log, a `Splice`
+transform on both sides, rebasing in `ChangeService`, and a client that owns
+the stream and rebases its queue. `MeetingChangeWebSocketTest` drove two
+concurrent renames through the real path, and a second subscriber saw them
+merged. The design survives, and `SEQUENCING.md` now holds it with the order to
+rebuild it in. The work itself was stashed, not committed, because of how it
+was done.
+
+It was done in one piece. About sixty files across backend, frontend and four
+design documents stayed uncommitted while the work grew. Then a refactor went on
+top: an `Event` BDO for the log's storage gateway, which touched another
+forty-odd files, including a package rename. Every step was green. None of it
+could be reviewed, because there was nothing between "nothing" and
+"everything".
+
+It also could not be taken apart. Much of the work was untracked, so git held
+no copy of it, and the refactor could not be undone with git either. Every file
+had to be put back by hand from the originals that had been read. One deleted
+test with local modifications was lost outright: `git rm` refused it, the refusal
+was worked around with a plain `rm`, and only the committed version could be
+restored. Reverting cost more than writing.
+
+**Build a large change as small green steps, and commit each one.** A step is
+small enough to review in one sitting. It compiles, it passes
+`mvn clean test`, and it moves the design doc along with the code. A refactor
+proposed during a feature waits until the feature's steps are committed. Two
+changes interleaved in one uncommitted tree can only be kept or discarded
+together.
+
+**Never delete a file that has local modifications.** When git refuses a
+`git rm`, that refusal is the warning, not an obstacle to route around.
+
+**A design doc's objection can rest on an assumption the design has since
+dropped.** Step 6 used to say the version had to be per block, because a
+meeting-wide number would manufacture conflicts between blocks. That was true
+of a compare-and-set, which refuses. An edit that is rebased is only ever moved
+over edits to its own text, so the objection disappears, and so does the
+per-block counter. Re-read the reasons, not just the conclusions, when the
+mechanism changes.
+
 A timeout that logs is a timeout that lies
 ==
 

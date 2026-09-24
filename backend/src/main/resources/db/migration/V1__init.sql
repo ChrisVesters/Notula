@@ -110,3 +110,19 @@ CREATE TABLE text_blocks(
 	PRIMARY KEY(block_id),
 	FOREIGN KEY(block_id) REFERENCES blocks(id) ON DELETE CASCADE
 );
+
+
+CREATE TABLE events(
+	id BIGINT NOT NULL GENERATED ALWAYS AS IDENTITY,
+	organisation_id BIGINT NOT NULL,
+	meeting_id BIGINT NOT NULL,
+	revision BIGINT NOT NULL,
+	payload JSONB NOT NULL,
+
+	PRIMARY KEY(id),
+	FOREIGN KEY(organisation_id) REFERENCES organisations(id) ON DELETE CASCADE,
+	FOREIGN KEY(meeting_id) REFERENCES meetings(id) ON DELETE CASCADE,
+	UNIQUE(meeting_id, revision)
+);
+
+CREATE INDEX ON events(organisation_id);
