@@ -5,7 +5,6 @@
 	import { page } from "$app/state";
 
 	import { BlockType } from "$lib/block/BlockTypes";
-	import { isOwnEvent } from "$lib/common/EventTypes";
 	import Loading from "$lib/common/Loading.svelte";
 	import { Rank } from "$lib/common/Rank";
 	import type {
@@ -28,16 +27,6 @@
 		meeting?.topics?.toSorted((a, b) => Rank.compare(a.rank, b.rank)) ?? []
 	);
 
-	let revision: number | undefined = $state();
-	// A change numbers every event it publishes with its own revision, so a
-	// second event at the current revision belongs to the change being
-	// applied and is not a repeat. A snapshot absorbs a change whole instead,
-	// so an event still in flight for the revision it reports describes
-	// something the payload already holds, and applying it would splice the
-	// same edit in twice. This says which of the two we are on.
-	let streamed = false;
-	const buffered: Array<MeetingEvent> = [];
-
 	onMount(async () => {
 		MeetingWebSocketClient.connect(id, {
 			onLoad,
@@ -52,10 +41,6 @@
 
 	const onLoad = (data: MeetingDetails) => {
 		meeting = data;
-		revision = data.revision;
-		streamed = false;
-
-		buffered.splice(0, buffered.length).forEach(event => accept(event));
 	};
 
 	const onRejected = (rejected: Rejected) => {
@@ -66,52 +51,13 @@
 	const onEvent = (event: MeetingEvent) => {
 		console.debug("Received event:", event);
 
-		accept(event);
-	};
-
-	const accept = (event: MeetingEvent) => {
-		if (revision === undefined) {
-			buffered.push(event);
-			return;
-		}
-
-		const seen =
-			event.revision < revision ||
-			(event.revision === revision && !streamed);
-		if (seen) {
-			return;
-		}
-
-		if (event.revision > revision + 1) {
-			resync();
-			return;
-		}
-
-		revision = event.revision;
-		streamed = true;
-
 		mutate(event);
-	};
-
-	// Leaves the stale view up for the round trip rather than blanking the
-	// page: events keep arriving and are replayed onto the snapshot, so the
-	// divergence outlives the request by nothing.
-	const resync = () => {
-		if (revision === undefined) {
-			return;
-		}
-
-		console.warn("Missed a change, reloading the meeting");
-		revision = undefined;
-		streamed = false;
-
-		MeetingWebSocketClient.resync();
 	};
 
 	const findTopic = (id: number): TopicDetails | undefined => {
 		const topic = meeting?.topics.find(t => t.id === id);
 		if (!topic) {
-			resync();
+			MeetingWebSocketClient.resync();
 		}
 
 		return topic;
@@ -122,31 +68,25 @@
 			.flatMap(t => t.blocks)
 			.find(b => b.id === id);
 		if (!block) {
-			resync();
+			MeetingWebSocketClient.resync();
 		}
 
 		return block;
 	};
 
 	const mutate = (event: MeetingEvent) => {
-		// Our own changes come back too. Creating, moving and deleting topics
-		// and blocks still relies on that echo to update the view, so they are
-		// applied whoever caused them. Text is the exception: the editor
-		// already applied it locally, and applying the echo would splice the
-		// same edit in twice.
 		const mutation = event.mutation;
-		const remote = !isOwnEvent(event.origin);
 
 		switch (mutation.type) {
 			case "ADD_MEETING":
 				break;
 			case "RENAME_MEETING":
-				if (meeting && remote) {
+				if (meeting) {
 					meeting.name = applied(meeting.name, mutation);
 				}
 				break;
 			case "DESCRIBE_MEETING":
-				if (meeting && remote) {
+				if (meeting) {
 					meeting.description = applied(
 						meeting.description,
 						mutation
@@ -176,10 +116,6 @@
 				break;
 			}
 			case "RENAME_TOPIC": {
-				if (!remote) {
-					break;
-				}
-
 				const topic = findTopic(mutation.topic);
 				if (topic) {
 					topic.name = applied(topic.name, mutation);
@@ -187,10 +123,6 @@
 				break;
 			}
 			case "DESCRIBE_TOPIC": {
-				if (!remote) {
-					break;
-				}
-
 				const topic = findTopic(mutation.topic);
 				if (topic) {
 					topic.description = applied(topic.description, mutation);
@@ -244,7 +176,7 @@
 					t.blocks.some(b => b.id === mutation.block)
 				);
 				if (!topic) {
-					resync();
+					MeetingWebSocketClient.resync();
 					break;
 				}
 
@@ -255,10 +187,6 @@
 			}
 
 			case "EDIT_TEXT_BLOCK": {
-				if (!remote) {
-					break;
-				}
-
 				const block = findBlock(mutation.block);
 				if (block?.type === BlockType.TEXT) {
 					block.content = applied(block.content, mutation);

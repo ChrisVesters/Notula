@@ -1,5 +1,6 @@
 import Session from "$lib/auth/Session";
 import CLIENT_ID from "$lib/common/ClientId";
+import { isOwnEvent } from "$lib/common/EventTypes";
 import type WebSocketClient from "$lib/common/WebSocketClient";
 import type { MeetingDetails } from "$lib/details/DetailTypes";
 
@@ -9,7 +10,7 @@ import type {
 	Rejected,
 	Submission
 } from "./change/ChangeTypes";
-import type { MeetingEvent } from "./event/EventTypes";
+import type { MeetingEvent, Mutation } from "./event/EventTypes";
 
 export type MeetingEventHandler = {
 	onLoad: (data: MeetingDetails) => void;
@@ -23,6 +24,10 @@ export default class MeetingWebSocketClient {
 
 	static #meetingId: number | null = null;
 	static #handler: MeetingEventHandler | null = null;
+
+	static #revision: number | undefined = undefined;
+	static #streamed = false;
+	static #buffered: Array<MeetingEvent> = [];
 
 	static #inFlight: Submission | null = null;
 	static #queued: Array<Submission> = [];
@@ -41,26 +46,36 @@ export default class MeetingWebSocketClient {
 			handler.onRejected(rejected);
 		});
 		client().subscribe(`/topic/meetings/${id}`, message =>
-			handler.onEvent(JSON.parse(message.body))
+			MeetingWebSocketClient.#accept(JSON.parse(message.body))
 		);
-		MeetingWebSocketClient.#load(id, handler);
+		MeetingWebSocketClient.#load(id);
 	}
 
 	public static resync(): void {
 		const id = MeetingWebSocketClient.#meetingId;
-		const handler = MeetingWebSocketClient.#handler;
-		if (id === null || handler === null) {
+		if (id === null) {
 			throw new Error("No meeting to reload");
 		}
 
+		if (MeetingWebSocketClient.#revision === undefined) {
+			return;
+		}
+
+		console.warn("Missed a change, reloading the meeting");
+		MeetingWebSocketClient.#revision = undefined;
+		MeetingWebSocketClient.#streamed = false;
+
 		client().unsubscribe(`/app/meetings/${id}`);
-		MeetingWebSocketClient.#load(id, handler);
+		MeetingWebSocketClient.#load(id);
 	}
 
 	public static disconnect(): void {
 		const id = MeetingWebSocketClient.#meetingId;
 		MeetingWebSocketClient.#meetingId = null;
 		MeetingWebSocketClient.#handler = null;
+		MeetingWebSocketClient.#revision = undefined;
+		MeetingWebSocketClient.#streamed = false;
+		MeetingWebSocketClient.#buffered = [];
 		MeetingWebSocketClient.#clear();
 
 		client().unsubscribe(`/app/meetings/${id}`);
@@ -80,6 +95,45 @@ export default class MeetingWebSocketClient {
 		MeetingWebSocketClient.#submit();
 
 		return id;
+	}
+
+	static #onLoad(data: MeetingDetails): void {
+		MeetingWebSocketClient.#revision = data.revision;
+		MeetingWebSocketClient.#streamed = false;
+		MeetingWebSocketClient.#handler?.onLoad(data);
+
+		MeetingWebSocketClient.#buffered
+			.splice(0, MeetingWebSocketClient.#buffered.length)
+			.forEach(event => MeetingWebSocketClient.#accept(event));
+	}
+
+	static #accept(event: MeetingEvent): void {
+		const revision = MeetingWebSocketClient.#revision;
+		if (revision === undefined) {
+			MeetingWebSocketClient.#buffered.push(event);
+			return;
+		}
+
+		const seen =
+			event.revision < revision ||
+			(event.revision === revision && !MeetingWebSocketClient.#streamed);
+		if (seen) {
+			return;
+		}
+
+		if (event.revision > revision + 1) {
+			MeetingWebSocketClient.resync();
+			return;
+		}
+
+		MeetingWebSocketClient.#revision = event.revision;
+		MeetingWebSocketClient.#streamed = true;
+
+		if (isOwnEvent(event.origin) && isText(event.mutation)) {
+			return;
+		}
+
+		MeetingWebSocketClient.#handler?.onEvent(event);
 	}
 
 	static #acknowledge(acknowledged: Acknowledged): void {
@@ -115,10 +169,23 @@ export default class MeetingWebSocketClient {
 		MeetingWebSocketClient.#queued = [];
 	}
 
-	static #load(id: number, handler: MeetingEventHandler): void {
+	static #load(id: number): void {
 		client().subscribe(`/app/meetings/${id}`, message =>
-			handler.onLoad(JSON.parse(message.body))
+			MeetingWebSocketClient.#onLoad(JSON.parse(message.body))
 		);
+	}
+}
+
+function isText(mutation: Mutation): boolean {
+	switch (mutation.type) {
+		case "RENAME_MEETING":
+		case "DESCRIBE_MEETING":
+		case "RENAME_TOPIC":
+		case "DESCRIBE_TOPIC":
+		case "EDIT_TEXT_BLOCK":
+			return true;
+		default:
+			return false;
 	}
 }
 
