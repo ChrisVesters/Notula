@@ -2,8 +2,7 @@ Realtime protocol
 =
 
 How a meeting stays in sync across tabs: one STOMP connection, one destination
-for every change, and five identifiers with five different lifetimes — two of
-which nothing currently reads.
+for every change, and five identifiers with five different lifetimes.
 
 `SEQUENCING.md` is the plan for making concurrent editing correct. This document
 is the description of what the transport does today: what is on the wire, what
@@ -22,7 +21,7 @@ Authentication happens once, on the `CONNECT` frame.
 session attributes for later. Every frame after that is already authenticated,
 because the STOMP session carries the user.
 
-Four destinations:
+Five destinations:
 
 - `/app/meetings/{id}` — subscribing here returns the meeting snapshot, once, to
   the subscriber alone. A `@SubscribeMapping` reply, not a broadcast.
@@ -33,6 +32,9 @@ Four destinations:
 - `/user/queue/rejections` — refusals, to the one connection that asked. Success
   is never reported here; a change that worked arrives as an event on the topic
   like everyone else's.
+- `/user/queue/acks` — `{id, revision}` for a change that committed, to the one
+  connection that sent it: the return value of the handler, so it cannot be
+  sent for a change that threw.
 
 Inbound frames are handled on a dedicated pool (`ws-inbound-`, sized to the core
 count) so a slow change cannot stall the broker, with heartbeats every 10s in
@@ -60,12 +62,15 @@ clients in `origin.userId`. Read by authorisation in every service.
 
 **`client-id`** — minted by the browser, `crypto.randomUUID()` at module load.
 Rides the `client-id` header out and comes back as `origin.clientId`. Read by
-`isOwnEvent()`, which has **zero callers**. *Unconsumed.*
+`MeetingWebSocketClient` through `isOwnEvent()`, to recognise the echo of its
+own change: a text echo is dropped, because the editor already applied it.
+*Load-bearing.*
 
 **`change-id`** — minted by the browser, per change in
 `MeetingWebSocketClient.send`. Rides the `change-id` header out and comes back
-as `RejectedDto.id`. Read by nothing: all 13 call sites drop the return value.
-*Unconsumed.*
+as the acknowledgement's `id` or `RejectedDto.id`. Read by the client to match
+an acknowledgement to the change in flight before releasing the next one.
+*Load-bearing.*
 
 Their lifetimes, against the events that end them. The span is one access
 token: issued for 30 minutes, refreshed 60s before it expires.
@@ -118,8 +123,7 @@ Sending a change
 ==
 
 A client sends everything it does to one destination, rather than a destination
-per entity. The body is the change itself; everything *about* the change travels
-in headers.
+per entity. The body is the change itself; the identifiers travel in headers.
 
 ```
 SEND
@@ -130,6 +134,12 @@ content-type:application/json
 
 {"type":"ADD_TOPIC","afterId":32,"name":"Blockers"}^@
 ```
+
+A text change also carries `base` in its body — `{"type":"RENAME_TOPIC",
+"topic":32,"base":41,"position":4,"length":2,"value":"new"}` — the meeting
+revision the tab held when the change left its queue, which its positions were
+counted in. It is part of the change rather than a header because nothing but
+a text edit reads it; the server does not read it yet either.
 
 The ids are headers rather than body fields because a refusal has to name the
 change even when the body is what went wrong. Read out of the body, the one case
@@ -147,18 +157,23 @@ What the frame passes through, in order:
    advice touches raw headers.
 4. `@Valid` on the payload converts and validates the body into a `ChangeDto`.
    `meeting/MeetingWebSocket.submit` catches nothing.
-5. That same handler sorts the change by what it is about — meeting, topic or
-   block — and hands it to the service that owns that rule.
-6. That service takes `meeting/MeetingLock` for the meeting, which owns both the
-   lock and the transaction, applies the change and stages its events.
-7. `common/messaging/TransactionalPublisher` holds the events until
+5. `meeting/ChangeService` takes `meeting/MeetingLock` for the meeting, which
+   owns the lock, the transaction and the revision, and hands back the
+   `MeetingScope` — the meeting id and the revision this change commits at.
+6. Inside the lock, a text change is rebased by `meeting/TextHistory` over the
+   edits to the same text logged since its `base`, and every change is
+   dispatched to the service that owns its rule, which writes it and publishes
+   one event.
+7. `event/EventService` logs the event in the same transaction, and
+   `common/messaging/TransactionalPublisher` holds the broadcast until
    `afterCommit`, so nobody is told about a change that later rolled back.
+8. The handler returns the acknowledgement, `{id, revision}`, to the sender.
 
 What comes back
 ==
 
-Two channels, asymmetric on purpose. Success fans out to everyone; failure goes
-back to one connection.
+Three channels, asymmetric on purpose. Success fans out to everyone, and is
+acknowledged to the sender alone; failure goes back to one connection.
 
 ```mermaid
 sequenceDiagram
@@ -173,13 +188,14 @@ sequenceDiagram
     A->>I: SEND /app/meetings/42/changes<br/>client-id, change-id
     I->>I: SessionOrder.acquire(session)
     I->>H: Origin + ChangeId + @Valid ChangeDto
-    H->>L: <Entity>Service.<operation>
+    H->>L: ChangeService.apply
 
     alt change applies
-        L->>P: stage events inside the transaction
+        L->>P: log and stage the event inside the transaction
         P-->>A: /topic/meetings/42
         P-->>B: /topic/meetings/42
         Note over P,B: sent only after commit —<br/>the sender gets its own event too
+        H-->>A: /user/queue/acks<br/>{id, revision}
     else change refused
         H-->>A: /user/queue/rejections<br/>{id, retryable, reason}
         Note over H,A: WebSocketExceptionHandler,<br/>to this connection only
@@ -194,8 +210,17 @@ of the tab that did. The originating tab receives its own events like everyone
 else. Events created over REST rather than the socket — `MeetingController`
 builds `new Origin(principal)` — carry a null `clientId`.
 
-One change does not mean one event. Removing a topic emits a `Delete` plus a
-`Move` for every topic that shifts up behind it, all under the same origin.
+One change, one event, one revision. Every event of a meeting carries the
+revision its change committed at, and the client checks each against the last
+it applied: a gap reloads the meeting.
+
+Acknowledgement — to the sender alone
+--
+
+`/user/queue/acks` carries the `change-id` and the revision the change
+committed at. It arrives on a different subscription from the change's event,
+so either can come first; the client releases its next change only when it
+holds both, and stamps that change's `base` with the revision it then holds.
 
 Failure — a rejection on the user queue
 --
@@ -263,15 +288,19 @@ flowchart LR
 ```
 
 Each tab's own changes are held in the order that tab sent them; tabs do not
-wait on each other at the first gate. At the second, every tab's changes are
-applied one at a time. Both waits are bounded at 10s.
+wait on each other at the first gate, and its wait is unbounded — slowness is
+the lock's to report. At the second, every tab's changes are applied one at a
+time, and a change that waits longer than 10s for the meeting is refused as
+retryable.
 
 
 `config/SessionOrder` is keyed by the STOMP session id, which matters: that id
 is assigned by the server, so one tab cannot stall another by claiming its
 identity. Keying it on the client-minted `client-id` would hand every tab that
-power. The semaphore is released in `afterMessageHandled` and forgotten on
-`DISCONNECT`, so a reconnect starts clean.
+power. A turn is handed back in `afterMessageHandled`, or in
+`afterSendCompletion` for a frame a later interceptor refused, at most once
+per turn, and the session is forgotten on `DISCONNECT`, so a reconnect starts
+clean.
 
 `meeting/MeetingLock` owns the lock *and* the transaction together, and hands
 out per-meeting locks that are dropped once nothing holds or waits for one, so
@@ -306,8 +335,8 @@ token, it discards the client and builds a new one instead.
 Are they all required?
 ==
 
-Three are load-bearing today. Two are fully plumbed and read by nothing — and of
-those two, a plausible design keeps only one.
+All five are load-bearing today — though of the two client-minted ones, a
+plausible design keeps only one.
 
 **Bearer JWT and `userId` — keep.** The only thing establishing who is acting.
 Every authorisation check reads it, and it is echoed on every event so other
@@ -318,18 +347,16 @@ per-connection ordering with an id the client cannot forge, and addressing a
 reply to one connection rather than every tab a user has open. Never leaves the
 server.
 
-**`change-id` — unconsumed.** Reaches `RejectedDto.id` correctly and lands
-nowhere. Every one of the 13 call sites calls `MeetingWebSocketClient.send({…})`
-without keeping the returned id, and `onRejected` shows `rejected.reason` in a
-`window.alert` without reading `rejected.id`. It becomes necessary the moment
-changes are applied optimistically: that is when a refusal has to find the
-action it must roll back.
+**`change-id` — keep.** The client matches an acknowledgement to the change in
+flight by it, and releases nothing on an acknowledgement for another change.
+None of the call sites keeps the returned id, and `onRejected` does not read
+`rejected.id`: a refusal clears the queue and reloads whichever change it names.
 
-**`client-id` — unconsumed.** Its only intended reader is `isOwnEvent()`, which
-has no callers. Creating, moving and deleting still rely on the server's echo to
-update the view, so filtering out your own events would currently break the UI.
-It cannot be replaced by the session id, which changes under a tab on every
-token refresh.
+**`client-id` — keep.** It is how a tab recognises the echo of its own change,
+and text echoes must be dropped because the editor applied them already.
+Creating, moving and deleting still rely on the echo to update the view, so
+only text is dropped. It cannot be replaced by the session id, which changes
+under a tab on every token refresh.
 
 The one that could go
 --
@@ -348,7 +375,7 @@ committed and at what revision. What is left is a question of taste rather than
 a missing signal: whether `client-id` keeps the coarse "was this mine" test or
 `change-id` takes over both jobs.
 
-Decide it when optimistic apply lands, not before: that work determines whether
-an end-of-change signal exists, which is the fact the choice turns on. Until
-then both ids are cheap to carry and expensive to re-plumb. What is worth fixing
-now is the naming.
+Text is applied optimistically now, and the acknowledgement is the end-of-change
+signal the choice turned on, so nothing blocks it any longer; it is a question
+of taste, and both ids are cheap to carry. What is worth fixing first is the
+naming.

@@ -204,22 +204,35 @@ advances with every change, written in the same transaction as the change, gives
 gap detection, acknowledgement and a base for merging, and is the only mechanism
 that still works if more than one server instance is involved.
 
+Decided since
+==
+
+Questions the rewrite has answered. `SEQUENCING.md` step 6 holds the design and
+the alternatives it turned down.
+
+- **How text merges.** Operational transformation on splices, against the
+  meeting revision rather than a per-block version. Every text change carries
+  the revision its positions were counted in; the server rebases it over the
+  edits to the same text logged since, and a page rebases a remote edit over
+  its own unconfirmed ones. At a tie the edit the server applied first goes
+  first, and an insertion inside a range someone else replaced is kept. A CRDT
+  was set aside for the reason the first version gave: it turns the server into
+  a relay around an opaque document. It still wins outright if offline editing
+  becomes a requirement.
+- **What happens to changes queued behind one that failed.** They are dropped,
+  and the page reloads: the page shows the refused edit and whatever was
+  written after it, none of which the server will hold. Nothing is resent,
+  because whether a change in flight committed is unknowable, and a text edit
+  applied twice corrupts where a lost one does not.
+
 Not decided yet
 ==
 
 Open questions a rewrite should answer deliberately rather than inherit.
 
-- **How text merges.** Operational transformation against a per-block version,
-  or a CRDT. The first version chose OT on the grounds that a CRDT turns the
-  server into a relay around an opaque binary document, which fights wanting to
-  search, export and attribute the text. That reasoning still holds, but the
-  decision is open; a CRDT wins outright if offline editing becomes a
-  requirement.
 - **How long a history of changes is kept.** Rebasing needs only back to the
-  oldest version any live client holds, but undo/redo and authorship
-  attribution want it kept.
-- **What happens to changes queued behind one that failed.** They were composed
-  against a state the server never reached.
+  oldest revision any live client holds, but undo/redo and authorship
+  attribution want it kept. Today every event is logged and nothing is pruned.
 - **Whether more than one server instance is supported**, which decides whether
   in-process serialisation is sufficient.
 - **Per-meeting access.** Today organisation membership grants access to every

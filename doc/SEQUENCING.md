@@ -303,7 +303,7 @@ transaction as any mutation to the meeting or anything beneath it. Every
 published event carries it, and so does the initial load from
 `/app/meetings/{id}`, so the snapshot and the stream are comparable.
 
-Carrying it on an event is now one field on `meeting/dto/EventDto`, which is
+Carrying it on an event is now one field on `event/dto/EventDto`, which is
 why the outbound envelope was built first rather than adding the same field to
 four event types and four frontend type files.
 
@@ -550,7 +550,7 @@ A releasing timer is not the answer either — it guesses at a fate the client
 cannot know, and a change that did commit would be replayed on top of itself.
 Recovery is real work and it is scheduled: *Reconnect and recover* alongside
 *Sync status*, and properly once step 6's base versions make replaying an
-outstanding change safe rather than hopeful.
+outstanding change safe rather than hopeful. Step 8 is that design.
 
 Step 5 — Fractional ranks instead of dense sequence ids (M)
 --
@@ -644,23 +644,47 @@ that is *rebased* rather than refused is only ever moved over edits to its own
 text, so nothing is refused and there is no false conflict. A log keyed by
 meeting revision is also the one *Meeting history and replay* wants.
 
-It travels as a `base-revision` header on every change: a fact about what the
-tab had seen, not about the change, so a header like `change-id` and an argument
-resolver like `ChangeIdArgumentResolver`. A missing or unreadable header
-resolves to `BaseRevision.NONE`; a text edit is refused over that, or over a
-base that is negative or not below the change's own revision, and every other
-change ignores it.
+It travels as a `base` field in the body of the five text changes —
+`RENAME_MEETING`, `DESCRIBE_MEETING`, `RENAME_TOPIC`, `DESCRIBE_TOPIC` and
+`EDIT_TEXT_BLOCK` — beside the flattened edit: `{"type": "RENAME_TOPIC",
+"topic": 32, "base": 41, "position": 4, "length": 2, "value": "new"}`. The
+positions mean nothing without the revision they were counted in, so the two
+are one fact and travel together; no other change carries it. A negative base
+is refused by `@Valid` like any other malformed field, and a base that is not
+below the change's own revision is refused by the rebase. It is a primitive
+`long` and so required: Jackson 3 refuses a frame without it, or with `null`,
+rather than defaulting to 0 as Jackson 2 did — checked, and it matters, because
+0 is a real base, *seen nothing*, and would rebase the edit over the whole log.
+It is added in the same step as the client starts sending it, so no step leaves
+the app refusing text edits and none carries a nullable stand-in.
+
+A `base-revision` header with a `BaseRevisionArgumentResolver`, like
+`change-id`, was built first and dropped. The argument for it — the base is a
+fact about what the tab had seen, not about the change — does not survive the
+change being a splice: the positions *are* what the tab had seen. It made every
+change carry a value that only text edits read, put a parameter on
+`ChangeService.apply` that every other change ignores, and needed a
+`BaseRevision.NONE` and a rule refusing text edits over it, where a body field is
+simply validated. The reason `change-id` is a header does not carry over:
+a refusal has to name the change even when the body is unreadable, but a body
+that cannot be read has nothing to rebase.
 
 **Log every event, as sent.** An `events` table —
-`(organisation_id, meeting_id, revision, payload)`, `UNIQUE(meeting_id,
-revision)`, which is also the index the rebase query needs — written by
-`EventPublisher` in the change's own transaction, so the log and the broadcast
+`(meeting_id, revision, user_id, client_id, mutation)`,
+`UNIQUE(meeting_id, revision)`, which is also the index the rebase query needs — written by
+`event/EventService` in the change's own transaction, so the log and the broadcast
 cannot disagree and a new operation is logged without anyone writing code for
-it. The payload is the event the clients received, as `JSONB` mapped with
-`@JdbcTypeCode(SqlTypes.JSON)`. `JSONB` normalises it — keys reordered,
+it. The origin is two columns, the principal's user and the client, and there
+is no `organisation_id`: unlike every other row below the organisation, an
+event is only read by meeting, inside a change already authorised, so the
+column would be written and never read. The `mutation` column is the `MutationDto` the
+clients received — the rest of the envelope is the row — as `JSONB`. The DAO's
+field is the `MutationDto` itself under `@JdbcTypeCode(SqlTypes.JSON)`, so
+Hibernate's Jackson 3 format mapper writes and reads it and the DAO keeps no
+`JsonMapper` of its own. `JSONB` normalises it — keys reordered,
 whitespace dropped — so the stored text is not byte for byte what was sent, and
 nothing needs it to be: clients parse it, and the only reader parses it back
-into an `EventDto`. That was checked for every mutation type, including those
+into a `MutationDto`. That was checked for every mutation type, including those
 where `type` no longer comes first and the flattened `@JsonUnwrapped` edit comes
 back reversed. `JSON` was used first, to keep the bytes, and needed a
 `@ColumnTransformer(write = "?::json")` cast to insert at all; PostgreSQL's own
@@ -673,17 +697,19 @@ what was missed*, replay, undo and attribution all want every event. The cost is
 that once anything is deployed, a change to a mutation's JSON is a migration of
 history.
 
-**The log is read through an outcome-shaped BDO.** The storage gateway should
-take and return an `Event(revision, Origin, Mutation)` rather than `EventDto`.
-The existing `*Event` records hold `(*Info, *Action, Origin)` and cannot be
-rebuilt from the log, which stores a rank and never the `afterId` that asked for
-it. So `Mutation` is a sealed `bdo` mirror of `MutationDto` —
-`TopicMutation.Move(topicId, Rank)`, `TextBlockMutation.Edit(blockId, Splice)`
-— the services build it from the saved entity, and `EventPublisher` becomes one
-`publish(scope, origin, mutation)`. `Origin` is rebuilt from the payload's
-`userId`/`clientId` plus the row's `organisation_id`. `*Action.Delete` then has
-no use left. Sealed across files means one package, as the code is not in a
-named module.
+**The event is the outcome, stored as the mutation the clients receive.**
+Services describe what a change did as a mutation —
+`TopicMutation.Move(topicId, Rank)`, `TextBlockMutation.Edit(blockId, …)` —
+built from the saved entity, wrap it in an `EventInfo(scope, origin, mutation)`
+and hand it to `EventService.publish`, which stores it and sends what was
+stored. The existing `*Event` records held `(*Info, *Action, Origin)`, the
+request, which the log cannot give back: it stores a rank and never the
+`afterId` that asked for it. The mutations live together in `event/bdo` so that
+`Mutation` can be sealed and `MutationDto.of` is exhaustive. `EventDao` writes
+the mutation as its `MutationDto` and reads it back with `MutationDto.toBdo()`, so
+the gateway returns a whole `EventInfo` like every other gateway, and rebasing
+reads the log as BDOs. `*Action.Delete` has no use left once the services stop
+sending actions.
 
 **Rebase in `ChangeService`, inside the lock.** `TextHistory.rebase(scope,
 base, change)` reads the events after the base, keeps those that edited the same
@@ -697,6 +723,20 @@ see the log. That removes the `TopicChangeDto.Update` level: `Rename`,
 `Describe` and `Schedule` no longer share a `toBdo()`. Rebasing in each service
 instead would thread `base` through three of them, including `Schedule`, which
 ignores it.
+
+**The rebase reads a window, not the history.** `findAllSince` returns only the
+events after the change's base, and the base is the revision the tab last
+applied — advanced on every event it receives, stamped as the change leaves the
+queue, and never far behind because a gap resyncs. So the read covers what
+committed during one round trip, over the `(meeting_id, revision)` index, and
+grows with how busy the meeting is rather than how long its history is. Within
+that window, edits to other texts are read and discarded. A revision per field
+was considered to avoid that and rejected: it is the per-block version this
+design replaced, a counter every snapshot and event would have to carry. If the
+discarded rows ever matter, the answer is two columns copied from the mutation
+as it is written — its `type` and the id of the entity it names — indexed with
+the meeting and revision, so the database filters on them; one log and one
+revision stay.
 
 **The transform is a value type.** `common/domain/Splice(position, length,
 value)` replaces the raw triple in the actions, and `TextEditDto` converts to
@@ -725,8 +765,8 @@ only applies what it is handed. Then:
   put in a revision (the one in flight until its echo, then the queue), and they
   over it.
 - The echo of its own *text* edit is dropped, because the editor applied it
-  before sending; structural echoes are still applied. This is what finally
-  gives `client-id` a reader.
+  before sending; structural echoes are still applied. The page already does
+  this through `isOwnEvent`; it moves into the client with the stream.
 - A snapshot drops the queue, and a refusal drops it and reloads: the page shows
   edits the server will never hold, so only a snapshot puts it back on the
   server's text.
@@ -736,31 +776,69 @@ next:
 
 1. The `events` table, `EventDao` and `EventRepository` in `event/`, written
    by nothing yet. *Done.*
-2. The `Mutation`/`Event` BDOs in `event/bdo`, used by nothing yet. Until
-   `Splice` exists they carry a text edit as `position`, `length`, `value`, as
-   the actions do.
-3. Services and `EventPublisher` on `publish(scope, origin, mutation)`, with
-   `*MutationDto.of(*Mutation)` and `EventDto.of(Event)`; the four `*Event`
-   records and `*Action.Delete` go. (The conversions cannot come earlier: a
-   second `of` overload beside `of(*Event)` makes every `of(null)` ambiguous.)
-4. A storage gateway that takes `Event`, and `EventPublisher` writing every
-   event through it. A meeting's delete has to publish before it deletes, or
-   the event's foreign key has no row.
+2. The mutation BDOs, used by nothing yet. Until `Splice` exists they carry a
+   text edit as `position`, `length`, `value`, as the actions do. *Done.*
+3. Services publish their mutation instead of an `*Event` record;
+   `*MutationDto.of(*Mutation)`; the four `*Event` records and
+   `*Action.Delete` go. *Done.*
+4. `EventService.publish(EventInfo)` in `event/`, storing every event
+   through `EventStorageGateway` and sending what was stored. A meeting's delete
+   publishes before it deletes, or the event's foreign key has no row.
+   `MeetingChangeWebSocketTest.Log` checks the row against the frame a
+   subscriber received. *Done.*
 5. `Splice` in `common/domain` with `rebasedOnto` and its exhaustive test; the
    actions and text mutations carry a `Splice` instead of three fields. No wire
-   change.
-6. The `base-revision` header: `BaseRevision`, its resolver, passed into
-   `ChangeService` and not yet read.
-7. `TextHistory` and rebasing in `ChangeService`, with a WebSocket test that
-   drives two concurrent renames through the real path to a second subscriber.
-8. `editor/TextEdit.rebased` and its convergence test.
-9. `MeetingWebSocketClient` takes over the stream from the page, with no change
-   in behaviour.
-10. The client sends `base-revision`, releases on acknowledgement and
-    revision, rebases remote edits and drops its own text echo.
-11. `PRODUCT.md` (text merging decided), `WEBSOCKETS.md` (the header, and
+   change. *Done*: the test checks all 1,089 pairs of edits over `"abcd"`
+   against the merge rule written out independently, and two conditional
+   boundaries in `startAfter`/`stopAfter` are equivalent mutants — the
+   neighbouring branch yields the same index there.
+6. `MeetingWebSocketClient` takes over the stream from the page — the
+   revision, the pre-snapshot buffer, the gap check, resync and dropping its own
+   text echo — with no change in behaviour. The page only applies what it is
+   handed. *Done*, with the stream tested for the first time: the buffer, both
+   halves of the `streamed` rule, a gap reloading once, events replayed onto the
+   reloaded snapshot, and which echoes are dropped.
+7. The client releases the next change only when the acknowledgement has
+   arrived **and** the revision it names has been applied, and stamps `base` on
+   a text change as it releases it: the revision the page holds then, not when
+   the edit was typed. In the same step the five text change records gain a
+   required `@PositiveOrZero long base`, read by nothing yet, so the wire
+   changes once, on both sides. *Done*: the client also sends nothing before
+   the first snapshot, since it has no base to stamp; `ChangeDtoTest` refuses a
+   missing and a `null` base, and `MeetingWebSocketTest.negativeBase` a
+   negative one.
+8. `TextHistory` and rebasing in `ChangeService`; a base not below the
+   change's own revision is refused. A WebSocket test drives two concurrent
+   renames through the real path to a second subscriber. *Done*: `TextHistory`
+   lives in `meeting/` beside `ChangeService`, the five text records share a
+   sealed `TextChangeDto` and convert only through `toBdo(Splice rebased)`, and
+   `MeetingChangeWebSocketTest.Rebase.concurrent` fails with the rebase
+   switched off.
+9. `editor/TextEdit.rebased` and its convergence test. *Done*: it is checked
+   against the same independently written merge rule as `Splice`, and for every
+   pair of edits over `"abcd"` a page that applied its own edit and then the
+   remote one arrives at the server's text. As in `Splice`, the boundary at the
+   prior's position in `stopAfter` is an equivalent mutant.
+10. The client rebases a remote text edit over its own edits the server has not
+    yet put in a revision, and they over it. *Done*, with the two design
+    bullets no earlier step had taken: a snapshot drops the queue, and a
+    refusal drops it and reloads. The own-echo drop now applies only while the
+    change in flight is pending, so after a snapshot its echo is applied.
+11. `PRODUCT.md` (text merging decided), `WEBSOCKETS.md` (the `base` field, and
     `client-id`/`change-id` now read), `ROADMAP.md` and `CLAUDE.md`, each with
-    the step that makes them true rather than at the end.
+    the step that makes them true rather than at the end. *Done*: `PRODUCT.md`
+    moves text merging and the fate of a refused change's queue to *Decided
+    since*; `WEBSOCKETS.md` gains the acknowledgement queue and the rebase in
+    the frame's path, and drops what had gone stale — both client ids
+    unconsumed, several events per change, and a bounded session gate.
+
+The client goes first so that rebasing is never switched on while a base can be
+missing or stale. Server rebasing came first in the original order, with the
+client catching up at the end; that needed a nullable `base` in between, applied
+unrebased, and until the client released on revision as well as on the
+acknowledgement, a base read at release could be one behind — the echo that
+moves the page's revision can arrive after the acknowledgement — and the server
+would have rebased an edit over the tab's own previous one.
 
 *Not covered even then:* an IME composition is sent at `compositionend`, so a
 remote edit applied mid-composition lands in text the client has not described
@@ -780,6 +858,99 @@ always heading towards, and it is nearly free once step 6's compose exists.
 
 *Done when:* typing a sentence quickly produces a handful of actions rather than
 one per character.
+
+Step 8 — Replay what was missed, then reconnect (M)
+--
+
+This is the roadmap's *Ask for what was missed*, *Reconnect and recover* and
+*Sync status*, which it says to do together. They share one mechanism: a client
+that knows the last revision it applied asks for the events after it, rather
+than for the whole meeting.
+
+**What a gap costs today.** A gap in the revisions reloads the snapshot, and a
+snapshot replaces the page: it drops the queue, and the change in flight is no
+longer on screen. A dropped connection is not recovered at all, and the
+reconnect that a token refresh already does replays the subscription map, which
+re-fires the snapshot and rebaselines the page in the same way. An
+acknowledgement lost in that window leaves the queue stuck until a reload. The
+log that step 6 added holds everything a client could have missed, so none of
+this has to cost the page anything.
+
+**Replay is its own destination, answered from the log.**
+`/app/meetings/{id}/events/{after}` is a `@SubscribeMapping` beside the
+snapshot's, authorised the same way, replying once to the subscriber with the
+`EventDto`s after `after` in revision order — `EventStorageGateway.findAllSince`,
+already written for the rebase. It is a destination rather than a flag on the
+snapshot subscription because the two answer different questions, and the
+reply is the same `EventDto` the topic carries, so a replayed event goes through
+exactly the path a live one does: the revision check, the rebase over the
+page's unconfirmed edits, the own-echo drop. The read takes no lock. An event
+that commits during it is either in the read or broadcast afterwards, and the
+revision check drops whichever copy comes second.
+
+**The client replays a gap instead of reloading.** It keeps its revision,
+marks a replay in flight, and buffers live events until the reply is in, then
+applies the reply and the buffer through `#accept`, as it already does around a
+snapshot. The queue and the change in flight survive, because nothing replaced
+the page. The snapshot stays for the first load, and for divergence the page
+finds itself — an event naming a topic it does not hold — which no replay can
+repair.
+
+**`streamed` goes.** It told a second event of the same change from a repeat at
+the snapshot's revision. One change is now one event and one revision (step 5),
+so an event at the current revision is always one the page already holds: *seen*
+becomes `revision <= current`, and one number is enough after all. Replay makes
+this matter, because a replayed event and its live copy arrive at the same
+revision, and the equality rule would apply the second.
+
+**A resend is made safe on the server, not guessed at on the client.** After a
+reconnect the client cannot know whether its change in flight committed: the
+acknowledgement may have been lost, or the frame may never have arrived. That
+is why nothing is resent today. The server can know. Each event row records the
+`change-id` that caused it, and `ChangeService`, inside the lock, looks the id
+up before it applies anything: a change already in the log is acknowledged at
+its logged revision and not applied again. The client then resends the change
+in flight after every reconnect, and whichever happened, it is applied once.
+The lookup has to come before the revision is bumped — spending a revision on a
+change that is not applied would open a gap for every other client — so it
+needs `MeetingLock`'s plain lock, which is private today and becomes the
+non-bumping pair that section already anticipates. A `UNIQUE(meeting_id,
+change_id)` backs it up, `change_id` being null for REST-created events.
+Rejected: adding the change id to `EventDto` so the client finds its own echo
+in the replay. It answers only the case where the change committed, and leaves
+a frame that is still being handled on the old connection racing the resend.
+
+**A reconnect replays, it does not reload.** The snapshot subscription becomes
+one-shot — the client unsubscribes once the reply is in — so the subscription
+map a reconnect replays no longer holds it. On reconnect `MeetingWebSocketClient`
+asks for the replay after its revision, then resends the change in flight.
+`WebSocketClient` stays a dumb transport; it only reports that it has connected
+again. Only then does `reconnectDelay` go back on, which is the condition the
+note at the end of step 4 set.
+
+**Sync status says which of these is happening.** One place in the UI: live,
+catching up (a replay or a reload in flight), or offline (reconnecting), with
+the number of changes not yet acknowledged. A reload that drops unsent edits
+says so there rather than in the console.
+
+*Build it in this order*, each step green and reviewed before the next:
+
+1. The replay destination on the server, with a WebSocket test that sends
+   changes, subscribes after one of them and receives the rest in order.
+2. The client replays a gap instead of reloading, and `streamed` goes; the
+   queue and the change in flight survive a gap.
+3. `change_id` on `events`; a change whose id is already logged is acknowledged
+   at its logged revision without being applied, checked before the bump.
+4. The one-shot snapshot, replay and resend on reconnect, and `reconnectDelay`
+   back on.
+5. Sync status.
+
+*Not covered:* a replay the log can no longer answer, because nothing prunes it
+yet — when pruning lands, the reply has to be able to say *too far back*, and
+the client falls back to the snapshot.
+
+*Done when:* closing a laptop mid-meeting and opening it again leaves the page
+current, with nothing the note-taker typed lost or applied twice.
 
 Not doing
 ==
@@ -803,10 +974,11 @@ Open questions
   to the oldest version any live client holds, but the same table would serve
   undo and redo, which both editors flag as a TODO, and authorship attribution,
   which the roadmap wants in the same phase. Those want it kept.
-- **What happens to an action queued behind one that failed?** They were
-  composed against a state the server never reached, so they are currently all
-  dropped. Once actions carry a base version the server can answer this properly
-  instead of the client guessing.
+- **What happens to an action queued behind one that failed?** Settled: they
+  are dropped and the page reloads, because the page shows the refused edit and
+  whatever was written after it. Rebasing them over the refusal was the
+  alternative, and there is nothing to rebase over — the refused edit never
+  happened on the server, and the page's text is the thing that is wrong.
 - **Should a rank be computed by the client or the server?** The client knows
   the neighbours it dropped between; the server would have to be told them
   anyway. Client-computed is simpler and standard, and the `(rank, id)` sort

@@ -122,11 +122,13 @@ records per operation, carrying the Jackson `@JsonSubTypes` keyed on a `type`
 discriminator (`RENAME_MEETING`, `ADD_TOPIC`, `EDIT_TEXT_BLOCK`, …), matched by
 `frontend/src/lib/meeting/change/ChangeTypes.ts`.
 
-Events mirror it. `meeting/dto/EventDto` is the envelope — `origin` and a
+Events mirror it. `event/dto/EventDto` is the envelope — `origin` and a
 `MutationDto` — and `MutationDto` is the same shape of sealed union over
 `MeetingMutationDto`, `TopicMutationDto`, `BlockMutationDto` and
-`TextBlockMutationDto`, in the same package, keyed on the same `type`
-vocabulary, matched by `frontend/src/lib/meeting/event/EventTypes.ts`. An event
+`TextBlockMutationDto`, in `event/dto` beside the `event/bdo` mutations they
+map (`TextEditDto` stays in `meeting/dto`, shared with the changes), keyed on
+the same `type` vocabulary, matched by
+`frontend/src/lib/meeting/event/EventTypes.ts`. An event
 is named after the change that caused it, so `RENAME_TOPIC` is one word on both
 halves of the wire; the two with no inbound counterpart are `ADD_MEETING` and
 `REMOVE_MEETING`, because meetings are created and deleted over REST.
@@ -183,12 +185,17 @@ frontend never read it.
 A change that carries no payload (`REMOVE_TOPIC`, `REMOVE_BLOCK`) declares no
 `toBdo()` at all, so neither sub-interface declares one either.
 
-Variants are grouped by **the service method they route to**, not by what they
-resemble. `TopicChangeDto.Update` is a sealed level over `Rename`, `Describe`
-and `Schedule` declaring `topic()` and `toBdo()`, which is what lets one switch
-case serve all three. `Move` is deliberately *not* under it: it goes to
-`TopicService.move`, which resolves a neighbour into a rank. `TopicAction.Move`
-is not a `TopicAction.Update` either, for the same reason. Do not "fix" that.
+Variants are grouped by **what `ChangeService` has to do with them**, not by
+what they resemble. `TextChangeDto` is a sealed level across the five text
+records — `MeetingChangeDto.Rename` / `Describe`, `TopicChangeDto.Rename` /
+`Describe`, `TextBlockChangeDto.Edit` — declaring `base()` and `edit()`, because
+every one of them is rebased before it is applied. They convert with
+`toBdo(Splice rebased)` and have no argument-free `toBdo()`, so a text change
+cannot reach a service without being rebased. A `TopicChangeDto.Update` level
+over `Rename`, `Describe` and `Schedule` existed so one switch case could serve
+all three; it went when two of them needed a rebase the third does not.
+`TopicAction.Move` is not a `TopicAction.Update`: it names a neighbour, and
+`TopicService.move` resolves it into a rank. Do not "fix" that.
 
 A `TextEditDto` is `@JsonUnwrapped`, so a text edit rides **flat** on the change
 (`{"type": "EDIT_TEXT_BLOCK", "block": 9, "position": 4, "length": 12, …}`),
@@ -196,12 +203,22 @@ not nested under an `edit` object. The frontend union intersects the type with
 `TextEdit` to match. Jackson 3 supports unwrapping into a record creator
 property; Jackson 2 did not, so do not port this pattern backwards.
 
-`TextEditDto` is data only: it names the `(position, length, value)` triple on
-the wire and knows nothing about `bdo`. Each change record maps the triple onto
-its own action itself — `new TopicAction.UpdateName(edit.position(),
-edit.length(), edit.value())`. A generic factory callback lived on `TextEditDto`
-to avoid writing that out five times and was removed: it added a type to spare a
-line per call site, and mapping is the change record's job.
+A text edit is a `common/domain/Splice(position, length, value)` below the
+wire: the text actions (`TopicAction.UpdateName`, …) extend `TextUpdate`, which
+holds one, and the text mutations carry one as `edit`. `TextEditDto` is the
+triple on the wire and converts like any DTO — `new TextEditDto(splice)` out,
+`edit.toBdo()` in — so a change record is `new TopicAction.UpdateName(
+edit.toBdo())`. A generic factory callback lived on `TextEditDto` before
+`Splice` existed, to spare spelling the triple out five times, and was removed:
+it added a type to save a line per call site.
+
+The five text changes also carry `base`, the revision their positions were
+counted in, as a required body field beside the edit — not a header, because
+only text edits read it and the positions mean nothing without it
+(`SEQUENCING.md` step 6 has the rejected header design). It is a primitive
+`long`: Jackson 3 refuses a missing or `null` one rather than reading 0, which
+would mean *seen nothing*. It stays out of `TextEditDto`, which the outbound
+mutations share and where a base means nothing.
 
 This shape is the point of the rewrite. The previous design gave every mutation
 its own endpoint, request type, action, event and publisher per entity, so
@@ -210,9 +227,19 @@ cross-cutting field to the envelope is one file. Keep it that way: a new
 operation is a new record plus a `@Type` entry, not a new destination.
 
 Flow: `MeetingWebSocket` (one handler, returns the acknowledgement) →
-`meeting/ChangeService` (takes the lock, dispatches on the sealed DTO, converts
-to the entity's `*Action`) → per-entity `*Service` → `*StorageGateway` → Spring
-Data repository. `meeting/EventPublisher` emits the events.
+`meeting/ChangeService` (takes the lock, dispatches on the sealed DTO, rebases
+a text change through `meeting/TextHistory`, converts to the entity's
+`*Action`) → per-entity `*Service` → `*StorageGateway` → Spring Data
+repository. `event/EventService` emits and logs the events.
+
+**`TextHistory` rebases inside the lock.** It reads the logged events after the
+change's `base` (`EventStorageGateway.findAllSince`), keeps those that edited
+the same text — the mutation the change is named after, on the same entity —
+and moves the incoming `Splice` over each in order. A base that is not below the
+change's own revision is refused as invalid. The lock is what makes that read
+correct: no other change on the meeting can log an event between it and the
+write. The entity services never see the log; they apply the edit the server
+actually made, and publish that.
 
 **`ChangeService` is the boundary of a change.** It is the one place the lock is
 taken, so the revision a change committed at is a return value — the
@@ -221,14 +248,43 @@ one of the per-entity `*ChangeService` classes that were deleted: those unpacked
 a `bdo` `Change` into an `*Action` and held no logic, where this one owns the
 lock, the dispatch and the scope every service below it runs in.
 
-**One publisher, overloaded per event type.** `EventPublisher.publish` takes
-`(meetingId, event)` with an overload per `*Event` record, so the four `bdo`
-event types stay unrelated — the only union is `MutationDto`, on the `dto` side.
-Four per-entity `*Publisher` classes were what this replaced: each held the same
-destination constant and the same envelope construction, and `BlockPublisher`
-and `TextBlockPublisher` each re-read the topic *after* the write to recover a
-meeting id the caller already had. The id is a parameter here for the same
-reason it is one on `MeetingLock`.
+**One event service, one event type.** A service builds the outcome of its
+change as a mutation — `BlockMutation.Move(blockId, rank)`, read off the saved
+entity — wraps it in an `EventInfo(scope, origin, mutation)` and calls
+`EventService.publish(event)`, which stores it and sends the stored event. The
+mutations are shaped like the outcome, not the request, which is what the log
+can hold. They all live in `event/bdo`, under a sealed `Mutation`, so the
+switch that maps them to their DTOs (`MutationDto.of`) is exhaustive with no
+`default`. That is why they are not in their entities' `bdo` packages: a sealed
+type can only permit subtypes in another package inside a named module, and the
+app is in the unnamed module. Both other arrangements were built and dropped —
+the groups beside their entities with an unsealed marker interface (a switch
+ending in `default -> throw`), and a generic `Event<M>` (the same switch, with
+nothing tying `M` to a mutation).
+
+`EventInfo` is a class like the other `*Info`s, not a record, because its id
+is assigned by the database: `getId()` refuses until it is set.
+
+Before this: four `*Event` records of `(*Info, *Action, Origin)` with one
+`publish` overload each. They held the request, the log can hold only the
+outcome, and `*Action.Delete` existed only to build them. Before that, four
+per-entity `*Publisher` classes, each re-reading a meeting id the caller
+already had.
+
+**Every event is logged, as sent.** `EventStorageGateway.create(EventInfo)`
+works like every other gateway — `new EventDao(event)`, save, `saved.toBdo()` —
+in the change's own transaction, so the log and the broadcast cannot disagree.
+`EventInfo` holds the origin expanded — `userId` and `clientId`, nullable — not
+an `Origin`, and no organisation: an event is only ever reached through its
+meeting, inside a change that has already been authorised, so the organisation
+would be stored and never read. The `clientId` stays because the broadcast
+needs it for `isOwnEvent`. The DAO keeps both as columns, and its `mutation` field is the
+`MutationDto` itself, mapped by Hibernate with `@JdbcTypeCode(SqlTypes.JSON)`
+through its Jackson 3 format mapper — the DAO holds no `JsonMapper` of its own.
+The rest of the envelope is rebuilt from the row. The column is `JSONB`, which
+reorders keys; nothing depends on their order, and `EventRepositoryTest`
+round-trips every mutation type through the database. A meeting's delete publishes
+before it deletes, because the event row needs the meeting row.
 
 ### Ordering and consistency
 
@@ -330,7 +386,8 @@ Every domain package is `<domain>/` with `bdo/`, `dao/` and `dto/` beneath it:
 - **`bdo`** — business domain objects. **Data, not behaviour** — records and
   sealed interfaces. Logic lives in services. The exception that earns its
   place is a value type whose own arithmetic belongs to it: `common/domain/Rank`
-  computes a rank between two ranks, as `TextUpdate` splices text.
+  computes a rank between two ranks, as `Splice` applies and rebases a text
+  edit.
 - **`dao`** — JPA entities.
 
 Conversions are explicit at each boundary. `*StorageGateway` wraps the Spring
@@ -343,7 +400,9 @@ two writers on one meeting at once, which `MeetingLock` prevents; when that
 stops holding, the answer is optimistic locking, not a partial write.
 
 Every row below the organisation carries `organisation_id` directly, so
-authorisation is a direct check rather than a tree walk. Do not add a
+authorisation is a direct check rather than a tree walk. `events` is the
+exception: it is never looked up on its own, only by meeting, so it has no
+`organisation_id`. Do not add a
 `meeting_id` column to `blocks` or a `meeting-id` header to actions — both have
 been tried and reverted; walk the tree instead.
 
@@ -354,9 +413,16 @@ Route groups mirror the access model: `(public)` for login and registration,
 `(scoped)/(admin)` for administration. `src/lib/<domain>/` holds the API client,
 WebSocket client and views per domain. `MeetingWebSocketClient` is the single
 entry point for meeting traffic; it mints a `change-id` per change and returns
-it. It keeps one change in flight and queues the rest, releasing on the
-acknowledgement and dropping both the change and the queue on a refusal —
-whatever was waiting was composed against a change that never happened. Nothing
+it. It keeps one change in flight and queues the rest, and sends nothing
+before the first snapshot. It releases the next change only once the
+acknowledgement has arrived **and** the revision it names has been applied —
+they come on different subscriptions, and releasing on the acknowledgement
+alone would stamp a base the page does not hold yet. A text change is stamped
+with `base`, the page's revision, as it leaves the queue. A refusal drops both
+the change and the queue — whatever was waiting was composed against a change
+that never happened — and reloads, because the page still shows the refused
+edit. A snapshot drops the queue too: what was waiting was written against text
+no longer on screen. Nothing
 is ever resent: whether a change in flight committed is unknowable, and a text
 edit applied twice corrupts where a lost one does not.
 
@@ -385,22 +451,32 @@ puts the caret at the end. Both editors therefore compare the element's current
 text with the incoming value in `$effect.pre`: equal means the user typed it
 and the DOM is already right, different means it came from elsewhere and the
 caret is moved across the change by `editor/TextEdit.moved` after a `tick`.
-Text events for our *own* origin are skipped by the page, because the editor
-already applied them; structural events are not, since create, move and delete
-still rely on the echo.
+The echo of our *own* text edit is dropped by `MeetingWebSocketClient` before
+the page sees it, because the editor already applied it; structural echoes are
+not, since create, move and delete still rely on them. It is an echo only while
+the change in flight is *pending* — in the page but not yet in a revision the
+page has applied. After a snapshot has replaced the page, the change in flight
+is no longer on screen, so its echo is applied like anyone else's.
 
-The page checks `revision` on every event before applying it, and needs **two**
-pieces of state to do it — `revision` and `streamed`. All events of one change
+A remote text edit is rebased over the page's own edits the server has not put
+in a revision yet — the pending one in flight, then the queue — and they over
+it, with `editor/TextEdit.rebased`. The remote edit goes first at a tie
+(`first = true`), because the server applied it first.
+
+`MeetingWebSocketClient` owns the event stream, and the page only applies what
+it is handed. The client checks `revision` on every event before handing it on,
+and needs **two** pieces of state to do it — `revision` and `streamed`. All events of one change
 carry that change's revision, so a second event at the current revision is the
 same change continuing and must be applied; an event at the revision a
 *snapshot* reported is already in the payload and must be dropped. One cursor
 cannot tell those apart. So: below the current revision is stale, equal is the
 same change only when `streamed`, `+ 1` is the next change, beyond that is a gap
 and resyncs. Testing `=== revision + 1` alone makes every drag look like a gap.
-Events arriving before the snapshot are buffered and replayed once `onLoad` sets
-the baseline. Resync is `MeetingWebSocketClient.resync` — the page never names a
-destination — and clearing `revision` is what marks one as in flight, so the
-several events of one change resync once. A new operation needs no client-side
+Events arriving before the snapshot are buffered and replayed once the snapshot
+sets the baseline. Resync is `MeetingWebSocketClient.resync`, called by the
+client on a gap and by the page when an event names something it does not hold;
+clearing `revision` is what marks one as in flight, so the several events of one
+change resync once. A new operation needs no client-side
 plumbing to be gap-checked; it needs its events published under the change's own
 `MeetingScope`, which `MeetingLock` already guarantees.
 
@@ -514,7 +590,9 @@ call — ask before writing.**
   word: a test is read on its own, and a `verifyCreated(...)` helper hides
   what it checks. The DRY instinct is for production code. Assertions that
   hold for every successful case go *in* every successful case, not in a
-  separate `event` or `oneRow` test.
+  separate `event` or `oneRow` test. The same goes for setup: a private helper
+  in a test class hides steps too — `EventDaoTest.saved(dao)`, which set the id
+  by reflection, was inlined into each test the way `TopicDaoTest` does it.
 - `Test<Entity>` classes hold shared fixtures; `<Entity>Matcher` extends
   `test/Matcher` for structural assertions.
 - No test-only accessors on production classes. A method that exists so a test
@@ -547,15 +625,19 @@ Stated in `doc/LESSONS.md` and worth knowing before starting:
 
 - One WebSocket test reaches the database, and only one.
   `MeetingChangeWebSocketTest` mocks nothing below the web layer and drives a
-  topic move and a schedule to a second subscriber, so lock, transaction,
-  publisher and revision are exercised together for those two. Every other
+  topic move, a schedule and two concurrent renames to a second subscriber, so
+  lock, transaction, log, rebase, publisher and revision are exercised together
+  for those. Every other
   `WebSocketTest` subclass still makes each entity service a `@MockitoBean`, so
   no other operation is covered end to end.
-- Text conflicts are refused with a retryable rejection rather than merged;
-  transformation is the seam to plug into.
+- Concurrent text edits converge, with the gaps `SEQUENCING.md` step 6 names:
+  an IME composition is sent at `compositionend`, so a remote edit applied
+  mid-composition lands in text nobody has described; the event log is never
+  pruned; and a reload that drops unsent edits says nothing.
 - The frontend has almost no tests: `frontend/tests/` covers a few form
   components, one API client, one editor component, the text-edit splice and
-  `MeetingWebSocketClient`'s queue, and nothing else of the meeting path.
+  rebase, and `MeetingWebSocketClient`'s queue and event stream, and nothing
+  else of the meeting path — the page's `mutate` is untested.
   Configuration has stopped the suite twice, so treat any frontend coverage
   claim as unverified until you have run `npm test` and read the file count it
   prints: `vite.config.ts`'s `include` globs must point at `tests/`, not

@@ -3,12 +3,14 @@ import CLIENT_ID from "$lib/common/ClientId";
 import { isOwnEvent } from "$lib/common/EventTypes";
 import type WebSocketClient from "$lib/common/WebSocketClient";
 import type { MeetingDetails } from "$lib/details/DetailTypes";
+import { rebased } from "$lib/editor/TextEdit";
 
 import type {
 	Acknowledged,
 	Change,
 	Rejected,
-	Submission
+	Submission,
+	TextEdit
 } from "./change/ChangeTypes";
 import type { MeetingEvent, Mutation } from "./event/EventTypes";
 
@@ -36,6 +38,10 @@ export default class MeetingWebSocketClient {
 	// acknowledgement and the event come on different subscriptions, so either
 	// can arrive first.
 	static #acknowledged: number | null = null;
+	// Whether the change in flight is in the page but not yet in a revision
+	// the page has applied. Until its echo arrives, a remote edit to the same
+	// text was written without it and has to be moved over it.
+	static #pending = false;
 	static #queued: Array<Submission> = [];
 
 	public static connect(id: number, handler: MeetingEventHandler): void {
@@ -48,7 +54,12 @@ export default class MeetingWebSocketClient {
 		client().subscribe(MeetingWebSocketClient.#REJECTIONS, message => {
 			const rejected: Rejected = JSON.parse(message.body);
 
+			// The page already shows the refused change and whatever was
+			// written after it, none of which the server will ever hold, so
+			// every edit from here on would name positions in text it does not
+			// have. Only a snapshot puts the page back on the server's text.
 			MeetingWebSocketClient.#clear();
+			MeetingWebSocketClient.resync();
 			handler.onRejected(rejected);
 		});
 		client().subscribe(`/topic/meetings/${id}`, message =>
@@ -104,6 +115,16 @@ export default class MeetingWebSocketClient {
 	}
 
 	static #onLoad(data: MeetingDetails): void {
+		// The snapshot replaces the page, and with it every edit that was
+		// waiting to go out: they were written against text that is no longer
+		// on screen. The one in flight is no longer on screen either, so its
+		// echo has to be applied like anyone else's.
+		if (MeetingWebSocketClient.#queued.length > 0) {
+			console.warn("Dropping unsent changes for the reloaded meeting");
+		}
+		MeetingWebSocketClient.#queued = [];
+		MeetingWebSocketClient.#pending = false;
+
 		MeetingWebSocketClient.#revision = data.revision;
 		MeetingWebSocketClient.#streamed = false;
 		MeetingWebSocketClient.#handler?.onLoad(data);
@@ -138,11 +159,67 @@ export default class MeetingWebSocketClient {
 		MeetingWebSocketClient.#revision = event.revision;
 		MeetingWebSocketClient.#streamed = true;
 
-		if (!isOwnEvent(event.origin) || !isText(event.mutation)) {
-			MeetingWebSocketClient.#handler?.onEvent(event);
+		MeetingWebSocketClient.#receive(event);
+		MeetingWebSocketClient.#release();
+	}
+
+	// Our own changes come back too. Creating, moving and deleting still
+	// relies on that echo to update the view, so it is handed on. Text is the
+	// exception: the editor already applied it, and applying the echo would
+	// splice the same edit in twice.
+	static #receive(event: MeetingEvent): void {
+		const echo =
+			isOwnEvent(event.origin) && MeetingWebSocketClient.#pending;
+		if (echo) {
+			MeetingWebSocketClient.#pending = false;
+
+			if (textOf(event.mutation) === null) {
+				MeetingWebSocketClient.#handler?.onEvent(event);
+			}
+			return;
 		}
 
-		MeetingWebSocketClient.#release();
+		MeetingWebSocketClient.#handler?.onEvent(
+			MeetingWebSocketClient.#rebase(event)
+		);
+	}
+
+	// A remote edit was written without the edits this page has made and the
+	// server has not yet put in a revision, and those were written without
+	// it. Each is moved over the other, so the page applies the remote edit
+	// where it now belongs, and what is still to be sent names positions the
+	// server will agree with.
+	static #rebase(event: MeetingEvent): MeetingEvent {
+		const target = textOf(event.mutation);
+		if (target === null) {
+			return event;
+		}
+
+		const inFlight = MeetingWebSocketClient.#inFlight;
+		const local = [
+			...(MeetingWebSocketClient.#pending && inFlight !== null
+				? [inFlight]
+				: []),
+			...MeetingWebSocketClient.#queued
+		];
+
+		let incoming = editOf(event.mutation);
+		local
+			.filter(submission => textOf(submission.change) === target)
+			.forEach(submission => {
+				const own = editOf(submission.change);
+
+				submission.change = {
+					...submission.change,
+					...rebased(own, incoming)
+				} as Change;
+				incoming = rebased(incoming, own, true);
+			});
+
+		return {
+			...event,
+			mutation: { ...event.mutation, ...incoming } as Mutation
+		};
 	}
 
 	static #acknowledge(acknowledged: Acknowledged): void {
@@ -167,6 +244,7 @@ export default class MeetingWebSocketClient {
 
 		MeetingWebSocketClient.#inFlight = null;
 		MeetingWebSocketClient.#acknowledged = null;
+		MeetingWebSocketClient.#pending = false;
 		MeetingWebSocketClient.#submit();
 	}
 
@@ -190,11 +268,13 @@ export default class MeetingWebSocketClient {
 		// waiting in the queue was typed after the one ahead of it, so its
 		// positions already hold that one, and the revision that committed it
 		// is the base they were counted in.
-		const body = isText(next.change)
-			? { ...next.change, base: revision }
-			: next.change;
+		const body =
+			textOf(next.change) !== null
+				? { ...next.change, base: revision }
+				: next.change;
 
 		MeetingWebSocketClient.#inFlight = next;
+		MeetingWebSocketClient.#pending = true;
 		client().send(
 			`/app/meetings/${meetingId}/changes`,
 			JSON.stringify(body),
@@ -205,6 +285,7 @@ export default class MeetingWebSocketClient {
 	static #clear(): void {
 		MeetingWebSocketClient.#inFlight = null;
 		MeetingWebSocketClient.#acknowledged = null;
+		MeetingWebSocketClient.#pending = false;
 		MeetingWebSocketClient.#queued = [];
 	}
 
@@ -215,17 +296,27 @@ export default class MeetingWebSocketClient {
 	}
 }
 
-function isText(item: Change | Mutation): boolean {
+// Names the text an edit changes, so two edits to the same text compare
+// equal whichever half of the wire they were read from.
+function textOf(item: Change | Mutation): string | null {
 	switch (item.type) {
 		case "RENAME_MEETING":
 		case "DESCRIBE_MEETING":
+			return item.type;
 		case "RENAME_TOPIC":
 		case "DESCRIBE_TOPIC":
+			return `${item.type}:${item.topic}`;
 		case "EDIT_TEXT_BLOCK":
-			return true;
+			return `${item.type}:${item.block}`;
 		default:
-			return false;
+			return null;
 	}
+}
+
+function editOf(item: Change | Mutation): TextEdit {
+	const { position, length, value } = item as TextEdit;
+
+	return { position, length, value };
 }
 
 function client(): WebSocketClient {
