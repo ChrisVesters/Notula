@@ -19,10 +19,12 @@ class TextBlockChangeDtoTest {
 
 		private static final TextEditDto EDIT = new TextEditDto(4, 12,
 				"Updated");
+		private static final long BASE = 41L;
 
 		@Test
 		void toBdo() {
-			final var dto = new TextBlockChangeDto.Edit(BLOCK.getId(), EDIT);
+			final var dto = new TextBlockChangeDto.Edit(BLOCK.getId(), BASE,
+					EDIT);
 
 			final TextBlockAction.UpdateContent bdo = dto.toBdo();
 

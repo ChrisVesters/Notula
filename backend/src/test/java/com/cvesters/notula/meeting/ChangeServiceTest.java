@@ -44,6 +44,7 @@ class ChangeServiceTest {
 	private static final long TOPIC_ID = 32L;
 	private static final long BLOCK_ID = 61L;
 	private static final Long AFTER_ID = 7L;
+	private static final long BASE = REVISION - 1;
 
 	private final TestMeetingLock meetingLock = new TestMeetingLock();
 
@@ -65,8 +66,10 @@ class ChangeServiceTest {
 
 		@Test
 		void renameMeeting() {
-			changeService.apply(ORIGIN, MEETING_ID, new MeetingChangeDto.Rename(
-					new TextEditDto(0, 3, "Renamed")));
+			final var change = new MeetingChangeDto.Rename(BASE,
+					new TextEditDto(0, 3, "Renamed"));
+
+			changeService.apply(ORIGIN, MEETING_ID, change);
 
 			verify(meetings).update(eq(ORIGIN), eq(SCOPE), argThat(action -> {
 				final var update = (TextUpdate<?>) action;
@@ -103,8 +106,10 @@ class ChangeServiceTest {
 
 		@Test
 		void renameTopic() {
-			changeService.apply(ORIGIN, MEETING_ID, new TopicChangeDto.Rename(
-					TOPIC_ID, new TextEditDto(1, 2, "Renamed")));
+			final var change = new TopicChangeDto.Rename(TOPIC_ID, BASE,
+					new TextEditDto(1, 2, "Renamed"));
+
+			changeService.apply(ORIGIN, MEETING_ID, change);
 
 			verify(topics).update(eq(ORIGIN), eq(SCOPE), eq(TOPIC_ID),
 					argThat(action -> {
@@ -168,8 +173,10 @@ class ChangeServiceTest {
 
 		@Test
 		void editTextBlock() {
-			changeService.apply(ORIGIN, MEETING_ID, new TextBlockChangeDto.Edit(
-					BLOCK_ID, new TextEditDto(4, 2, "new")));
+			final var change = new TextBlockChangeDto.Edit(BLOCK_ID, BASE,
+					new TextEditDto(4, 2, "new"));
+
+			changeService.apply(ORIGIN, MEETING_ID, change);
 
 			verify(texts).update(eq(ORIGIN), eq(SCOPE), eq(BLOCK_ID),
 					argThat(action -> {

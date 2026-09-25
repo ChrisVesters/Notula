@@ -18,6 +18,7 @@ class TopicChangeDtoTest {
 	private static final TestTopic TOPIC = TestTopic.SPORER_PROJECT_BLOCKERS;
 
 	private static final TextEditDto EDIT = new TextEditDto(4, 12, "Updated");
+	private static final long BASE = 41L;
 
 	@Nested
 	class Add {
@@ -56,7 +57,8 @@ class TopicChangeDtoTest {
 
 		@Test
 		void toBdo() {
-			final var dto = new TopicChangeDto.Rename(TOPIC.getId(), EDIT);
+			final var dto = new TopicChangeDto.Rename(TOPIC.getId(), BASE,
+					EDIT);
 
 			final TopicAction.UpdateName bdo = dto.toBdo();
 
@@ -72,7 +74,8 @@ class TopicChangeDtoTest {
 
 		@Test
 		void toBdo() {
-			final var dto = new TopicChangeDto.Describe(TOPIC.getId(), EDIT);
+			final var dto = new TopicChangeDto.Describe(TOPIC.getId(), BASE,
+					EDIT);
 
 			final TopicAction.UpdateDescription bdo = dto.toBdo();
 

@@ -6,6 +6,7 @@ import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doThrow;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.timeout;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -161,6 +162,31 @@ class MeetingWebSocketTest extends WebSocketTest {
 						assertThat(rejected).contains(CHANGE_ID.toString());
 						assertThat(rejected).contains("\"retryable\":false");
 					});
+		}
+
+		@Test
+		void negativeBase() throws Exception {
+			connect(SESSION);
+			final FrameHandler rejections = subscribeToRejections();
+			send(ENDPOINT, CHANGE_ID, payload("""
+					{
+						"type": "RENAME_TOPIC",
+						"topic": 32,
+						"base": -1,
+						"position": 0,
+						"length": 0,
+						"value": "x"
+					}
+					"""));
+
+			assertThat(rejections.getResponse())
+					.succeedsWithin(WAIT_TIMEOUT.toSeconds(), TimeUnit.SECONDS)
+					.isNotNull()
+					.satisfies(rejected -> {
+						assertThat(rejected).contains(CHANGE_ID.toString());
+						assertThat(rejected).contains("\"retryable\":false");
+					});
+			verify(changeService, never()).apply(any(), anyLong(), any());
 		}
 
 		@Test

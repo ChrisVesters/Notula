@@ -16,6 +16,7 @@ class ChangeDtoTest {
 	private static final ObjectMapper MAPPER = new ObjectMapper();
 
 	private static final TextEditDto EDIT = new TextEditDto(4, 12, "Updated");
+	private static final long BASE = 41L;
 
 	private static ChangeDto read(final String json) {
 		return MAPPER.readValue(json, ChangeDto.class);
@@ -29,13 +30,14 @@ class ChangeDtoTest {
 			final ChangeDto change = read("""
 					{
 						"type": "RENAME_MEETING",
+						"base": 41,
 						"position": 4,
 						"length": 12,
 						"value": "Updated"
 					}
 					""");
 
-			final var expected = new MeetingChangeDto.Rename(EDIT);
+			final var expected = new MeetingChangeDto.Rename(BASE, EDIT);
 			assertThat(change).isEqualTo(expected);
 		}
 
@@ -44,13 +46,14 @@ class ChangeDtoTest {
 			final ChangeDto change = read("""
 					{
 						"type": "DESCRIBE_MEETING",
+						"base": 41,
 						"position": 4,
 						"length": 12,
 						"value": "Updated"
 					}
 					""");
 
-			final var expected = new MeetingChangeDto.Describe(EDIT);
+			final var expected = new MeetingChangeDto.Describe(BASE, EDIT);
 			assertThat(change).isEqualTo(expected);
 		}
 
@@ -88,13 +91,14 @@ class ChangeDtoTest {
 					{
 						"type": "RENAME_TOPIC",
 						"topic": 7,
+						"base": 41,
 						"position": 4,
 						"length": 12,
 						"value": "Updated"
 					}
 					""");
 
-			final var expected = new TopicChangeDto.Rename(7, EDIT);
+			final var expected = new TopicChangeDto.Rename(7, BASE, EDIT);
 			assertThat(change).isEqualTo(expected);
 		}
 
@@ -104,13 +108,14 @@ class ChangeDtoTest {
 					{
 						"type": "DESCRIBE_TOPIC",
 						"topic": 7,
+						"base": 41,
 						"position": 4,
 						"length": 12,
 						"value": "Updated"
 					}
 					""");
 
-			final var expected = new TopicChangeDto.Describe(7, EDIT);
+			final var expected = new TopicChangeDto.Describe(7, BASE, EDIT);
 			assertThat(change).isEqualTo(expected);
 		}
 
@@ -203,14 +208,42 @@ class ChangeDtoTest {
 					{
 						"type": "EDIT_TEXT_BLOCK",
 						"block": 9,
+						"base": 41,
 						"position": 4,
 						"length": 12,
 						"value": "Updated"
 					}
 					""");
 
-			final var expected = new TextBlockChangeDto.Edit(9, EDIT);
+			final var expected = new TextBlockChangeDto.Edit(9, BASE, EDIT);
 			assertThat(change).isEqualTo(expected);
+		}
+
+		@Test
+		void baseMissing() {
+			assertThatThrownBy(() -> read("""
+					{
+						"type": "RENAME_TOPIC",
+						"topic": 7,
+						"position": 4,
+						"length": 12,
+						"value": "Updated"
+					}
+					""")).isInstanceOf(DatabindException.class);
+		}
+
+		@Test
+		void baseNull() {
+			assertThatThrownBy(() -> read("""
+					{
+						"type": "RENAME_TOPIC",
+						"topic": 7,
+						"base": null,
+						"position": 4,
+						"length": 12,
+						"value": "Updated"
+					}
+					""")).isInstanceOf(DatabindException.class);
 		}
 
 		@Test

@@ -33,14 +33,16 @@ public sealed interface TopicChangeDto extends ChangeDto {
 		TopicAction.Update toBdo();
 	}
 
-	record Rename(long topic, @NotNull @Valid @JsonUnwrapped TextEditDto edit)
+	record Rename(long topic, @PositiveOrZero long base,
+			@NotNull @Valid @JsonUnwrapped TextEditDto edit)
 			implements TopicChangeDto.Update {
 		public TopicAction.UpdateName toBdo() {
 			return new TopicAction.UpdateName(edit.toBdo());
 		}
 	}
 
-	record Describe(long topic, @NotNull @Valid @JsonUnwrapped TextEditDto edit)
+	record Describe(long topic, @PositiveOrZero long base,
+			@NotNull @Valid @JsonUnwrapped TextEditDto edit)
 			implements TopicChangeDto.Update {
 		public TopicAction.UpdateDescription toBdo() {
 			return new TopicAction.UpdateDescription(edit.toBdo());
