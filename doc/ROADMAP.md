@@ -72,8 +72,8 @@ Checked against the code, not against the commit messages.
   lost their own `meetingLock.call` wrappers and take a `MeetingScope` instead.
   `MeetingWebSocketClient` holds one change in flight and queues the rest,
   releasing on the acknowledgement and dropping the queue on a refusal.
-  `SEQUENCING.md` step 4 is closed; step 7 is what makes the queue merge
-  rather than only wait.
+  `SEQUENCING.md` step 4 is closed, and step 7 has the queue merge keystrokes
+  typed while a change is in flight into the text change waiting behind it.
 - **A missed change is detected, not silently absorbed.** `meetings.revision`
   is bumped inside the change's own transaction by `meeting/MeetingLock`, rides
   out on `EventDto` and the `/app/meetings/{id}` snapshot, and

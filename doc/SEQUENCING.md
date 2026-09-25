@@ -859,6 +859,18 @@ always heading towards, and it is nearly free once step 6's compose exists.
 *Done when:* typing a sentence quickly produces a handful of actions rather than
 one per character.
 
+*Done.* Step 6 built a rebase, not a compose, so composing was written here:
+`editor/TextEdit.composed(first, second)` is the one edit that does what the two
+do in turn, and `MeetingWebSocketClient.send` merges a text change into the last
+change waiting when both edit the same text. It merges only when the second edit
+touches what the first produced — a composed edit is one splice, and two edits
+apart would need the unchanged text between them, which an edit does not carry.
+Ordinary typing always touches: each keystroke lands at the end of the last, or
+inside it. It merges only into the *last* change waiting, never past a change
+queued after it, and never into the one in flight, which has been sent. A merged
+`send` returns the id of the change it joined. There was no throttle to replace:
+the editors send a change per input event.
+
 Step 8 — Replay what was missed, then reconnect (M)
 --
 

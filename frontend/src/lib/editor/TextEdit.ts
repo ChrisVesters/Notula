@@ -65,6 +65,31 @@ function stopAfter(index: number, prior: TextEdit): number {
 	return index - prior.length + prior.value.length;
 }
 
+// One edit that does what applying `first` and then `second` does, or null
+// when `second` does not touch what `first` produced: two edits apart would
+// need the unchanged text between them, which an edit does not carry.
+export function composed(first: TextEdit, second: TextEdit): TextEdit | null {
+	const start = first.position;
+	const end = first.position + first.value.length;
+	const secondEnd = second.position + second.length;
+	if (second.position > end || secondEnd < start) {
+		return null;
+	}
+
+	const before = Math.max(0, start - second.position);
+	const after = Math.max(0, secondEnd - end);
+	const kept = first.value.slice(0, Math.max(0, second.position - start));
+	const rest = first.value.slice(
+		Math.min(first.value.length, secondEnd - start)
+	);
+
+	return {
+		position: Math.min(start, second.position),
+		length: before + first.length + after,
+		value: kept + second.value + rest
+	};
+}
+
 export function moved(previous: string, next: string, index: number): number {
 	const { position, removed, inserted } = spliced(previous, next);
 

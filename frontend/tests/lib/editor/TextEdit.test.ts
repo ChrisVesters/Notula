@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { applied, moved, rebased } from "$lib/editor/TextEdit";
+import { applied, composed, moved, rebased } from "$lib/editor/TextEdit";
 import type { TextEdit } from "$lib/meeting/change/ChangeTypes";
 
 describe("applied", () => {
@@ -247,5 +247,90 @@ describe("rebased", () => {
 				expect(here, JSON.stringify({ local, remote })).toBe(there);
 			})
 		);
+	});
+});
+
+describe("composed", () => {
+	const TEXT = "abcd";
+
+	it("typing on", () => {
+		const result = composed(
+			{ position: 4, length: 0, value: "a" },
+			{ position: 5, length: 0, value: "b" }
+		);
+
+		expect(result).toEqual({ position: 4, length: 0, value: "ab" });
+	});
+
+	it("backspace inside what was typed", () => {
+		const result = composed(
+			{ position: 4, length: 0, value: "ab" },
+			{ position: 5, length: 1, value: "" }
+		);
+
+		expect(result).toEqual({ position: 4, length: 0, value: "a" });
+	});
+
+	it("backspace past where it was typed", () => {
+		const result = composed(
+			{ position: 3, length: 0, value: "ab" },
+			{ position: 2, length: 2, value: "" }
+		);
+
+		expect(result).toEqual({ position: 2, length: 1, value: "b" });
+	});
+
+	it("replace across its end", () => {
+		const result = composed(
+			{ position: 1, length: 1, value: "xy" },
+			{ position: 2, length: 3, value: "p" }
+		);
+
+		expect(result).toEqual({ position: 1, length: 3, value: "xp" });
+	});
+
+	it("apart", () => {
+		const result = composed(
+			{ position: 0, length: 0, value: "x" },
+			{ position: 3, length: 0, value: "p" }
+		);
+
+		expect(result).toBeNull();
+	});
+
+	it("exhaustive", () => {
+		const firsts: Array<TextEdit> = [];
+		for (let position = 0; position <= TEXT.length; position++) {
+			for (let end = position; end <= TEXT.length; end++) {
+				["", "x", "xy"].forEach(value =>
+					firsts.push({ position, length: end - position, value })
+				);
+			}
+		}
+
+		firsts.forEach(first => {
+			const between = applied(TEXT, first);
+			for (let position = 0; position <= between.length; position++) {
+				for (let end = position; end <= between.length; end++) {
+					["", "p", "pq"].forEach(value => {
+						const second = {
+							position,
+							length: end - position,
+							value
+						};
+
+						const result = composed(first, second);
+						if (result === null) {
+							return;
+						}
+
+						expect(
+							applied(TEXT, result),
+							JSON.stringify({ first, second })
+						).toBe(applied(between, second));
+					});
+				}
+			}
+		});
 	});
 });
