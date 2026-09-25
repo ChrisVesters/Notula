@@ -6,6 +6,7 @@ import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 
 import com.cvesters.notula.common.domain.Minutes;
+import com.cvesters.notula.common.domain.Splice;
 import com.cvesters.notula.topic.TestTopic;
 import com.cvesters.notula.topic.TopicActionMatcher;
 import com.cvesters.notula.topic.bdo.TopicAction;
@@ -59,7 +60,8 @@ class TopicChangeDtoTest {
 
 			final TopicAction.UpdateName bdo = dto.toBdo();
 
-			final var expected = new TopicAction.UpdateName(4, 12, "Updated");
+			final var expected = new TopicAction.UpdateName(
+					new Splice(4, 12, "Updated"));
 			final var matcher = new TopicActionMatcher.UpdateName(expected);
 			assertThat(bdo).is(matcher.equal());
 		}
@@ -74,8 +76,8 @@ class TopicChangeDtoTest {
 
 			final TopicAction.UpdateDescription bdo = dto.toBdo();
 
-			final var expected = new TopicAction.UpdateDescription(4, 12,
-					"Updated");
+			final var expected = new TopicAction.UpdateDescription(
+					new Splice(4, 12, "Updated"));
 			final var matcher = new TopicActionMatcher.UpdateDescription(
 					expected);
 			assertThat(bdo).is(matcher.equal());

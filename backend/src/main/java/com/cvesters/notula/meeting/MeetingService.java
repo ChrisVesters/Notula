@@ -94,11 +94,9 @@ public class MeetingService {
 	private static MeetingMutation mutation(final MeetingAction.Update action) {
 		return switch (action) {
 			case MeetingAction.UpdateName update ->
-					new MeetingMutation.Rename(update.getPosition(),
-							update.getLength(), update.getValue());
+					new MeetingMutation.Rename(update.getEdit());
 			case MeetingAction.UpdateDescription update ->
-					new MeetingMutation.Describe(update.getPosition(),
-							update.getLength(), update.getValue());
+					new MeetingMutation.Describe(update.getEdit());
 		};
 	}
 }

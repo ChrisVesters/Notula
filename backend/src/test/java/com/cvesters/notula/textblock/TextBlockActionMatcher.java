@@ -20,9 +20,7 @@ public final class TextBlockActionMatcher {
 		@Override
 		protected void assertEquals(
 				final TextBlockAction.UpdateContent actual) {
-			assertThat(actual.getPosition()).isEqualTo(expected.getPosition());
-			assertThat(actual.getLength()).isEqualTo(expected.getLength());
-			assertThat(actual.getValue()).isEqualTo(expected.getValue());
+			assertThat(actual.getEdit()).isEqualTo(expected.getEdit());
 		}
 	}
 }

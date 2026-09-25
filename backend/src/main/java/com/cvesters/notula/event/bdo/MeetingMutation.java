@@ -2,7 +2,7 @@ package com.cvesters.notula.event.bdo;
 
 import java.util.Objects;
 
-import org.apache.commons.lang3.Validate;
+import com.cvesters.notula.common.domain.Splice;
 
 public sealed interface MeetingMutation extends Mutation {
 
@@ -13,23 +13,17 @@ public sealed interface MeetingMutation extends Mutation {
 		}
 	}
 
-	record Rename(int position, int length, String value)
-			implements MeetingMutation {
+	record Rename(Splice edit) implements MeetingMutation {
 
 		public Rename {
-			Objects.requireNonNull(value);
-			Validate.isTrue(position >= 0);
-			Validate.isTrue(length >= 0);
+			Objects.requireNonNull(edit);
 		}
 	}
 
-	record Describe(int position, int length, String value)
-			implements MeetingMutation {
+	record Describe(Splice edit) implements MeetingMutation {
 
 		public Describe {
-			Objects.requireNonNull(value);
-			Validate.isTrue(position >= 0);
-			Validate.isTrue(length >= 0);
+			Objects.requireNonNull(edit);
 		}
 	}
 

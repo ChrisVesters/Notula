@@ -61,8 +61,7 @@ public class TextBlockService {
 			final TextBlockAction.Update action) {
 		return switch (action) {
 			case TextBlockAction.UpdateContent update ->
-					new TextBlockMutation.Edit(blockId, update.getPosition(),
-							update.getLength(), update.getValue());
+					new TextBlockMutation.Edit(blockId, update.getEdit());
 		};
 	}
 }

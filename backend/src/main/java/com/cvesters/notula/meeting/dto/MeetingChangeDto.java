@@ -14,16 +14,14 @@ public sealed interface MeetingChangeDto extends ChangeDto {
 	record Rename(@NotNull @Valid @JsonUnwrapped TextEditDto edit)
 			implements MeetingChangeDto {
 		public MeetingAction.UpdateName toBdo() {
-			return new MeetingAction.UpdateName(edit.position(), edit.length(),
-					edit.value());
+			return new MeetingAction.UpdateName(edit.toBdo());
 		}
 	}
 
 	record Describe(@NotNull @Valid @JsonUnwrapped TextEditDto edit)
 			implements MeetingChangeDto {
 		public MeetingAction.UpdateDescription toBdo() {
-			return new MeetingAction.UpdateDescription(edit.position(),
-					edit.length(), edit.value());
+			return new MeetingAction.UpdateDescription(edit.toBdo());
 		}
 	}
 }

@@ -16,6 +16,7 @@ import org.junit.jupiter.api.Test;
 import com.cvesters.notula.block.BlockService;
 import com.cvesters.notula.block.bdo.BlockType;
 import com.cvesters.notula.common.domain.Origin;
+import com.cvesters.notula.common.domain.Splice;
 import com.cvesters.notula.common.domain.TextUpdate;
 import com.cvesters.notula.meeting.bdo.MeetingScope;
 import com.cvesters.notula.meeting.dto.BlockChangeDto;
@@ -70,9 +71,8 @@ class ChangeServiceTest {
 			verify(meetings).update(eq(ORIGIN), eq(SCOPE), argThat(action -> {
 				final var update = (TextUpdate<?>) action;
 
-				assertThat(update.getPosition()).isEqualTo(0);
-				assertThat(update.getLength()).isEqualTo(3);
-				assertThat(update.getValue()).isEqualTo("Renamed");
+				assertThat(update.getEdit())
+						.isEqualTo(new Splice(0, 3, "Renamed"));
 				return true;
 			}));
 		}
@@ -110,9 +110,8 @@ class ChangeServiceTest {
 					argThat(action -> {
 						final var update = (TextUpdate<?>) action;
 
-						assertThat(update.getPosition()).isEqualTo(1);
-						assertThat(update.getLength()).isEqualTo(2);
-						assertThat(update.getValue()).isEqualTo("Renamed");
+						assertThat(update.getEdit())
+								.isEqualTo(new Splice(1, 2, "Renamed"));
 						return true;
 					}));
 		}
@@ -174,11 +173,10 @@ class ChangeServiceTest {
 
 			verify(texts).update(eq(ORIGIN), eq(SCOPE), eq(BLOCK_ID),
 					argThat(action -> {
-						final var splice = (TextUpdate<?>) action;
+						final var update = (TextUpdate<?>) action;
 
-						assertThat(splice.getPosition()).isEqualTo(4);
-						assertThat(splice.getLength()).isEqualTo(2);
-						assertThat(splice.getValue()).isEqualTo("new");
+						assertThat(update.getEdit())
+								.isEqualTo(new Splice(4, 2, "new"));
 						return true;
 					}));
 		}

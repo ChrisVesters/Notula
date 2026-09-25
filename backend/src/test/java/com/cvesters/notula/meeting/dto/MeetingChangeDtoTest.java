@@ -5,6 +5,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 
+import com.cvesters.notula.common.domain.Splice;
 import com.cvesters.notula.meeting.MeetingActionMatcher;
 import com.cvesters.notula.meeting.bdo.MeetingAction;
 
@@ -21,8 +22,8 @@ class MeetingChangeDtoTest {
 
 			final MeetingAction.UpdateName bdo = dto.toBdo();
 
-			final var expected = new MeetingAction.UpdateName(4, 12,
-					"Updated");
+			final var expected = new MeetingAction.UpdateName(
+					new Splice(4, 12, "Updated"));
 			final var matcher = new MeetingActionMatcher.UpdateName(expected);
 			assertThat(bdo).is(matcher.equal());
 		}
@@ -37,8 +38,8 @@ class MeetingChangeDtoTest {
 
 			final MeetingAction.UpdateDescription bdo = dto.toBdo();
 
-			final var expected = new MeetingAction.UpdateDescription(4, 12,
-					"Updated");
+			final var expected = new MeetingAction.UpdateDescription(
+					new Splice(4, 12, "Updated"));
 			final var matcher = new MeetingActionMatcher.UpdateDescription(
 					expected);
 			assertThat(bdo).is(matcher.equal());

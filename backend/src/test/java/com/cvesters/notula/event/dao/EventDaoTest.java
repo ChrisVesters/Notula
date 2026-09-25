@@ -16,6 +16,7 @@ import com.cvesters.notula.block.bdo.BlockType;
 import com.cvesters.notula.common.domain.Minutes;
 import com.cvesters.notula.common.domain.Origin;
 import com.cvesters.notula.common.domain.Rank;
+import com.cvesters.notula.common.domain.Splice;
 import com.cvesters.notula.event.EventInfoMatcher;
 import com.cvesters.notula.event.bdo.BlockMutation;
 import com.cvesters.notula.event.bdo.EventInfo;
@@ -50,7 +51,7 @@ class EventDaoTest {
 		@Test
 		void success() {
 			final var event = new EventInfo(SCOPE, ORIGIN,
-					new TopicMutation.Rename(32L, 4, 2, "new"));
+					new TopicMutation.Rename(32L, new Splice(4, 2, "new")));
 
 			final var dao = new EventDao(event);
 
@@ -87,13 +88,13 @@ class EventDaoTest {
 
 		static Stream<Mutation> mutations() {
 			return Stream.of(new MeetingMutation.Add("Planning"),
-					new MeetingMutation.Rename(4, 2, "new"),
-					new MeetingMutation.Describe(4, 2, "new"),
+					new MeetingMutation.Rename(new Splice(4, 2, "new")),
+					new MeetingMutation.Describe(new Splice(4, 2, "new")),
 					new MeetingMutation.Remove(),
 					new TopicMutation.Add(32L, new Rank("V"), "Blockers"),
 					new TopicMutation.Move(32L, new Rank("0V")),
-					new TopicMutation.Rename(32L, 4, 2, "new"),
-					new TopicMutation.Describe(32L, 4, 2, "new"),
+					new TopicMutation.Rename(32L, new Splice(4, 2, "new")),
+					new TopicMutation.Describe(32L, new Splice(4, 2, "new")),
 					new TopicMutation.Schedule(32L, new Minutes(15)),
 					new TopicMutation.Schedule(32L, null),
 					new TopicMutation.Remove(32L),
@@ -101,7 +102,7 @@ class EventDaoTest {
 							new Rank("V")),
 					new BlockMutation.Move(61L, new Rank("0V")),
 					new BlockMutation.Remove(61L),
-					new TextBlockMutation.Edit(61L, 4, 2, "new"));
+					new TextBlockMutation.Edit(61L, new Splice(4, 2, "new")));
 		}
 
 		@ParameterizedTest

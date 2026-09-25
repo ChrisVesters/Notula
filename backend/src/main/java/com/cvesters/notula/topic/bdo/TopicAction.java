@@ -6,6 +6,7 @@ import java.util.Optional;
 import lombok.Getter;
 
 import com.cvesters.notula.common.domain.Minutes;
+import com.cvesters.notula.common.domain.Splice;
 import com.cvesters.notula.common.domain.TextUpdate;
 
 public sealed interface TopicAction {
@@ -37,10 +38,8 @@ public sealed interface TopicAction {
 	final class UpdateName extends TextUpdate<TopicInfo>
 			implements TopicAction.Update {
 
-		public UpdateName(final int position, final int length,
-				final String value) {
-			super(TopicInfo::getName, TopicInfo::setName, position, length,
-					value);
+		public UpdateName(final Splice edit) {
+			super(TopicInfo::getName, TopicInfo::setName, edit);
 		}
 	}
 
@@ -48,10 +47,8 @@ public sealed interface TopicAction {
 	final class UpdateDescription extends TextUpdate<TopicInfo>
 			implements TopicAction.Update {
 
-		public UpdateDescription(final int position, final int length,
-				final String value) {
-			super(TopicInfo::getDescription, TopicInfo::setDescription,
-					position, length, value);
+		public UpdateDescription(final Splice edit) {
+			super(TopicInfo::getDescription, TopicInfo::setDescription, edit);
 		}
 	}
 

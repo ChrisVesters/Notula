@@ -40,16 +40,14 @@ public sealed interface MeetingMutationDto extends MutationDto {
 			implements MeetingMutationDto {
 
 		private Rename(final MeetingMutation.Rename mutation) {
-			final var edit = new TextEditDto(mutation.position(),
-					mutation.length(), mutation.value());
+			final var edit = new TextEditDto(mutation.edit());
 
 			this(edit);
 		}
 
 		@Override
 		public MeetingMutation toBdo() {
-			return new MeetingMutation.Rename(edit.position(), edit.length(),
-					edit.value());
+			return new MeetingMutation.Rename(edit.toBdo());
 		}
 	}
 
@@ -57,16 +55,14 @@ public sealed interface MeetingMutationDto extends MutationDto {
 			implements MeetingMutationDto {
 
 		private Describe(final MeetingMutation.Describe mutation) {
-			final var edit = new TextEditDto(mutation.position(),
-					mutation.length(), mutation.value());
+			final var edit = new TextEditDto(mutation.edit());
 
 			this(edit);
 		}
 
 		@Override
 		public MeetingMutation toBdo() {
-			return new MeetingMutation.Describe(edit.position(),
-					edit.length(), edit.value());
+			return new MeetingMutation.Describe(edit.toBdo());
 		}
 	}
 

@@ -30,9 +30,7 @@ public final class MeetingActionMatcher {
 		}
 
 		public void assertEquals(final MeetingAction.UpdateName actual) {
-			assertThat(actual.getPosition()).isEqualTo(expected.getPosition());
-			assertThat(actual.getLength()).isEqualTo(expected.getLength());
-			assertThat(actual.getValue()).isEqualTo(expected.getValue());
+			assertThat(actual.getEdit()).isEqualTo(expected.getEdit());
 		}
 	}
 
@@ -44,9 +42,7 @@ public final class MeetingActionMatcher {
 		}
 
 		public void assertEquals(final MeetingAction.UpdateDescription actual) {
-			assertThat(actual.getPosition()).isEqualTo(expected.getPosition());
-			assertThat(actual.getLength()).isEqualTo(expected.getLength());
-			assertThat(actual.getValue()).isEqualTo(expected.getValue());
+			assertThat(actual.getEdit()).isEqualTo(expected.getEdit());
 		}
 	}
 }

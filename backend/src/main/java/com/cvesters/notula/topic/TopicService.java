@@ -149,11 +149,9 @@ public class TopicService {
 			final TopicAction.Update action) {
 		return switch (action) {
 			case TopicAction.UpdateName update ->
-					new TopicMutation.Rename(topicId, update.getPosition(),
-							update.getLength(), update.getValue());
+					new TopicMutation.Rename(topicId, update.getEdit());
 			case TopicAction.UpdateDescription update ->
-					new TopicMutation.Describe(topicId, update.getPosition(),
-							update.getLength(), update.getValue());
+					new TopicMutation.Describe(topicId, update.getEdit());
 			case TopicAction.UpdateDuration update ->
 					new TopicMutation.Schedule(topicId, update.getDuration());
 		};

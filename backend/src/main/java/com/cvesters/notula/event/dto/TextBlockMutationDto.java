@@ -24,16 +24,14 @@ public sealed interface TextBlockMutationDto extends MutationDto {
 
 		private Edit(final TextBlockMutation.Edit mutation) {
 			final long blockId = mutation.blockId();
-			final var edit = new TextEditDto(mutation.position(),
-					mutation.length(), mutation.value());
+			final var edit = new TextEditDto(mutation.edit());
 
 			this(blockId, edit);
 		}
 
 		@Override
 		public TextBlockMutation toBdo() {
-			return new TextBlockMutation.Edit(block, edit.position(),
-					edit.length(), edit.value());
+			return new TextBlockMutation.Edit(block, edit.toBdo());
 		}
 	}
 }

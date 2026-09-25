@@ -12,8 +12,7 @@ public sealed interface TextBlockChangeDto extends ChangeDto {
 	record Edit(long block, @NotNull @Valid @JsonUnwrapped TextEditDto edit)
 			implements TextBlockChangeDto {
 		public TextBlockAction.UpdateContent toBdo() {
-			return new TextBlockAction.UpdateContent(edit.position(),
-					edit.length(), edit.value());
+			return new TextBlockAction.UpdateContent(edit.toBdo());
 		}
 	}
 }

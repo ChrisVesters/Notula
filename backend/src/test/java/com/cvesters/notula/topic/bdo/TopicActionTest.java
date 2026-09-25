@@ -13,6 +13,7 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
 
 import com.cvesters.notula.common.domain.Minutes;
+import com.cvesters.notula.common.domain.Splice;
 
 class TopicActionTest {
 
@@ -71,13 +72,11 @@ class TopicActionTest {
 				"2,2,tr,Rexxospective,Retrospective" })
 		void success(final int position, final int length, final String value,
 				final String original, final String expected) {
-			final var action = new TopicAction.UpdateName(position, length,
-					value);
+			final var edit = new Splice(position, length, value);
 
-			assertThat(action).isNotNull();
-			assertThat(action.getPosition()).isEqualTo(position);
-			assertThat(action.getLength()).isEqualTo(length);
-			assertThat(action.getValue()).isEqualTo(value);
+			final var action = new TopicAction.UpdateName(edit);
+
+			assertThat(action.getEdit()).isEqualTo(edit);
 
 			final TopicInfo topic = mock();
 			when(topic.getName()).thenReturn(original);
@@ -105,13 +104,11 @@ class TopicActionTest {
 				"0,20,'X','2026 Kickoff Meeting','X'" })
 		void success(final int position, final int length, final String value,
 				final String original, final String expected) {
-			final var action = new TopicAction.UpdateDescription(position,
-					length, value);
+			final var edit = new Splice(position, length, value);
 
-			assertThat(action).isNotNull();
-			assertThat(action.getPosition()).isEqualTo(position);
-			assertThat(action.getLength()).isEqualTo(length);
-			assertThat(action.getValue()).isEqualTo(value);
+			final var action = new TopicAction.UpdateDescription(edit);
+
+			assertThat(action.getEdit()).isEqualTo(edit);
 
 			final TopicInfo topic = mock();
 			when(topic.getDescription()).thenReturn(original);

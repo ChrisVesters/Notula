@@ -6,6 +6,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 
+import com.cvesters.notula.common.domain.Splice;
 import com.cvesters.notula.event.bdo.MeetingMutation;
 import com.cvesters.notula.meeting.dto.TextEditDto;
 
@@ -27,7 +28,8 @@ class MeetingMutationDtoTest {
 
 		@Test
 		void rename() {
-			final var mutation = new MeetingMutation.Rename(4, 12, "Updated");
+			final var mutation = new MeetingMutation.Rename(
+					new Splice(4, 12, "Updated"));
 
 			final var dto = MeetingMutationDto.of(mutation);
 
@@ -37,8 +39,8 @@ class MeetingMutationDtoTest {
 
 		@Test
 		void describe() {
-			final var mutation = new MeetingMutation.Describe(4, 12,
-					"Updated");
+			final var mutation = new MeetingMutation.Describe(
+					new Splice(4, 12, "Updated"));
 
 			final var dto = MeetingMutationDto.of(mutation);
 
@@ -78,7 +80,8 @@ class MeetingMutationDtoTest {
 			final var edit = new TextEditDto(4, 12, "Updated");
 			final var dto = new MeetingMutationDto.Rename(edit);
 
-			final var expected = new MeetingMutation.Rename(4, 12, "Updated");
+			final var expected = new MeetingMutation.Rename(
+					new Splice(4, 12, "Updated"));
 			assertThat(dto.toBdo()).isEqualTo(expected);
 		}
 
@@ -87,8 +90,8 @@ class MeetingMutationDtoTest {
 			final var edit = new TextEditDto(4, 12, "Updated");
 			final var dto = new MeetingMutationDto.Describe(edit);
 
-			final var expected = new MeetingMutation.Describe(4, 12,
-					"Updated");
+			final var expected = new MeetingMutation.Describe(
+					new Splice(4, 12, "Updated"));
 			assertThat(dto.toBdo()).isEqualTo(expected);
 		}
 

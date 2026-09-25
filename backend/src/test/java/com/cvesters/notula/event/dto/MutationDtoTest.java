@@ -6,6 +6,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 
+import com.cvesters.notula.common.domain.Splice;
 import com.cvesters.notula.event.bdo.BlockMutation;
 import com.cvesters.notula.event.bdo.MeetingMutation;
 import com.cvesters.notula.event.bdo.TextBlockMutation;
@@ -40,8 +41,8 @@ class MutationDtoTest {
 
 		@Test
 		void textBlock() {
-			final var mutation = new TextBlockMutation.Edit(9L, 4, 12,
-					"Updated");
+			final var mutation = new TextBlockMutation.Edit(9L,
+					new Splice(4, 12, "Updated"));
 
 			final var dto = MutationDto.of(mutation);
 

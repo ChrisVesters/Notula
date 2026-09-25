@@ -12,6 +12,7 @@ import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 
 import com.cvesters.notula.common.domain.Origin;
+import com.cvesters.notula.common.domain.Splice;
 import com.cvesters.notula.common.dto.OriginDto;
 import com.cvesters.notula.common.messaging.TransactionalPublisher;
 import com.cvesters.notula.event.bdo.EventInfo;
@@ -50,8 +51,8 @@ class EventServiceTest {
 
 		@Test
 		void success() {
-			final var mutation = new TopicMutation.Rename(TOPIC_ID, 4, 12,
-					"Updated");
+			final var mutation = new TopicMutation.Rename(TOPIC_ID,
+					new Splice(4, 12, "Updated"));
 			final var event = new EventInfo(SCOPE, ORIGIN, mutation);
 			final var created = new EventInfo(ID, MEETING_ID, REVISION,
 					USER_ID, CLIENT_ID, mutation);
