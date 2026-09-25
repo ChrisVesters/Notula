@@ -1,5 +1,12 @@
-package com.cvesters.notula.meeting.dto;
+package com.cvesters.notula.event.dto;
 
+import java.util.Objects;
+
+import com.cvesters.notula.event.bdo.BlockMutation;
+import com.cvesters.notula.event.bdo.MeetingMutation;
+import com.cvesters.notula.event.bdo.Mutation;
+import com.cvesters.notula.event.bdo.TextBlockMutation;
+import com.cvesters.notula.event.bdo.TopicMutation;
 import com.fasterxml.jackson.annotation.JsonSubTypes;
 import com.fasterxml.jackson.annotation.JsonSubTypes.Type;
 import com.fasterxml.jackson.annotation.JsonTypeInfo;
@@ -25,4 +32,17 @@ import com.fasterxml.jackson.annotation.JsonTypeInfo;
 				name = "EDIT_TEXT_BLOCK") })
 public sealed interface MutationDto permits MeetingMutationDto,
 		TopicMutationDto, BlockMutationDto, TextBlockMutationDto {
+
+	static MutationDto of(final Mutation mutation) {
+		Objects.requireNonNull(mutation);
+
+		return switch (mutation) {
+			case MeetingMutation m -> MeetingMutationDto.of(m);
+			case TopicMutation m -> TopicMutationDto.of(m);
+			case BlockMutation m -> BlockMutationDto.of(m);
+			case TextBlockMutation m -> TextBlockMutationDto.of(m);
+		};
+	}
+
+	Mutation toBdo();
 }

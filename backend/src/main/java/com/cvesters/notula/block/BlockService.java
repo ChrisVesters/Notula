@@ -6,13 +6,14 @@ import java.util.Objects;
 import org.springframework.stereotype.Service;
 
 import com.cvesters.notula.block.bdo.BlockAction;
-import com.cvesters.notula.block.bdo.BlockEvent;
 import com.cvesters.notula.block.bdo.BlockInfo;
 import com.cvesters.notula.common.domain.Origin;
 import com.cvesters.notula.common.domain.Principal;
 import com.cvesters.notula.common.domain.Rank;
 import com.cvesters.notula.common.exception.MissingEntityException;
-import com.cvesters.notula.meeting.EventPublisher;
+import com.cvesters.notula.event.EventService;
+import com.cvesters.notula.event.bdo.BlockMutation;
+import com.cvesters.notula.event.bdo.EventInfo;
 import com.cvesters.notula.meeting.bdo.MeetingScope;
 import com.cvesters.notula.topic.TopicService;
 import com.cvesters.notula.topic.bdo.TopicInfo;
@@ -23,14 +24,14 @@ public class BlockService {
 	private final TopicService topicService;
 
 	private final BlockStorageGateway blockStorage;
-	private final EventPublisher eventPublisher;
+	private final EventService eventService;
 
 	public BlockService(final TopicService topicService,
 			final BlockStorageGateway blockStorage,
-			final EventPublisher eventPublisher) {
+			final EventService eventService) {
 		this.topicService = topicService;
 		this.blockStorage = blockStorage;
-		this.eventPublisher = eventPublisher;
+		this.eventService = eventService;
 	}
 
 	public BlockInfo getById(final Principal principal, final long blockId) {
@@ -73,7 +74,9 @@ public class BlockService {
 				topic.getId(), action.getType(), rank);
 		final BlockInfo created = blockStorage.create(block);
 
-		eventPublisher.publish(scope, new BlockEvent(created, action, origin));
+		final var mutation = new BlockMutation.Add(created.getId(),
+				created.getTopicId(), created.getType(), created.getRank());
+		eventService.publish(new EventInfo(scope, origin, mutation));
 
 		return created;
 	}
@@ -102,7 +105,9 @@ public class BlockService {
 
 		final BlockInfo updated = blockStorage.update(block);
 
-		eventPublisher.publish(scope, new BlockEvent(updated, action, origin));
+		final var mutation = new BlockMutation.Move(updated.getId(),
+				updated.getRank());
+		eventService.publish(new EventInfo(scope, origin, mutation));
 
 		return updated;
 	}
@@ -116,8 +121,8 @@ public class BlockService {
 				blockId);
 		blockStorage.delete(block);
 
-		eventPublisher.publish(scope,
-				new BlockEvent(block, new BlockAction.Delete(), origin));
+		final var mutation = new BlockMutation.Remove(block.getId());
+		eventService.publish(new EventInfo(scope, origin, mutation));
 	}
 
 	private static BlockInfo find(final List<BlockInfo> elements,

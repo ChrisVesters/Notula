@@ -5,7 +5,6 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.argThat;
-import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
@@ -20,20 +19,21 @@ import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
-import org.mockito.ArgumentCaptor;
-import org.mockito.ArgumentMatcher;
 
+import com.cvesters.notula.common.domain.Minutes;
 import com.cvesters.notula.common.domain.Origin;
 import com.cvesters.notula.common.domain.Principal;
 import com.cvesters.notula.common.exception.MissingEntityException;
-import com.cvesters.notula.meeting.EventPublisher;
+import com.cvesters.notula.event.EventInfoMatcher;
+import com.cvesters.notula.event.EventService;
+import com.cvesters.notula.event.bdo.EventInfo;
+import com.cvesters.notula.event.bdo.TopicMutation;
 import com.cvesters.notula.meeting.MeetingService;
 import com.cvesters.notula.meeting.TestMeeting;
 import com.cvesters.notula.meeting.bdo.MeetingScope;
 import com.cvesters.notula.organisation.TestOrganisation;
 import com.cvesters.notula.session.TestSession;
 import com.cvesters.notula.topic.bdo.TopicAction;
-import com.cvesters.notula.topic.bdo.TopicEvent;
 import com.cvesters.notula.topic.bdo.TopicInfo;
 
 class TopicServiceTest {
@@ -44,10 +44,10 @@ class TopicServiceTest {
 	private final MeetingService meetingService = mock();
 
 	private final TopicStorageGateway topicStorageGateway = mock();
-	private final EventPublisher eventPublisher = mock();
+	private final EventService eventService = mock();
 
 	private final TopicService topicService = new TopicService(meetingService,
-			topicStorageGateway, eventPublisher);
+			topicStorageGateway, eventService);
 
 	@Nested
 	class GetById {
@@ -146,6 +146,7 @@ class TopicServiceTest {
 				REVISION);
 
 		private static final String NAME = "Blockers";
+		private static final long CREATED_ID = 99L;
 
 		private final List<TopicInfo> siblings = TestTopic.ofMeeting(MEETING)
 				.stream()
@@ -158,8 +159,12 @@ class TopicServiceTest {
 					.thenReturn(MEETING.info());
 			when(topicStorageGateway.findAllByMeetingId(MEETING_ID))
 					.thenReturn(siblings);
-			when(topicStorageGateway.create(any()))
-					.thenAnswer(invocation -> invocation.getArgument(0));
+			when(topicStorageGateway.create(any())).thenAnswer(invocation -> {
+				final TopicInfo topic = invocation.getArgument(0);
+				return new TopicInfo(CREATED_ID, topic.getOrganisationId(),
+						topic.getMeetingId(), topic.getRank(), topic.getName(),
+						topic.getDescription(), null);
+			});
 		}
 
 		@Test
@@ -179,11 +184,14 @@ class TopicServiceTest {
 			assertThat(created.getMeetingId()).isEqualTo(MEETING_ID);
 			assertThat(created.getName()).isEqualTo(NAME);
 
-			verify(topicStorageGateway).create(created);
+			verify(topicStorageGateway).create(any());
 			verify(topicStorageGateway, never()).update(any());
-			verify(eventPublisher).publish(SCOPE,
-					new TopicEvent(created, action, ORIGIN));
-			verifyNoMoreInteractions(eventPublisher);
+			final var event = new EventInfo(SCOPE, ORIGIN,
+					new TopicMutation.Add(CREATED_ID, created.getRank(),
+							NAME));
+			final var matcher = new EventInfoMatcher(event);
+			verify(eventService).publish(argThat(matcher::matches));
+			verifyNoMoreInteractions(eventService);
 		}
 
 		@Test
@@ -196,11 +204,14 @@ class TopicServiceTest {
 			assertThat(created.getRank())
 					.isLessThan(siblings.getFirst().getRank());
 
-			verify(topicStorageGateway).create(created);
+			verify(topicStorageGateway).create(any());
 			verify(topicStorageGateway, never()).update(any());
-			verify(eventPublisher).publish(SCOPE,
-					new TopicEvent(created, action, ORIGIN));
-			verifyNoMoreInteractions(eventPublisher);
+			final var event = new EventInfo(SCOPE, ORIGIN,
+					new TopicMutation.Add(CREATED_ID, created.getRank(),
+							NAME));
+			final var matcher = new EventInfoMatcher(event);
+			verify(eventService).publish(argThat(matcher::matches));
+			verifyNoMoreInteractions(eventService);
 		}
 
 		@Test
@@ -214,11 +225,14 @@ class TopicServiceTest {
 
 			assertThat(created.getRank()).isGreaterThan(last.getRank());
 
-			verify(topicStorageGateway).create(created);
+			verify(topicStorageGateway).create(any());
 			verify(topicStorageGateway, never()).update(any());
-			verify(eventPublisher).publish(SCOPE,
-					new TopicEvent(created, action, ORIGIN));
-			verifyNoMoreInteractions(eventPublisher);
+			final var event = new EventInfo(SCOPE, ORIGIN,
+					new TopicMutation.Add(CREATED_ID, created.getRank(),
+							NAME));
+			final var matcher = new EventInfoMatcher(event);
+			verify(eventService).publish(argThat(matcher::matches));
+			verifyNoMoreInteractions(eventService);
 		}
 
 		@Test
@@ -233,11 +247,14 @@ class TopicServiceTest {
 
 			assertThat(created.getRank()).isNotNull();
 
-			verify(topicStorageGateway).create(created);
+			verify(topicStorageGateway).create(any());
 			verify(topicStorageGateway, never()).update(any());
-			verify(eventPublisher).publish(SCOPE,
-					new TopicEvent(created, action, ORIGIN));
-			verifyNoMoreInteractions(eventPublisher);
+			final var event = new EventInfo(SCOPE, ORIGIN,
+					new TopicMutation.Add(CREATED_ID, created.getRank(),
+							NAME));
+			final var matcher = new EventInfoMatcher(event);
+			verify(eventService).publish(argThat(matcher::matches));
+			verifyNoMoreInteractions(eventService);
 		}
 
 		@Test
@@ -248,7 +265,7 @@ class TopicServiceTest {
 					.isInstanceOf(MissingEntityException.class);
 
 			verify(topicStorageGateway, never()).create(any());
-			verifyNoInteractions(eventPublisher);
+			verifyNoInteractions(eventService);
 		}
 
 		@Test
@@ -320,9 +337,11 @@ class TopicServiceTest {
 
 			verify(topicStorageGateway).update(moved);
 			verify(topicStorageGateway, never()).create(any());
-			verify(eventPublisher).publish(SCOPE,
-					new TopicEvent(moved, action, ORIGIN));
-			verifyNoMoreInteractions(eventPublisher);
+			final var event = new EventInfo(SCOPE, ORIGIN,
+					new TopicMutation.Move(TOPIC.getId(), moved.getRank()));
+			final var matcher = new EventInfoMatcher(event);
+			verify(eventService).publish(argThat(matcher::matches));
+			verifyNoMoreInteractions(eventService);
 		}
 
 		@Test
@@ -337,9 +356,11 @@ class TopicServiceTest {
 
 			verify(topicStorageGateway).update(moved);
 			verify(topicStorageGateway, never()).create(any());
-			verify(eventPublisher).publish(SCOPE,
-					new TopicEvent(moved, action, ORIGIN));
-			verifyNoMoreInteractions(eventPublisher);
+			final var event = new EventInfo(SCOPE, ORIGIN,
+					new TopicMutation.Move(TOPIC.getId(), moved.getRank()));
+			final var matcher = new EventInfoMatcher(event);
+			verify(eventService).publish(argThat(matcher::matches));
+			verifyNoMoreInteractions(eventService);
 		}
 
 		// Its own rank is excluded, so following the topic above it is a move
@@ -357,9 +378,11 @@ class TopicServiceTest {
 
 			verify(topicStorageGateway).update(moved);
 			verify(topicStorageGateway, never()).create(any());
-			verify(eventPublisher).publish(SCOPE,
-					new TopicEvent(moved, action, ORIGIN));
-			verifyNoMoreInteractions(eventPublisher);
+			final var event = new EventInfo(SCOPE, ORIGIN,
+					new TopicMutation.Move(TOPIC.getId(), moved.getRank()));
+			final var matcher = new EventInfoMatcher(event);
+			verify(eventService).publish(argThat(matcher::matches));
+			verifyNoMoreInteractions(eventService);
 		}
 
 		@Test
@@ -371,7 +394,7 @@ class TopicServiceTest {
 							.isInstanceOf(MissingEntityException.class);
 
 			verify(topicStorageGateway, never()).update(any());
-			verifyNoInteractions(eventPublisher);
+			verifyNoInteractions(eventService);
 		}
 
 		@Test
@@ -427,7 +450,7 @@ class TopicServiceTest {
 				REVISION);
 
 		@Test
-		void success() {
+		void name() {
 			final long meetingId = MEETING.getId();
 			final long topicId = TOPIC.getId();
 
@@ -455,14 +478,83 @@ class TopicServiceTest {
 
 			assertThat(result).isEqualTo(updated);
 
-			final ArgumentMatcher<TopicEvent> event = e -> {
-				assertThat(e.origin()).isEqualTo(ORIGIN);
-				assertThat(e.topic()).isEqualTo(updated);
-				assertThat(e.action()).isEqualTo(action);
-				return true;
-			};
+			final var event = new EventInfo(SCOPE, ORIGIN,
+					new TopicMutation.Rename(topicId, 0, 0, "Project "));
+			final var matcher = new EventInfoMatcher(event);
+			verify(eventService).publish(argThat(matcher::matches));
+		}
 
-			verify(eventPublisher).publish(eq(SCOPE), argThat(event));
+		@Test
+		void description() {
+			final long meetingId = MEETING.getId();
+			final long topicId = TOPIC.getId();
+
+			final TopicInfo topicInfo = TOPIC.info();
+			when(topicStorageGateway.find(topicId))
+					.thenReturn(Optional.of(topicInfo));
+
+			final TopicInfo updated = mock();
+			when(topicStorageGateway.update(argThat(info -> {
+				assertThat(info.getId()).isEqualTo(topicId);
+				assertThat(info.getOrganisationId())
+						.isEqualTo(MEETING.getOrganisation().getId());
+				assertThat(info.getMeetingId()).isEqualTo(meetingId);
+				assertThat(info.getRank()).isEqualTo(TOPIC.getRank());
+				assertThat(info.getName()).isEqualTo(TOPIC.getName());
+				assertThat(info.getDescription())
+						.isEqualTo("How can we get this all organised");
+				return true;
+			}))).thenReturn(updated);
+
+			final TopicAction.Update action = new TopicAction.UpdateDescription(
+					20, 0, "all ");
+			final TopicInfo result = topicService.update(ORIGIN, SCOPE, topicId,
+					action);
+
+			assertThat(result).isEqualTo(updated);
+
+			final var event = new EventInfo(SCOPE, ORIGIN,
+					new TopicMutation.Describe(topicId, 20, 0, "all "));
+			final var matcher = new EventInfoMatcher(event);
+			verify(eventService).publish(argThat(matcher::matches));
+		}
+
+		@Test
+		void duration() {
+			final long meetingId = MEETING.getId();
+			final long topicId = TOPIC.getId();
+
+			final TopicInfo topicInfo = TOPIC.info();
+			when(topicStorageGateway.find(topicId))
+					.thenReturn(Optional.of(topicInfo));
+
+			final var duration = new Minutes(15);
+
+			final TopicInfo updated = mock();
+			when(topicStorageGateway.update(argThat(info -> {
+				assertThat(info.getId()).isEqualTo(topicId);
+				assertThat(info.getOrganisationId())
+						.isEqualTo(MEETING.getOrganisation().getId());
+				assertThat(info.getMeetingId()).isEqualTo(meetingId);
+				assertThat(info.getRank()).isEqualTo(TOPIC.getRank());
+				assertThat(info.getName()).isEqualTo(TOPIC.getName());
+				assertThat(info.getDescription())
+						.isEqualTo(TOPIC.getDescription());
+				assertThat(info.getDuration()).contains(duration);
+				return true;
+			}))).thenReturn(updated);
+
+			final TopicAction.Update action = new TopicAction.UpdateDuration(
+					duration);
+			final TopicInfo result = topicService.update(ORIGIN, SCOPE, topicId,
+					action);
+
+			assertThat(result).isEqualTo(updated);
+
+			final var event = new EventInfo(SCOPE, ORIGIN,
+					new TopicMutation.Schedule(topicId, duration));
+			final var matcher = new EventInfoMatcher(event);
+			verify(eventService).publish(argThat(matcher::matches));
 		}
 
 		@Test
@@ -480,7 +572,7 @@ class TopicServiceTest {
 							.isInstanceOf(MissingEntityException.class);
 
 			verify(topicStorageGateway, never()).update(any());
-			verifyNoInteractions(eventPublisher);
+			verifyNoInteractions(eventService);
 		}
 
 		@Test
@@ -544,14 +636,10 @@ class TopicServiceTest {
 		void success() {
 			topicService.delete(ORIGIN, SCOPE, TOPIC.getId());
 
-			final ArgumentCaptor<TopicEvent> event = ArgumentCaptor
-					.forClass(TopicEvent.class);
-			verify(eventPublisher).publish(eq(SCOPE), event.capture());
-
-			assertThat(event.getValue().topic().getId())
-					.isEqualTo(TOPIC.getId());
-			assertThat(event.getValue().action())
-					.isInstanceOf(TopicAction.Delete.class);
+			final var event = new EventInfo(SCOPE, ORIGIN,
+					new TopicMutation.Remove(TOPIC.getId()));
+			final var matcher = new EventInfoMatcher(event);
+			verify(eventService).publish(argThat(matcher::matches));
 
 			verify(topicStorageGateway).delete(any());
 			verify(topicStorageGateway, never()).update(any());

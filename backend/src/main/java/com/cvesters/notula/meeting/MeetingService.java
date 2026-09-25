@@ -8,8 +8,10 @@ import org.springframework.stereotype.Service;
 import com.cvesters.notula.common.domain.Origin;
 import com.cvesters.notula.common.domain.Principal;
 import com.cvesters.notula.common.exception.MissingEntityException;
+import com.cvesters.notula.event.EventService;
+import com.cvesters.notula.event.bdo.EventInfo;
+import com.cvesters.notula.event.bdo.MeetingMutation;
 import com.cvesters.notula.meeting.bdo.MeetingAction;
-import com.cvesters.notula.meeting.bdo.MeetingEvent;
 import com.cvesters.notula.meeting.bdo.MeetingInfo;
 import com.cvesters.notula.meeting.bdo.MeetingScope;
 
@@ -18,15 +20,15 @@ public class MeetingService {
 
 	private final MeetingLock meetingLock;
 
-	private final EventPublisher eventPublisher;
+	private final EventService eventService;
 	private final MeetingStorageGateway meetingStorage;
 
 	public MeetingService(final MeetingLock meetingLock,
 			final MeetingStorageGateway meetingStorageGateway,
-			final EventPublisher eventPublisher) {
+			final EventService eventService) {
 		this.meetingLock = meetingLock;
 		this.meetingStorage = meetingStorageGateway;
-		this.eventPublisher = eventPublisher;
+		this.eventService = eventService;
 	}
 
 	public MeetingInfo getById(final Principal principal, final long id) {
@@ -68,8 +70,7 @@ public class MeetingService {
 		action.apply(meetingInfo);
 		final MeetingInfo updated = meetingStorage.update(meetingInfo);
 
-		final var event = new MeetingEvent(action, origin);
-		eventPublisher.publish(scope, event);
+		eventService.publish(new EventInfo(scope, origin, mutation(action)));
 
 		return updated;
 	}
@@ -84,10 +85,20 @@ public class MeetingService {
 		final MeetingInfo meetingInfo = getById(origin.principal(),
 				scope.meetingId());
 
-		meetingStorage.delete(meetingInfo);
+		final var mutation = new MeetingMutation.Remove();
+		eventService.publish(new EventInfo(scope, origin, mutation));
 
-		final var action = new MeetingAction.Delete();
-		final var event = new MeetingEvent(action, origin);
-		eventPublisher.publish(scope, event);
+		meetingStorage.delete(meetingInfo);
+	}
+
+	private static MeetingMutation mutation(final MeetingAction.Update action) {
+		return switch (action) {
+			case MeetingAction.UpdateName update ->
+					new MeetingMutation.Rename(update.getPosition(),
+							update.getLength(), update.getValue());
+			case MeetingAction.UpdateDescription update ->
+					new MeetingMutation.Describe(update.getPosition(),
+							update.getLength(), update.getValue());
+		};
 	}
 }

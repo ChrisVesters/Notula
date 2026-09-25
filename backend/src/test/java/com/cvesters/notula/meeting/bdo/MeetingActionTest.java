@@ -96,15 +96,4 @@ class MeetingActionTest {
 			verify(meeting).setDescription(expected);
 		}
 	}
-
-	@Nested
-	class Delete {
-
-		@Test
-		void success() {
-			final var action = new MeetingAction.Delete();
-
-			assertThat(action).isNotNull();
-		}
-	}
 }

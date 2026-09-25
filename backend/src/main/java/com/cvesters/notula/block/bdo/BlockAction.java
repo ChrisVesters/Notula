@@ -41,8 +41,4 @@ public sealed interface BlockAction {
 			return Optional.ofNullable(afterId);
 		}
 	}
-
-	@Getter
-	final class Delete implements BlockAction {
-	}
 }

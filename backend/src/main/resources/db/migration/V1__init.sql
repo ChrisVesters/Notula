@@ -114,15 +114,14 @@ CREATE TABLE text_blocks(
 
 CREATE TABLE events(
 	id BIGINT NOT NULL GENERATED ALWAYS AS IDENTITY,
-	organisation_id BIGINT NOT NULL,
 	meeting_id BIGINT NOT NULL,
 	revision BIGINT NOT NULL,
-	payload JSONB NOT NULL,
+	user_id BIGINT NOT NULL,
+	client_id UUID,
+	mutation JSONB NOT NULL,
 
 	PRIMARY KEY(id),
-	FOREIGN KEY(organisation_id) REFERENCES organisations(id) ON DELETE CASCADE,
 	FOREIGN KEY(meeting_id) REFERENCES meetings(id) ON DELETE CASCADE,
+	FOREIGN KEY(user_id) REFERENCES users(id) ON DELETE CASCADE,
 	UNIQUE(meeting_id, revision)
 );
-
-CREATE INDEX ON events(organisation_id);
