@@ -85,8 +85,4 @@ public sealed interface TopicAction {
 			return Optional.ofNullable(afterId);
 		}
 	}
-
-	@Getter
-	final class Delete implements TopicAction {
-	}
 }

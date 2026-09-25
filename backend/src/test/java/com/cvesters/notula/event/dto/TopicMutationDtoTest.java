@@ -1,32 +1,19 @@
-package com.cvesters.notula.meeting.dto;
+package com.cvesters.notula.event.dto;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.when;
-
-import java.util.UUID;
 
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 
-import com.cvesters.notula.common.domain.Rank;
 import com.cvesters.notula.common.domain.Minutes;
-import com.cvesters.notula.common.domain.Origin;
-import com.cvesters.notula.session.TestSession;
-import com.cvesters.notula.topic.bdo.TopicAction;
-import com.cvesters.notula.topic.bdo.TopicEvent;
-import com.cvesters.notula.topic.bdo.TopicInfo;
+import com.cvesters.notula.common.domain.Rank;
+import com.cvesters.notula.event.bdo.TopicMutation;
+import com.cvesters.notula.meeting.dto.TextEditDto;
 
 import tools.jackson.databind.ObjectMapper;
 
 class TopicMutationDtoTest {
-
-	private static final TestSession SESSION = TestSession.EDUARDO_CHRISTIANSEN_SPORER;
-	private static final UUID CLIENT_ID = UUID
-			.fromString("3f9c1a44-1d2e-4a51-8b0c-2c7e9b1d4a06");
-	private static final Origin ORIGIN = new Origin(SESSION.principal(),
-			CLIENT_ID);
 
 	private static final long TOPIC_ID = 32L;
 
@@ -35,17 +22,12 @@ class TopicMutationDtoTest {
 	@Nested
 	class Of {
 
-		private static MutationDto of(final TopicAction action) {
-			final TopicInfo topic = mock();
-			when(topic.getId()).thenReturn(TOPIC_ID);
-			when(topic.getRank()).thenReturn(new Rank(RANK));
-
-			return TopicMutationDto.of(new TopicEvent(topic, action, ORIGIN));
-		}
-
 		@Test
-		void create() {
-			final var dto = of(new TopicAction.Create(2L, "Blockers"));
+		void add() {
+			final var mutation = new TopicMutation.Add(TOPIC_ID,
+					new Rank(RANK), "Blockers");
+
+			final var dto = TopicMutationDto.of(mutation);
 
 			final var expected = new TopicMutationDto.Add(TOPIC_ID, RANK,
 					"Blockers");
@@ -54,15 +36,21 @@ class TopicMutationDtoTest {
 
 		@Test
 		void move() {
-			final var dto = of(new TopicAction.Move(2L));
+			final var mutation = new TopicMutation.Move(TOPIC_ID,
+					new Rank(RANK));
+
+			final var dto = TopicMutationDto.of(mutation);
 
 			assertThat(dto)
 					.isEqualTo(new TopicMutationDto.Move(TOPIC_ID, RANK));
 		}
 
 		@Test
-		void updateName() {
-			final var dto = of(new TopicAction.UpdateName(4, 12, "Updated"));
+		void rename() {
+			final var mutation = new TopicMutation.Rename(TOPIC_ID, 4, 12,
+					"Updated");
+
+			final var dto = TopicMutationDto.of(mutation);
 
 			final var edit = new TextEditDto(4, 12, "Updated");
 			final var expected = new TopicMutationDto.Rename(TOPIC_ID, edit);
@@ -70,9 +58,11 @@ class TopicMutationDtoTest {
 		}
 
 		@Test
-		void updateDescription() {
-			final var dto = of(
-					new TopicAction.UpdateDescription(4, 12, "Updated"));
+		void describe() {
+			final var mutation = new TopicMutation.Describe(TOPIC_ID, 4, 12,
+					"Updated");
+
+			final var dto = TopicMutationDto.of(mutation);
 
 			final var edit = new TextEditDto(4, 12, "Updated");
 			final var expected = new TopicMutationDto.Describe(TOPIC_ID, edit);
@@ -80,33 +70,107 @@ class TopicMutationDtoTest {
 		}
 
 		@Test
-		void updateDuration() {
-			final var dto = of(
-					new TopicAction.UpdateDuration(new Minutes(45)));
+		void schedule() {
+			final var mutation = new TopicMutation.Schedule(TOPIC_ID,
+					new Minutes(45));
+
+			final var dto = TopicMutationDto.of(mutation);
 
 			final var expected = new TopicMutationDto.Schedule(TOPIC_ID, 45);
 			assertThat(dto).isEqualTo(expected);
 		}
 
 		@Test
-		void updateDurationNull() {
-			final var dto = of(new TopicAction.UpdateDuration(null));
+		void unscheduled() {
+			final var mutation = new TopicMutation.Schedule(TOPIC_ID, null);
+
+			final var dto = TopicMutationDto.of(mutation);
 
 			final var expected = new TopicMutationDto.Schedule(TOPIC_ID, null);
 			assertThat(dto).isEqualTo(expected);
 		}
 
 		@Test
-		void delete() {
-			final var dto = of(new TopicAction.Delete());
+		void remove() {
+			final var mutation = new TopicMutation.Remove(TOPIC_ID);
+
+			final var dto = TopicMutationDto.of(mutation);
 
 			assertThat(dto).isEqualTo(new TopicMutationDto.Remove(TOPIC_ID));
 		}
 
 		@Test
-		void eventNull() {
+		void mutationNull() {
 			assertThatThrownBy(() -> TopicMutationDto.of(null))
 					.isInstanceOf(NullPointerException.class);
+		}
+	}
+
+	@Nested
+	class ToBdo {
+
+		@Test
+		void add() {
+			final var dto = new TopicMutationDto.Add(TOPIC_ID, RANK,
+					"Blockers");
+
+			final var expected = new TopicMutation.Add(TOPIC_ID,
+					new Rank(RANK), "Blockers");
+			assertThat(dto.toBdo()).isEqualTo(expected);
+		}
+
+		@Test
+		void move() {
+			final var dto = new TopicMutationDto.Move(TOPIC_ID, RANK);
+
+			final var expected = new TopicMutation.Move(TOPIC_ID,
+					new Rank(RANK));
+			assertThat(dto.toBdo()).isEqualTo(expected);
+		}
+
+		@Test
+		void rename() {
+			final var edit = new TextEditDto(4, 12, "Updated");
+			final var dto = new TopicMutationDto.Rename(TOPIC_ID, edit);
+
+			final var expected = new TopicMutation.Rename(TOPIC_ID, 4, 12,
+					"Updated");
+			assertThat(dto.toBdo()).isEqualTo(expected);
+		}
+
+		@Test
+		void describe() {
+			final var edit = new TextEditDto(4, 12, "Updated");
+			final var dto = new TopicMutationDto.Describe(TOPIC_ID, edit);
+
+			final var expected = new TopicMutation.Describe(TOPIC_ID, 4, 12,
+					"Updated");
+			assertThat(dto.toBdo()).isEqualTo(expected);
+		}
+
+		@Test
+		void schedule() {
+			final var dto = new TopicMutationDto.Schedule(TOPIC_ID, 45);
+
+			final var expected = new TopicMutation.Schedule(TOPIC_ID,
+					new Minutes(45));
+			assertThat(dto.toBdo()).isEqualTo(expected);
+		}
+
+		@Test
+		void unscheduled() {
+			final var dto = new TopicMutationDto.Schedule(TOPIC_ID, null);
+
+			final var expected = new TopicMutation.Schedule(TOPIC_ID, null);
+			assertThat(dto.toBdo()).isEqualTo(expected);
+		}
+
+		@Test
+		void remove() {
+			final var dto = new TopicMutationDto.Remove(TOPIC_ID);
+
+			final var expected = new TopicMutation.Remove(TOPIC_ID);
+			assertThat(dto.toBdo()).isEqualTo(expected);
 		}
 	}
 

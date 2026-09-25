@@ -5,6 +5,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.inOrder;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
@@ -19,13 +20,16 @@ import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.MethodSource;
-import org.mockito.ArgumentMatcher;
+import org.mockito.InOrder;
 
 import com.cvesters.notula.common.domain.Origin;
 import com.cvesters.notula.common.domain.Principal;
 import com.cvesters.notula.common.exception.MissingEntityException;
+import com.cvesters.notula.event.EventInfoMatcher;
+import com.cvesters.notula.event.EventService;
+import com.cvesters.notula.event.bdo.EventInfo;
+import com.cvesters.notula.event.bdo.MeetingMutation;
 import com.cvesters.notula.meeting.bdo.MeetingAction;
-import com.cvesters.notula.meeting.bdo.MeetingEvent;
 import com.cvesters.notula.meeting.bdo.MeetingInfo;
 import com.cvesters.notula.meeting.bdo.MeetingScope;
 import com.cvesters.notula.organisation.TestOrganisation;
@@ -39,10 +43,10 @@ class MeetingServiceTest {
 	private final TestMeetingLock meetingLock = new TestMeetingLock();
 
 	private final MeetingStorageGateway meetingStorageGateway = mock();
-	private final EventPublisher eventPublisher = mock();
+	private final EventService eventService = mock();
 
 	private final MeetingService meetingService = new MeetingService(
-			meetingLock.lock(), meetingStorageGateway, eventPublisher);
+			meetingLock.lock(), meetingStorageGateway, eventService);
 
 	@Nested
 	class GetById {
@@ -205,7 +209,7 @@ class MeetingServiceTest {
 				REVISION);
 
 		@Test
-		void success() {
+		void name() {
 			final long meetingId = MEETING.getId();
 			final MeetingInfo meetingInfo = MEETING.info();
 			final MeetingAction.Update action = new MeetingAction.UpdateName(8,
@@ -228,13 +232,42 @@ class MeetingServiceTest {
 
 			assertThat(result).isEqualTo(updated);
 
-			final ArgumentMatcher<MeetingEvent> event = e -> {
-				assertThat(e.action()).isEqualTo(action);
-				assertThat(e.origin()).isEqualTo(ORIGIN);
-				return true;
-			};
+			final var event = new EventInfo(SCOPE, ORIGIN,
+					new MeetingMutation.Rename(8, 0, "Status "));
+			final var matcher = new EventInfoMatcher(event);
+			verify(eventService).publish(argThat(matcher::matches));
+		}
 
-			verify(eventPublisher).publish(eq(SCOPE), argThat(event));
+		@Test
+		void description() {
+			final long meetingId = MEETING.getId();
+			final MeetingInfo meetingInfo = MEETING.info();
+			final var action = new MeetingAction.UpdateDescription(8, 0,
+					"the ");
+
+			when(meetingStorageGateway.find(meetingId))
+					.thenReturn(Optional.of(meetingInfo));
+
+			final MeetingInfo updated = mock();
+			when(meetingStorageGateway.update(argThat(info -> {
+				assertThat(info.getId()).isEqualTo(MEETING.getId());
+				assertThat(info.getOrganisationId())
+						.isEqualTo(MEETING.getOrganisation().getId());
+				assertThat(info.getName()).isEqualTo(MEETING.getName());
+				assertThat(info.getDescription()).isEqualTo(
+						"Discuss the project progress and next steps");
+				return true;
+			}))).thenReturn(updated);
+
+			final MeetingInfo result = meetingService.update(ORIGIN, SCOPE,
+					action);
+
+			assertThat(result).isEqualTo(updated);
+
+			final var event = new EventInfo(SCOPE, ORIGIN,
+					new MeetingMutation.Describe(8, 0, "the "));
+			final var matcher = new EventInfoMatcher(event);
+			verify(eventService).publish(argThat(matcher::matches));
 		}
 
 		@Test
@@ -306,15 +339,13 @@ class MeetingServiceTest {
 
 			meetingService.delete(ORIGIN, meetingId);
 
-			verify(meetingStorageGateway).delete(meetingInfo);
-
-			final ArgumentMatcher<MeetingEvent> event = e -> {
-				assertThat(e.action()).isInstanceOf(MeetingAction.Delete.class);
-				assertThat(e.origin()).isEqualTo(ORIGIN);
-				return true;
-			};
-
-			verify(eventPublisher).publish(eq(SCOPE), argThat(event));
+			final InOrder inOrder = inOrder(eventService,
+					meetingStorageGateway);
+			final var event = new EventInfo(SCOPE, ORIGIN,
+					new MeetingMutation.Remove());
+			final var matcher = new EventInfoMatcher(event);
+			inOrder.verify(eventService).publish(argThat(matcher::matches));
+			inOrder.verify(meetingStorageGateway).delete(meetingInfo);
 		}
 
 		@Test

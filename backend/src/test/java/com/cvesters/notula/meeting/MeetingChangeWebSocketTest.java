@@ -9,6 +9,8 @@ import java.util.UUID;
 
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.messaging.simp.stomp.StompSession;
 import org.springframework.test.context.jdbc.Sql;
 
@@ -21,9 +23,12 @@ import com.cvesters.notula.topic.TestTopic;
 // publisher only order events with respect to one another when they run
 // together, so a @MockitoBean on any of them removes what this asserts while
 // leaving it green.
-@Sql({ "/db/clean.sql", "/db/organisations.sql", "/db/meetings.sql",
-		"/db/topics.sql" })
+@Sql({ "/db/clean.sql", "/db/users.sql", "/db/organisations.sql",
+		"/db/meetings.sql", "/db/topics.sql" })
 public class MeetingChangeWebSocketTest extends WebSocketTest {
+
+	@Autowired
+	private JdbcTemplate jdbcTemplate;
 
 	private static final TestSession SESSION = TestSession.EDUARDO_CHRISTIANSEN_SPORER;
 	private static final TestMeeting MEETING = TestMeeting.SPORER_PROJECT;
@@ -207,6 +212,36 @@ public class MeetingChangeWebSocketTest extends WebSocketTest {
 	// asking the same session for the snapshot and waiting for the reply is a
 	// full round trip through the application, which the subscription queued
 	// ahead of it cannot still be behind.
+	@Nested
+	class Log {
+
+		@Test
+		void change() throws Exception {
+			final FrameHandler events = observing();
+			final StompSession author = connect(SESSION);
+
+			send(author, CHANGES, CHANGE_ID, payload("""
+					{
+						"type": "MOVE_TOPIC",
+						"topic": %d,
+						"afterId": null
+					}
+					""".formatted(TIMELINE.getId())));
+
+			final List<String> received = events.await(1, EVENT_TIMEOUT);
+			assertThat(received).hasSize(1);
+
+			final Integer logged = jdbcTemplate.queryForObject("""
+					SELECT count(*) FROM events
+					WHERE meeting_id = ? AND revision = ? AND user_id = ?
+						AND client_id = ? AND mutation = ?::jsonb
+					""", Integer.class, MEETING.getId(), REVISION,
+					SESSION.getUser().getId(), CLIENT_ID,
+					moveMutation(TIMELINE.getId(), "0V"));
+			assertThat(logged).isEqualTo(1);
+		}
+	}
+
 	private FrameHandler observing() throws Exception {
 		final StompSession observer = connect(SESSION);
 		final FrameHandler events = subscribe(observer, EVENTS);

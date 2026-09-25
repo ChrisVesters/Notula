@@ -60,15 +60,4 @@ class BlockActionTest {
 			assertThat(action.getAfterId()).isEmpty();
 		}
 	}
-
-	@Nested
-	class Delete {
-
-		@Test
-		void success() {
-			final var action = new BlockAction.Delete();
-
-			assertThat(action).isNotNull();
-		}
-	}
 }

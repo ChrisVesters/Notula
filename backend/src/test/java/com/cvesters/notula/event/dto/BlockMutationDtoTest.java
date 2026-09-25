@@ -1,33 +1,19 @@
-package com.cvesters.notula.meeting.dto;
+package com.cvesters.notula.event.dto;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.when;
-
-import java.util.UUID;
 
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 
-import com.cvesters.notula.block.bdo.BlockAction;
-import com.cvesters.notula.block.bdo.BlockEvent;
-import com.cvesters.notula.block.bdo.BlockInfo;
 import com.cvesters.notula.block.bdo.BlockType;
 import com.cvesters.notula.block.dto.BlockTypeDto;
-import com.cvesters.notula.common.domain.Origin;
 import com.cvesters.notula.common.domain.Rank;
-import com.cvesters.notula.session.TestSession;
+import com.cvesters.notula.event.bdo.BlockMutation;
 
 import tools.jackson.databind.ObjectMapper;
 
 class BlockMutationDtoTest {
-
-	private static final TestSession SESSION = TestSession.EDUARDO_CHRISTIANSEN_SPORER;
-	private static final UUID CLIENT_ID = UUID
-			.fromString("3f9c1a44-1d2e-4a51-8b0c-2c7e9b1d4a06");
-	private static final Origin ORIGIN = new Origin(SESSION.principal(),
-			CLIENT_ID);
 
 	private static final long BLOCK_ID = 9L;
 
@@ -37,18 +23,12 @@ class BlockMutationDtoTest {
 	@Nested
 	class Of {
 
-		private static MutationDto of(final BlockAction action) {
-			final BlockInfo block = mock();
-			when(block.getId()).thenReturn(BLOCK_ID);
-			when(block.getRank()).thenReturn(new Rank(RANK));
-
-			return BlockMutationDto.of(new BlockEvent(block, action, ORIGIN));
-		}
-
 		@Test
-		void create() {
-			final var dto = of(
-					new BlockAction.Create(TOPIC_ID, BlockType.TEXT, 1L));
+		void add() {
+			final var mutation = new BlockMutation.Add(BLOCK_ID, TOPIC_ID,
+					BlockType.TEXT, new Rank(RANK));
+
+			final var dto = BlockMutationDto.of(mutation);
 
 			final var blockType = new BlockTypeDto(BlockType.TEXT);
 			final var expected = new BlockMutationDto.Add(BLOCK_ID, TOPIC_ID,
@@ -58,23 +38,60 @@ class BlockMutationDtoTest {
 
 		@Test
 		void move() {
-			final var dto = of(new BlockAction.Move(1L));
+			final var mutation = new BlockMutation.Move(BLOCK_ID,
+					new Rank(RANK));
+
+			final var dto = BlockMutationDto.of(mutation);
 
 			assertThat(dto)
 					.isEqualTo(new BlockMutationDto.Move(BLOCK_ID, RANK));
 		}
 
 		@Test
-		void delete() {
-			final var dto = of(new BlockAction.Delete());
+		void remove() {
+			final var mutation = new BlockMutation.Remove(BLOCK_ID);
+
+			final var dto = BlockMutationDto.of(mutation);
 
 			assertThat(dto).isEqualTo(new BlockMutationDto.Remove(BLOCK_ID));
 		}
 
 		@Test
-		void eventNull() {
+		void mutationNull() {
 			assertThatThrownBy(() -> BlockMutationDto.of(null))
 					.isInstanceOf(NullPointerException.class);
+		}
+	}
+
+	@Nested
+	class ToBdo {
+
+		@Test
+		void add() {
+			final var blockType = new BlockTypeDto(BlockType.TEXT);
+			final var dto = new BlockMutationDto.Add(BLOCK_ID, TOPIC_ID,
+					blockType, RANK);
+
+			final var expected = new BlockMutation.Add(BLOCK_ID, TOPIC_ID,
+					BlockType.TEXT, new Rank(RANK));
+			assertThat(dto.toBdo()).isEqualTo(expected);
+		}
+
+		@Test
+		void move() {
+			final var dto = new BlockMutationDto.Move(BLOCK_ID, RANK);
+
+			final var expected = new BlockMutation.Move(BLOCK_ID,
+					new Rank(RANK));
+			assertThat(dto.toBdo()).isEqualTo(expected);
+		}
+
+		@Test
+		void remove() {
+			final var dto = new BlockMutationDto.Remove(BLOCK_ID);
+
+			final var expected = new BlockMutation.Remove(BLOCK_ID);
+			assertThat(dto.toBdo()).isEqualTo(expected);
 		}
 	}
 

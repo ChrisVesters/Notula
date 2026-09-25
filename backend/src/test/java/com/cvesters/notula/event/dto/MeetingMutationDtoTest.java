@@ -1,72 +1,102 @@
-package com.cvesters.notula.meeting.dto;
+package com.cvesters.notula.event.dto;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
-import java.util.UUID;
-
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 
-import com.cvesters.notula.common.domain.Origin;
-import com.cvesters.notula.meeting.bdo.MeetingAction;
-import com.cvesters.notula.meeting.bdo.MeetingEvent;
-import com.cvesters.notula.session.TestSession;
+import com.cvesters.notula.event.bdo.MeetingMutation;
+import com.cvesters.notula.meeting.dto.TextEditDto;
 
 import tools.jackson.databind.ObjectMapper;
 
 class MeetingMutationDtoTest {
 
-	private static final TestSession SESSION = TestSession.EDUARDO_CHRISTIANSEN_SPORER;
-	private static final UUID CLIENT_ID = UUID
-			.fromString("3f9c1a44-1d2e-4a51-8b0c-2c7e9b1d4a06");
-	private static final Origin ORIGIN = new Origin(SESSION.principal(),
-			CLIENT_ID);
-
 	@Nested
 	class Of {
 
-		private static MutationDto of(final MeetingAction action) {
-			return MeetingMutationDto
-					.of(new MeetingEvent(action, ORIGIN));
+		@Test
+		void add() {
+			final var mutation = new MeetingMutation.Add("Kickoff");
+
+			final var dto = MeetingMutationDto.of(mutation);
+
+			assertThat(dto).isEqualTo(new MeetingMutationDto.Add("Kickoff"));
 		}
 
 		@Test
-		void create() {
-			final var dto = of(new MeetingAction.Create("Kickoff"));
+		void rename() {
+			final var mutation = new MeetingMutation.Rename(4, 12, "Updated");
 
-			final var expected = new MeetingMutationDto.Add("Kickoff");
-			assertThat(dto).isEqualTo(expected);
-		}
-
-		@Test
-		void updateName() {
-			final var dto = of(new MeetingAction.UpdateName(4, 12, "Updated"));
+			final var dto = MeetingMutationDto.of(mutation);
 
 			final var edit = new TextEditDto(4, 12, "Updated");
 			assertThat(dto).isEqualTo(new MeetingMutationDto.Rename(edit));
 		}
 
 		@Test
-		void updateDescription() {
-			final var dto = of(
-					new MeetingAction.UpdateDescription(4, 12, "Updated"));
+		void describe() {
+			final var mutation = new MeetingMutation.Describe(4, 12,
+					"Updated");
+
+			final var dto = MeetingMutationDto.of(mutation);
 
 			final var edit = new TextEditDto(4, 12, "Updated");
 			assertThat(dto).isEqualTo(new MeetingMutationDto.Describe(edit));
 		}
 
 		@Test
-		void delete() {
-			final var dto = of(new MeetingAction.Delete());
+		void remove() {
+			final var mutation = new MeetingMutation.Remove();
+
+			final var dto = MeetingMutationDto.of(mutation);
 
 			assertThat(dto).isEqualTo(new MeetingMutationDto.Remove());
 		}
 
 		@Test
-		void eventNull() {
+		void mutationNull() {
 			assertThatThrownBy(() -> MeetingMutationDto.of(null))
 					.isInstanceOf(NullPointerException.class);
+		}
+	}
+
+	@Nested
+	class ToBdo {
+
+		@Test
+		void add() {
+			final var dto = new MeetingMutationDto.Add("Kickoff");
+
+			final var expected = new MeetingMutation.Add("Kickoff");
+			assertThat(dto.toBdo()).isEqualTo(expected);
+		}
+
+		@Test
+		void rename() {
+			final var edit = new TextEditDto(4, 12, "Updated");
+			final var dto = new MeetingMutationDto.Rename(edit);
+
+			final var expected = new MeetingMutation.Rename(4, 12, "Updated");
+			assertThat(dto.toBdo()).isEqualTo(expected);
+		}
+
+		@Test
+		void describe() {
+			final var edit = new TextEditDto(4, 12, "Updated");
+			final var dto = new MeetingMutationDto.Describe(edit);
+
+			final var expected = new MeetingMutation.Describe(4, 12,
+					"Updated");
+			assertThat(dto.toBdo()).isEqualTo(expected);
+		}
+
+		@Test
+		void remove() {
+			final var dto = new MeetingMutationDto.Remove();
+
+			assertThat(dto.toBdo()).isEqualTo(new MeetingMutation.Remove());
 		}
 	}
 

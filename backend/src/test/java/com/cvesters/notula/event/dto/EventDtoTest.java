@@ -1,4 +1,4 @@
-package com.cvesters.notula.meeting.dto;
+package com.cvesters.notula.event.dto;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -10,6 +10,9 @@ import org.junit.jupiter.api.Test;
 
 import com.cvesters.notula.common.domain.Origin;
 import com.cvesters.notula.common.dto.OriginDto;
+import com.cvesters.notula.event.bdo.EventInfo;
+import com.cvesters.notula.event.bdo.TopicMutation;
+import com.cvesters.notula.meeting.bdo.MeetingScope;
 import com.cvesters.notula.session.TestSession;
 
 import tools.jackson.databind.ObjectMapper;
@@ -37,6 +40,25 @@ class EventDtoTest {
 		@Test
 		void mutationNull() {
 			assertThatThrownBy(() -> new EventDto(REVISION, ORIGIN, null))
+					.isInstanceOf(NullPointerException.class);
+		}
+
+		@Test
+		void event() {
+			final var origin = new Origin(SESSION.principal(), CLIENT_ID);
+			final var scope = new MeetingScope(1L, REVISION);
+			final var event = new EventInfo(scope, origin,
+					new TopicMutation.Remove(32L));
+
+			final var dto = new EventDto(event);
+
+			assertThat(dto).isEqualTo(new EventDto(REVISION, ORIGIN,
+					new TopicMutationDto.Remove(32L)));
+		}
+
+		@Test
+		void eventNull() {
+			assertThatThrownBy(() -> new EventDto(null))
 					.isInstanceOf(NullPointerException.class);
 		}
 	}

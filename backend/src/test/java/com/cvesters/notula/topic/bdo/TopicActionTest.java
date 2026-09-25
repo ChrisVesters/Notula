@@ -166,15 +166,4 @@ class TopicActionTest {
 					.isInstanceOf(NullPointerException.class);
 		}
 	}
-
-	@Nested
-	class Delete {
-
-		@Test
-		void success() {
-			final var action = new TopicAction.Delete();
-
-			assertThat(action).isNotNull();
-		}
-	}
 }

@@ -9,12 +9,13 @@ import com.cvesters.notula.common.domain.Origin;
 import com.cvesters.notula.common.domain.Principal;
 import com.cvesters.notula.common.domain.Rank;
 import com.cvesters.notula.common.exception.MissingEntityException;
-import com.cvesters.notula.meeting.EventPublisher;
+import com.cvesters.notula.event.EventService;
+import com.cvesters.notula.event.bdo.EventInfo;
+import com.cvesters.notula.event.bdo.TopicMutation;
 import com.cvesters.notula.meeting.MeetingService;
 import com.cvesters.notula.meeting.bdo.MeetingInfo;
 import com.cvesters.notula.meeting.bdo.MeetingScope;
 import com.cvesters.notula.topic.bdo.TopicAction;
-import com.cvesters.notula.topic.bdo.TopicEvent;
 import com.cvesters.notula.topic.bdo.TopicInfo;
 
 @Service
@@ -23,14 +24,14 @@ public class TopicService {
 	private final MeetingService meetingService;
 
 	private final TopicStorageGateway topicStorage;
-	private final EventPublisher eventPublisher;
+	private final EventService eventService;
 
 	public TopicService(final MeetingService meetingService,
 			final TopicStorageGateway topicStorage,
-			final EventPublisher eventPublisher) {
+			final EventService eventService) {
 		this.meetingService = meetingService;
 		this.topicStorage = topicStorage;
-		this.eventPublisher = eventPublisher;
+		this.eventService = eventService;
 	}
 
 	public TopicInfo getById(final Principal principal, final long topicId) {
@@ -75,7 +76,9 @@ public class TopicService {
 				meeting.getId(), rank, action.getName());
 		final TopicInfo created = topicStorage.create(topic);
 
-		eventPublisher.publish(scope, new TopicEvent(created, action, origin));
+		final var mutation = new TopicMutation.Add(created.getId(),
+				created.getRank(), created.getName());
+		eventService.publish(new EventInfo(scope, origin, mutation));
 
 		return created;
 	}
@@ -104,7 +107,9 @@ public class TopicService {
 
 		final TopicInfo updated = topicStorage.update(topic);
 
-		eventPublisher.publish(scope, new TopicEvent(updated, action, origin));
+		final var mutation = new TopicMutation.Move(updated.getId(),
+				updated.getRank());
+		eventService.publish(new EventInfo(scope, origin, mutation));
 
 		return updated;
 	}
@@ -120,8 +125,9 @@ public class TopicService {
 		action.apply(topicInfo);
 		final TopicInfo updated = topicStorage.update(topicInfo);
 
-		final var event = new TopicEvent(updated, action, origin);
-		eventPublisher.publish(scope, event);
+		final var event = new EventInfo(scope, origin,
+				mutation(topicId, action));
+		eventService.publish(event);
 
 		return updated;
 	}
@@ -135,8 +141,22 @@ public class TopicService {
 				topicId);
 		topicStorage.delete(topic);
 
-		eventPublisher.publish(scope,
-				new TopicEvent(topic, new TopicAction.Delete(), origin));
+		final var mutation = new TopicMutation.Remove(topic.getId());
+		eventService.publish(new EventInfo(scope, origin, mutation));
+	}
+
+	private static TopicMutation mutation(final long topicId,
+			final TopicAction.Update action) {
+		return switch (action) {
+			case TopicAction.UpdateName update ->
+					new TopicMutation.Rename(topicId, update.getPosition(),
+							update.getLength(), update.getValue());
+			case TopicAction.UpdateDescription update ->
+					new TopicMutation.Describe(topicId, update.getPosition(),
+							update.getLength(), update.getValue());
+			case TopicAction.UpdateDuration update ->
+					new TopicMutation.Schedule(topicId, update.getDuration());
+		};
 	}
 
 	private static TopicInfo find(final List<TopicInfo> elements,

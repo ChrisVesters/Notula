@@ -9,10 +9,11 @@ import com.cvesters.notula.block.bdo.BlockInfo;
 import com.cvesters.notula.block.bdo.BlockType;
 import com.cvesters.notula.common.domain.Origin;
 import com.cvesters.notula.common.exception.InvalidActionException;
-import com.cvesters.notula.meeting.EventPublisher;
+import com.cvesters.notula.event.EventService;
+import com.cvesters.notula.event.bdo.EventInfo;
+import com.cvesters.notula.event.bdo.TextBlockMutation;
 import com.cvesters.notula.meeting.bdo.MeetingScope;
 import com.cvesters.notula.textblock.bdo.TextBlockAction;
-import com.cvesters.notula.textblock.bdo.TextBlockEvent;
 import com.cvesters.notula.textblock.bdo.TextBlockInfo;
 
 @Service
@@ -21,14 +22,14 @@ public class TextBlockService {
 	private final BlockService blockService;
 
 	private final TextBlockStorageGateway textBlockStorage;
-	private final EventPublisher eventPublisher;
+	private final EventService eventService;
 
 	public TextBlockService(final BlockService blockService,
 			final TextBlockStorageGateway textBlockStorage,
-			final EventPublisher eventPublisher) {
+			final EventService eventService) {
 		this.blockService = blockService;
 		this.textBlockStorage = textBlockStorage;
-		this.eventPublisher = eventPublisher;
+		this.eventService = eventService;
 	}
 
 	public TextBlockInfo update(final Origin origin, final MeetingScope scope,
@@ -49,9 +50,19 @@ public class TextBlockService {
 		action.apply(textBlockInfo);
 		final TextBlockInfo updated = textBlockStorage.update(textBlockInfo);
 
-		final var event = new TextBlockEvent(blockInfo, action, origin);
-		eventPublisher.publish(scope, event);
+		final var event = new EventInfo(scope, origin,
+				mutation(blockId, action));
+		eventService.publish(event);
 
 		return updated;
+	}
+
+	private static TextBlockMutation mutation(final long blockId,
+			final TextBlockAction.Update action) {
+		return switch (action) {
+			case TextBlockAction.UpdateContent update ->
+					new TextBlockMutation.Edit(blockId, update.getPosition(),
+							update.getLength(), update.getValue());
+		};
 	}
 }

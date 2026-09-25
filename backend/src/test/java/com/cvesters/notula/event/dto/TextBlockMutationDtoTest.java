@@ -1,30 +1,17 @@
-package com.cvesters.notula.meeting.dto;
+package com.cvesters.notula.event.dto;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.when;
-
-import java.util.UUID;
 
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 
-import com.cvesters.notula.block.bdo.BlockInfo;
-import com.cvesters.notula.common.domain.Origin;
-import com.cvesters.notula.session.TestSession;
-import com.cvesters.notula.textblock.bdo.TextBlockAction;
-import com.cvesters.notula.textblock.bdo.TextBlockEvent;
+import com.cvesters.notula.event.bdo.TextBlockMutation;
+import com.cvesters.notula.meeting.dto.TextEditDto;
 
 import tools.jackson.databind.ObjectMapper;
 
 class TextBlockMutationDtoTest {
-
-	private static final TestSession SESSION = TestSession.EDUARDO_CHRISTIANSEN_SPORER;
-	private static final UUID CLIENT_ID = UUID
-			.fromString("3f9c1a44-1d2e-4a51-8b0c-2c7e9b1d4a06");
-	private static final Origin ORIGIN = new Origin(SESSION.principal(),
-			CLIENT_ID);
 
 	private static final long BLOCK_ID = 9L;
 
@@ -32,15 +19,11 @@ class TextBlockMutationDtoTest {
 	class Of {
 
 		@Test
-		void updateContent() {
-			final BlockInfo block = mock();
-			when(block.getId()).thenReturn(BLOCK_ID);
-
-			final var action = new TextBlockAction.UpdateContent(4, 12,
+		void edit() {
+			final var mutation = new TextBlockMutation.Edit(BLOCK_ID, 4, 12,
 					"Updated");
-			final var event = new TextBlockEvent(block, action, ORIGIN);
 
-			final var dto = TextBlockMutationDto.of(event);
+			final var dto = TextBlockMutationDto.of(mutation);
 
 			final var edit = new TextEditDto(4, 12, "Updated");
 			final var expected = new TextBlockMutationDto.Edit(BLOCK_ID, edit);
@@ -48,9 +31,23 @@ class TextBlockMutationDtoTest {
 		}
 
 		@Test
-		void eventNull() {
+		void mutationNull() {
 			assertThatThrownBy(() -> TextBlockMutationDto.of(null))
 					.isInstanceOf(NullPointerException.class);
+		}
+	}
+
+	@Nested
+	class ToBdo {
+
+		@Test
+		void edit() {
+			final var edit = new TextEditDto(4, 12, "Updated");
+			final var dto = new TextBlockMutationDto.Edit(BLOCK_ID, edit);
+
+			final var expected = new TextBlockMutation.Edit(BLOCK_ID, 4, 12,
+					"Updated");
+			assertThat(dto.toBdo()).isEqualTo(expected);
 		}
 	}
 

@@ -4,7 +4,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
-import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
@@ -19,16 +19,17 @@ import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
-import org.mockito.ArgumentCaptor;
 
 import com.cvesters.notula.block.bdo.BlockAction;
-import com.cvesters.notula.block.bdo.BlockEvent;
 import com.cvesters.notula.block.bdo.BlockInfo;
 import com.cvesters.notula.block.bdo.BlockType;
 import com.cvesters.notula.common.domain.Origin;
 import com.cvesters.notula.common.domain.Principal;
 import com.cvesters.notula.common.exception.MissingEntityException;
-import com.cvesters.notula.meeting.EventPublisher;
+import com.cvesters.notula.event.EventInfoMatcher;
+import com.cvesters.notula.event.EventService;
+import com.cvesters.notula.event.bdo.BlockMutation;
+import com.cvesters.notula.event.bdo.EventInfo;
 import com.cvesters.notula.meeting.TestMeeting;
 import com.cvesters.notula.meeting.bdo.MeetingScope;
 import com.cvesters.notula.organisation.TestOrganisation;
@@ -48,10 +49,10 @@ class BlockServiceTest {
 	private final TopicService topicService = mock();
 
 	private final BlockStorageGateway blockStorageGateway = mock();
-	private final EventPublisher eventPublisher = mock();
+	private final EventService eventService = mock();
 
 	private final BlockService blockService = new BlockService(topicService,
-			blockStorageGateway, eventPublisher);
+			blockStorageGateway, eventService);
 
 	@Nested
 	class GetById {
@@ -147,6 +148,7 @@ class BlockServiceTest {
 		private static final TestOrganisation ORGANISATION = MEETING
 				.getOrganisation();
 		private static final long MEETING_ID = MEETING.getId();
+		private static final long CREATED_ID = 99L;
 
 		private static final long REVISION = MEETING.getRevision();
 		private static final MeetingScope SCOPE = new MeetingScope(MEETING_ID,
@@ -163,8 +165,11 @@ class BlockServiceTest {
 					.thenReturn(TOPIC.info());
 			when(blockStorageGateway.findAllByTopicId(TOPIC.getId()))
 					.thenReturn(siblings);
-			when(blockStorageGateway.create(any()))
-					.thenAnswer(invocation -> invocation.getArgument(0));
+			when(blockStorageGateway.create(any())).thenAnswer(invocation -> {
+				final BlockInfo block = invocation.getArgument(0);
+				return new BlockInfo(CREATED_ID, block.getOrganisationId(),
+						block.getTopicId(), block.getType(), block.getRank());
+			});
 		}
 
 		@Test
@@ -185,11 +190,14 @@ class BlockServiceTest {
 			assertThat(created.getTopicId()).isEqualTo(TOPIC.getId());
 			assertThat(created.getType()).isEqualTo(BlockType.TEXT);
 
-			verify(blockStorageGateway).create(created);
+			verify(blockStorageGateway).create(any());
 			verify(blockStorageGateway, never()).update(any());
-			verify(eventPublisher).publish(SCOPE,
-					new BlockEvent(created, action, ORIGIN));
-			verifyNoMoreInteractions(eventPublisher);
+			final var event = new EventInfo(SCOPE, ORIGIN,
+					new BlockMutation.Add(CREATED_ID, TOPIC.getId(),
+							BlockType.TEXT, created.getRank()));
+			final var matcher = new EventInfoMatcher(event);
+			verify(eventService).publish(argThat(matcher::matches));
+			verifyNoMoreInteractions(eventService);
 		}
 
 		@Test
@@ -207,11 +215,14 @@ class BlockServiceTest {
 			assertThat(created.getTopicId()).isEqualTo(TOPIC.getId());
 			assertThat(created.getType()).isEqualTo(BlockType.TEXT);
 
-			verify(blockStorageGateway).create(created);
+			verify(blockStorageGateway).create(any());
 			verify(blockStorageGateway, never()).update(any());
-			verify(eventPublisher).publish(SCOPE,
-					new BlockEvent(created, action, ORIGIN));
-			verifyNoMoreInteractions(eventPublisher);
+			final var event = new EventInfo(SCOPE, ORIGIN,
+					new BlockMutation.Add(CREATED_ID, TOPIC.getId(),
+							BlockType.TEXT, created.getRank()));
+			final var matcher = new EventInfoMatcher(event);
+			verify(eventService).publish(argThat(matcher::matches));
+			verifyNoMoreInteractions(eventService);
 		}
 
 		@Test
@@ -230,11 +241,14 @@ class BlockServiceTest {
 			assertThat(created.getTopicId()).isEqualTo(TOPIC.getId());
 			assertThat(created.getType()).isEqualTo(BlockType.TEXT);
 
-			verify(blockStorageGateway).create(created);
+			verify(blockStorageGateway).create(any());
 			verify(blockStorageGateway, never()).update(any());
-			verify(eventPublisher).publish(SCOPE,
-					new BlockEvent(created, action, ORIGIN));
-			verifyNoMoreInteractions(eventPublisher);
+			final var event = new EventInfo(SCOPE, ORIGIN,
+					new BlockMutation.Add(CREATED_ID, TOPIC.getId(),
+							BlockType.TEXT, created.getRank()));
+			final var matcher = new EventInfoMatcher(event);
+			verify(eventService).publish(argThat(matcher::matches));
+			verifyNoMoreInteractions(eventService);
 		}
 
 		@Test
@@ -254,11 +268,14 @@ class BlockServiceTest {
 			assertThat(created.getTopicId()).isEqualTo(TOPIC.getId());
 			assertThat(created.getType()).isEqualTo(BlockType.TEXT);
 
-			verify(blockStorageGateway).create(created);
+			verify(blockStorageGateway).create(any());
 			verify(blockStorageGateway, never()).update(any());
-			verify(eventPublisher).publish(SCOPE,
-					new BlockEvent(created, action, ORIGIN));
-			verifyNoMoreInteractions(eventPublisher);
+			final var event = new EventInfo(SCOPE, ORIGIN,
+					new BlockMutation.Add(CREATED_ID, TOPIC.getId(),
+							BlockType.TEXT, created.getRank()));
+			final var matcher = new EventInfoMatcher(event);
+			verify(eventService).publish(argThat(matcher::matches));
+			verifyNoMoreInteractions(eventService);
 		}
 
 		@Test
@@ -270,7 +287,7 @@ class BlockServiceTest {
 					.isInstanceOf(MissingEntityException.class);
 
 			verify(blockStorageGateway, never()).create(any());
-			verifyNoInteractions(eventPublisher);
+			verifyNoInteractions(eventService);
 		}
 
 		@Test
@@ -343,9 +360,11 @@ class BlockServiceTest {
 
 			verify(blockStorageGateway).update(moved);
 			verify(blockStorageGateway, never()).create(any());
-			verify(eventPublisher).publish(SCOPE,
-					new BlockEvent(moved, action, ORIGIN));
-			verifyNoMoreInteractions(eventPublisher);
+			final var event = new EventInfo(SCOPE, ORIGIN,
+					new BlockMutation.Move(BLOCK.getId(), moved.getRank()));
+			final var matcher = new EventInfoMatcher(event);
+			verify(eventService).publish(argThat(matcher::matches));
+			verifyNoMoreInteractions(eventService);
 		}
 
 		@Test
@@ -360,9 +379,11 @@ class BlockServiceTest {
 
 			verify(blockStorageGateway).update(moved);
 			verify(blockStorageGateway, never()).create(any());
-			verify(eventPublisher).publish(SCOPE,
-					new BlockEvent(moved, action, ORIGIN));
-			verifyNoMoreInteractions(eventPublisher);
+			final var event = new EventInfo(SCOPE, ORIGIN,
+					new BlockMutation.Move(BLOCK.getId(), moved.getRank()));
+			final var matcher = new EventInfoMatcher(event);
+			verify(eventService).publish(argThat(matcher::matches));
+			verifyNoMoreInteractions(eventService);
 		}
 
 		@Test
@@ -378,9 +399,11 @@ class BlockServiceTest {
 
 			verify(blockStorageGateway).update(moved);
 			verify(blockStorageGateway, never()).create(any());
-			verify(eventPublisher).publish(SCOPE,
-					new BlockEvent(moved, action, ORIGIN));
-			verifyNoMoreInteractions(eventPublisher);
+			final var event = new EventInfo(SCOPE, ORIGIN,
+					new BlockMutation.Move(BLOCK.getId(), moved.getRank()));
+			final var matcher = new EventInfoMatcher(event);
+			verify(eventService).publish(argThat(matcher::matches));
+			verifyNoMoreInteractions(eventService);
 		}
 
 		@Test
@@ -392,7 +415,7 @@ class BlockServiceTest {
 							.isInstanceOf(MissingEntityException.class);
 
 			verify(blockStorageGateway, never()).update(any());
-			verifyNoInteractions(eventPublisher);
+			verifyNoInteractions(eventService);
 		}
 
 		@Test
@@ -457,14 +480,10 @@ class BlockServiceTest {
 		void success() {
 			blockService.delete(ORIGIN, SCOPE, BLOCK.getId());
 
-			final ArgumentCaptor<BlockEvent> event = ArgumentCaptor
-					.forClass(BlockEvent.class);
-			verify(eventPublisher).publish(eq(SCOPE), event.capture());
-
-			assertThat(event.getValue().block().getId())
-					.isEqualTo(BLOCK.getId());
-			assertThat(event.getValue().action())
-					.isInstanceOf(BlockAction.Delete.class);
+			final var event = new EventInfo(SCOPE, ORIGIN,
+					new BlockMutation.Remove(BLOCK.getId()));
+			final var matcher = new EventInfoMatcher(event);
+			verify(eventService).publish(argThat(matcher::matches));
 
 			verify(blockStorageGateway).delete(any());
 			verify(blockStorageGateway, never()).update(any());
