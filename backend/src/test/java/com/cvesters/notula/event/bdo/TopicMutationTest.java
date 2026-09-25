@@ -75,6 +75,22 @@ class TopicMutationTest {
 		}
 
 		@Test
+		void start() {
+			final var mutation = new TopicMutation.Rename(TOPIC_ID, 0, 12,
+					"Updated");
+
+			assertThat(mutation.position()).isEqualTo(0);
+		}
+
+		@Test
+		void insert() {
+			final var mutation = new TopicMutation.Rename(TOPIC_ID, 4, 0,
+					"Updated");
+
+			assertThat(mutation.length()).isEqualTo(0);
+		}
+
+		@Test
 		void positionNegative() {
 			assertThatThrownBy(
 					() -> new TopicMutation.Rename(TOPIC_ID, -1, 12, "Up"))
@@ -108,6 +124,22 @@ class TopicMutationTest {
 			assertThat(mutation.position()).isEqualTo(4);
 			assertThat(mutation.length()).isEqualTo(12);
 			assertThat(mutation.value()).isEqualTo("Updated");
+		}
+
+		@Test
+		void start() {
+			final var mutation = new TopicMutation.Describe(TOPIC_ID, 0, 12,
+					"Updated");
+
+			assertThat(mutation.position()).isEqualTo(0);
+		}
+
+		@Test
+		void insert() {
+			final var mutation = new TopicMutation.Describe(TOPIC_ID, 4, 0,
+					"Updated");
+
+			assertThat(mutation.length()).isEqualTo(0);
 		}
 
 		@Test
