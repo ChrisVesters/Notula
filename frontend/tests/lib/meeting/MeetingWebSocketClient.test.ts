@@ -161,7 +161,12 @@ describe("MeetingWebSocketClient", () => {
 
 	it("sends what is waiting in the order it was submitted", () => {
 		const first = MeetingWebSocketClient.send(rename("first"));
-		const second = MeetingWebSocketClient.send(rename("second"));
+		const second = MeetingWebSocketClient.send({
+			type: "DESCRIBE_MEETING",
+			position: 0,
+			length: 0,
+			value: "second"
+		});
 		MeetingWebSocketClient.send(rename("third"));
 
 		acknowledge(first, 4);
@@ -180,7 +185,7 @@ describe("MeetingWebSocketClient", () => {
 			revision: 5,
 			origin: { userId: 1, clientId: CLIENT_ID },
 			mutation: {
-				type: "RENAME_MEETING",
+				type: "DESCRIBE_MEETING",
 				position: 0,
 				length: 0,
 				value: "second"
@@ -794,5 +799,169 @@ describe("MeetingWebSocketClient rebase", () => {
 				value: " plan"
 			}
 		});
+	});
+});
+
+describe("MeetingWebSocketClient compose", () => {
+	beforeEach(() => {
+		socket.reset();
+
+		MeetingWebSocketClient.connect(MEETING_ID, {
+			onLoad: vi.fn(),
+			onEvent: vi.fn(),
+			onRejected
+		});
+		socket.deliver(`/app/meetings/${MEETING_ID}`, {
+			revision: 3
+		} as MeetingDetails);
+	});
+
+	afterEach(() => {
+		MeetingWebSocketClient.disconnect();
+	});
+
+	it("sends keystrokes typed while a change is in flight as one change", () => {
+		const first = MeetingWebSocketClient.send({
+			type: "RENAME_TOPIC",
+			topic: 32,
+			position: 8,
+			length: 0,
+			value: " "
+		});
+		const second = MeetingWebSocketClient.send({
+			type: "RENAME_TOPIC",
+			topic: 32,
+			position: 9,
+			length: 0,
+			value: "p"
+		});
+		const third = MeetingWebSocketClient.send({
+			type: "RENAME_TOPIC",
+			topic: 32,
+			position: 10,
+			length: 0,
+			value: "l"
+		});
+		MeetingWebSocketClient.send({
+			type: "RENAME_TOPIC",
+			topic: 32,
+			position: 11,
+			length: 0,
+			value: "an"
+		});
+
+		socket.deliver(ACKS, { id: first, revision: 4 } satisfies Acknowledged);
+		socket.deliver(`/topic/meetings/${MEETING_ID}`, {
+			revision: 4,
+			origin: { userId: 1, clientId: CLIENT_ID },
+			mutation: {
+				type: "RENAME_TOPIC",
+				topic: 32,
+				position: 8,
+				length: 0,
+				value: " "
+			}
+		} satisfies MeetingEvent);
+
+		expect(third).toBe(second);
+		expect(socket.sent.map(sent => JSON.parse(sent.body))).toEqual([
+			{
+				type: "RENAME_TOPIC",
+				topic: 32,
+				position: 8,
+				length: 0,
+				value: " ",
+				base: 3
+			},
+			{
+				type: "RENAME_TOPIC",
+				topic: 32,
+				position: 9,
+				length: 0,
+				value: "plan",
+				base: 4
+			}
+		]);
+	});
+
+	it("keeps an edit to other text apart", () => {
+		MeetingWebSocketClient.send(rename("first"));
+		const second = MeetingWebSocketClient.send({
+			type: "RENAME_TOPIC",
+			topic: 32,
+			position: 0,
+			length: 0,
+			value: "a"
+		});
+		const third = MeetingWebSocketClient.send({
+			type: "RENAME_TOPIC",
+			topic: 33,
+			position: 1,
+			length: 0,
+			value: "b"
+		});
+
+		expect(third).not.toBe(second);
+	});
+
+	it("keeps an edit that does not touch the one waiting apart", () => {
+		MeetingWebSocketClient.send(rename("first"));
+		const second = MeetingWebSocketClient.send({
+			type: "RENAME_TOPIC",
+			topic: 32,
+			position: 0,
+			length: 0,
+			value: "a"
+		});
+		const third = MeetingWebSocketClient.send({
+			type: "RENAME_TOPIC",
+			topic: 32,
+			position: 5,
+			length: 0,
+			value: "b"
+		});
+
+		expect(third).not.toBe(second);
+	});
+
+	it("does not join the change in flight", () => {
+		const first = MeetingWebSocketClient.send({
+			type: "RENAME_TOPIC",
+			topic: 32,
+			position: 0,
+			length: 0,
+			value: "a"
+		});
+		const second = MeetingWebSocketClient.send({
+			type: "RENAME_TOPIC",
+			topic: 32,
+			position: 1,
+			length: 0,
+			value: "b"
+		});
+
+		expect(second).not.toBe(first);
+		expect(socket.sent).toHaveLength(1);
+	});
+
+	it("only joins the last change waiting", () => {
+		MeetingWebSocketClient.send(rename("first"));
+		const second = MeetingWebSocketClient.send({
+			type: "RENAME_TOPIC",
+			topic: 32,
+			position: 0,
+			length: 0,
+			value: "a"
+		});
+		MeetingWebSocketClient.send({ type: "REMOVE_TOPIC", topic: 40 });
+		const fourth = MeetingWebSocketClient.send({
+			type: "RENAME_TOPIC",
+			topic: 32,
+			position: 1,
+			length: 0,
+			value: "b"
+		});
+
+		expect(fourth).not.toBe(second);
 	});
 });

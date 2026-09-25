@@ -418,7 +418,10 @@ before the first snapshot. It releases the next change only once the
 acknowledgement has arrived **and** the revision it names has been applied —
 they come on different subscriptions, and releasing on the acknowledgement
 alone would stamp a base the page does not hold yet. A text change is stamped
-with `base`, the page's revision, as it leaves the queue. A refusal drops both
+with `base`, the page's revision, as it leaves the queue. A text change joins
+the last one waiting when both edit the same text and it touches what that one
+produced (`editor/TextEdit.composed`), so a fast typist sends one change per
+round trip; `send` then returns the id of the change it joined. A refusal drops both
 the change and the queue — whatever was waiting was composed against a change
 that never happened — and reloads, because the page still shows the refused
 edit. A snapshot drops the queue too: what was waiting was written against text

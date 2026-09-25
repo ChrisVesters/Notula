@@ -3,7 +3,7 @@ import CLIENT_ID from "$lib/common/ClientId";
 import { isOwnEvent } from "$lib/common/EventTypes";
 import type WebSocketClient from "$lib/common/WebSocketClient";
 import type { MeetingDetails } from "$lib/details/DetailTypes";
-import { rebased } from "$lib/editor/TextEdit";
+import { composed, rebased } from "$lib/editor/TextEdit";
 
 import type {
 	Acknowledged,
@@ -106,12 +106,41 @@ export default class MeetingWebSocketClient {
 			throw new Error("No meeting to change");
 		}
 
+		const waiting = MeetingWebSocketClient.#merge(change);
+		if (waiting !== null) {
+			return waiting.id;
+		}
+
 		const id: string = crypto.randomUUID();
 
 		MeetingWebSocketClient.#queued.push({ id, change });
 		MeetingWebSocketClient.#submit();
 
 		return id;
+	}
+
+	// Keystrokes typed while a change is in flight join the text edit waiting
+	// behind it, so a fast typist sends one change per round trip rather than
+	// one per character. Only the last one waiting: merging into an earlier one
+	// would move the edit ahead of the changes queued after it.
+	static #merge(change: Change): Submission | null {
+		const last = MeetingWebSocketClient.#queued.at(-1);
+		const target = textOf(change);
+		if (last === undefined || target === null) {
+			return null;
+		}
+
+		if (textOf(last.change) !== target) {
+			return null;
+		}
+
+		const edit = composed(editOf(last.change), editOf(change));
+		if (edit === null) {
+			return null;
+		}
+
+		last.change = { ...last.change, ...edit } as Change;
+		return last;
 	}
 
 	static #onLoad(data: MeetingDetails): void {
