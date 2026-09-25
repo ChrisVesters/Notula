@@ -19,6 +19,7 @@ import com.cvesters.notula.topic.TopicService;
 public class ChangeService {
 
 	private final MeetingLock meetingLock;
+	private final TextHistory history;
 
 	private final MeetingService meetings;
 	private final TopicService topics;
@@ -26,9 +27,11 @@ public class ChangeService {
 	private final TextBlockService texts;
 
 	public ChangeService(final MeetingLock meetingLock,
-			final MeetingService meetings, final TopicService topics,
-			final BlockService blocks, final TextBlockService texts) {
+			final TextHistory history, final MeetingService meetings,
+			final TopicService topics, final BlockService blocks,
+			final TextBlockService texts) {
 		this.meetingLock = meetingLock;
+		this.history = history;
 		this.meetings = meetings;
 		this.topics = topics;
 		this.blocks = blocks;
@@ -50,14 +53,20 @@ public class ChangeService {
 	private void dispatch(final Origin origin, final MeetingScope scope,
 			final ChangeDto change) {
 		switch (change) {
-			case MeetingChangeDto c -> meetings.update(origin, scope,
-					c.toBdo());
+			case MeetingChangeDto.Rename c -> meetings.update(origin, scope,
+					c.toBdo(history.rebase(scope, c)));
+			case MeetingChangeDto.Describe c -> meetings.update(origin, scope,
+					c.toBdo(history.rebase(scope, c)));
 
 			case TopicChangeDto.Add c -> topics.create(origin, scope,
 					c.toBdo());
 			case TopicChangeDto.Move c -> topics.move(origin, scope,
 					c.topic(), c.toBdo());
-			case TopicChangeDto.Update c -> topics.update(origin, scope,
+			case TopicChangeDto.Rename c -> topics.update(origin, scope,
+					c.topic(), c.toBdo(history.rebase(scope, c)));
+			case TopicChangeDto.Describe c -> topics.update(origin, scope,
+					c.topic(), c.toBdo(history.rebase(scope, c)));
+			case TopicChangeDto.Schedule c -> topics.update(origin, scope,
 					c.topic(), c.toBdo());
 			case TopicChangeDto.Remove c -> topics.delete(origin, scope,
 					c.topic());
@@ -70,7 +79,7 @@ public class ChangeService {
 					c.block());
 
 			case TextBlockChangeDto.Edit c -> texts.update(origin, scope,
-					c.block(), c.toBdo());
+					c.block(), c.toBdo(history.rebase(scope, c)));
 		}
 	}
 }
