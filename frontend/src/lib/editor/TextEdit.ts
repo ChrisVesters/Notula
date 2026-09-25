@@ -13,6 +13,58 @@ export function applied(text: string, edit: TextEdit): string {
 	return before + edit.value + after;
 }
 
+// The server puts the edit it applied earlier first at a tie, so a client
+// rebasing a remote edit over its own pending one passes `first` to arrive at
+// the same text.
+export function rebased(
+	edit: TextEdit,
+	prior: TextEdit,
+	first: boolean = false
+): TextEdit {
+	const end = edit.position + edit.length;
+	const priorEnd = prior.position + prior.length;
+	const leads =
+		edit.position < prior.position ||
+		(first && edit.position === prior.position);
+
+	const start = startAfter(edit.position, prior, leads);
+	const stop = Math.max(start, stopAfter(end, prior));
+
+	// Whatever the prior edit inserted inside the range this one replaces was
+	// typed by someone, so it is put back rather than deleted with it.
+	const covers = leads && end > priorEnd;
+
+	return {
+		position: start,
+		length: stop - start,
+		value: covers ? edit.value + prior.value : edit.value
+	};
+}
+
+function startAfter(index: number, prior: TextEdit, leads: boolean): number {
+	if (index < prior.position || (leads && index === prior.position)) {
+		return index;
+	}
+
+	if (index <= prior.position + prior.length) {
+		return prior.position + prior.value.length;
+	}
+
+	return index - prior.length + prior.value.length;
+}
+
+function stopAfter(index: number, prior: TextEdit): number {
+	if (index <= prior.position) {
+		return index;
+	}
+
+	if (index <= prior.position + prior.length) {
+		return prior.position;
+	}
+
+	return index - prior.length + prior.value.length;
+}
+
 export function moved(previous: string, next: string, index: number): number {
 	const { position, removed, inserted } = spliced(previous, next);
 

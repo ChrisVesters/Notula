@@ -251,17 +251,37 @@ describe("MeetingWebSocketClient", () => {
 		expect(onRejected).toHaveBeenCalledWith(rejected);
 	});
 
-	it("sends again once a refusal has cleared the queue", () => {
+	it("sends again once a refusal has reloaded the meeting", () => {
 		MeetingWebSocketClient.send(rename("first"));
 		socket.deliver(REJECTIONS, {
 			id: changeIds()[0],
 			retryable: true,
 			reason: "Try again."
 		} satisfies Rejected);
+		socket.deliver(`/app/meetings/${MEETING_ID}`, {
+			revision: 3
+		} as MeetingDetails);
 
 		MeetingWebSocketClient.send(rename("second"));
 
 		expect(values()).toEqual(["first", "second"]);
+	});
+
+	it("reloads the meeting when a change is refused", () => {
+		MeetingWebSocketClient.send(rename("first"));
+		const subscribe = vi.spyOn(socket, "subscribe");
+
+		socket.deliver(REJECTIONS, {
+			id: changeIds()[0],
+			retryable: false,
+			reason: "It was not valid."
+		} satisfies Rejected);
+
+		expect(subscribe).toHaveBeenCalledWith(
+			`/app/meetings/${MEETING_ID}`,
+			expect.any(Function)
+		);
+		vi.restoreAllMocks();
 	});
 });
 
@@ -290,16 +310,52 @@ describe("MeetingWebSocketClient stream", () => {
 		vi.restoreAllMocks();
 	});
 
-	it("holds a change until the first snapshot arrives", () => {
+	it("sends nothing before the first snapshot", () => {
 		MeetingWebSocketClient.send(rename("first"));
 
 		expect(socket.sent).toEqual([]);
+	});
+
+	it("drops what is waiting when a snapshot replaces the page", () => {
+		socket.deliver(SNAPSHOT, { revision: 4 } as MeetingDetails);
+		const first = MeetingWebSocketClient.send(rename("first"));
+		MeetingWebSocketClient.send(rename("second"));
+		MeetingWebSocketClient.resync();
+
+		socket.deliver(SNAPSHOT, { revision: 5 } as MeetingDetails);
+		socket.deliver(ACKS, { id: first, revision: 5 } satisfies Acknowledged);
+
+		expect(socket.sent.map(sent => JSON.parse(sent.body).value)).toEqual([
+			"first"
+		]);
+	});
+
+	it("applies the echo of its own text edit after a snapshot replaced the page", () => {
+		const echo: MeetingEvent = {
+			revision: 5,
+			origin: { userId: 1, clientId: CLIENT_ID },
+			mutation: {
+				type: "RENAME_TOPIC",
+				topic: 32,
+				position: 0,
+				length: 0,
+				value: "x"
+			}
+		};
 
 		socket.deliver(SNAPSHOT, { revision: 4 } as MeetingDetails);
+		MeetingWebSocketClient.send({
+			type: "RENAME_TOPIC",
+			topic: 32,
+			position: 0,
+			length: 0,
+			value: "x"
+		});
+		MeetingWebSocketClient.resync();
+		socket.deliver(SNAPSHOT, { revision: 4 } as MeetingDetails);
+		socket.deliver(EVENTS, echo);
 
-		expect(socket.sent.map(sent => JSON.parse(sent.body))).toEqual([
-			{ ...rename("first"), base: 4 }
-		]);
+		expect(onEvent).toHaveBeenCalledWith(echo);
 	});
 
 	it("hands on an event that follows the snapshot", () => {
@@ -457,6 +513,13 @@ describe("MeetingWebSocketClient stream", () => {
 		const subscribe = vi.spyOn(socket, "subscribe");
 
 		socket.deliver(SNAPSHOT, { revision: 4 } as MeetingDetails);
+		MeetingWebSocketClient.send({
+			type: "RENAME_TOPIC",
+			topic: 32,
+			position: 0,
+			length: 0,
+			value: "x"
+		});
 		socket.deliver(EVENTS, {
 			revision: 5,
 			origin: { userId: 1, clientId: CLIENT_ID },
@@ -483,6 +546,11 @@ describe("MeetingWebSocketClient stream", () => {
 		};
 
 		socket.deliver(SNAPSHOT, { revision: 4 } as MeetingDetails);
+		MeetingWebSocketClient.send({
+			type: "MOVE_TOPIC",
+			topic: 32,
+			afterId: null
+		});
 		socket.deliver(EVENTS, echo);
 
 		expect(onEvent).toHaveBeenCalledWith(echo);
@@ -505,5 +573,226 @@ describe("MeetingWebSocketClient stream", () => {
 		socket.deliver(EVENTS, edit);
 
 		expect(onEvent).toHaveBeenCalledWith(edit);
+	});
+});
+
+describe("MeetingWebSocketClient rebase", () => {
+	const SNAPSHOT = `/app/meetings/${MEETING_ID}`;
+	const EVENTS = `/topic/meetings/${MEETING_ID}`;
+	const OTHER_CLIENT = "5b2e7c91-0d4a-4f63-8e15-3a9c6d0b7f42";
+
+	const onEvent = vi.fn();
+
+	beforeEach(() => {
+		socket.reset();
+		onEvent.mockClear();
+
+		MeetingWebSocketClient.connect(MEETING_ID, {
+			onLoad: vi.fn(),
+			onEvent,
+			onRejected
+		});
+		socket.deliver(SNAPSHOT, { revision: 4 } as MeetingDetails);
+	});
+
+	afterEach(() => {
+		MeetingWebSocketClient.disconnect();
+	});
+
+	it("moves a remote edit over the one in flight", () => {
+		MeetingWebSocketClient.send({
+			type: "RENAME_TOPIC",
+			topic: 32,
+			position: 0,
+			length: 0,
+			value: "Q3 "
+		});
+
+		socket.deliver(EVENTS, {
+			revision: 5,
+			origin: { userId: 2, clientId: OTHER_CLIENT },
+			mutation: {
+				type: "RENAME_TOPIC",
+				topic: 32,
+				position: 8,
+				length: 0,
+				value: " plan"
+			}
+		} satisfies MeetingEvent);
+
+		expect(onEvent).toHaveBeenCalledWith({
+			revision: 5,
+			origin: { userId: 2, clientId: OTHER_CLIENT },
+			mutation: {
+				type: "RENAME_TOPIC",
+				topic: 32,
+				position: 11,
+				length: 0,
+				value: " plan"
+			}
+		});
+	});
+
+	it("moves what is waiting over a remote edit", () => {
+		const first = MeetingWebSocketClient.send({
+			type: "RENAME_TOPIC",
+			topic: 32,
+			position: 0,
+			length: 0,
+			value: "Q3 "
+		});
+		MeetingWebSocketClient.send({
+			type: "RENAME_TOPIC",
+			topic: 32,
+			position: 11,
+			length: 0,
+			value: "!"
+		});
+
+		socket.deliver(EVENTS, {
+			revision: 5,
+			origin: { userId: 2, clientId: OTHER_CLIENT },
+			mutation: {
+				type: "RENAME_TOPIC",
+				topic: 32,
+				position: 0,
+				length: 0,
+				value: "New "
+			}
+		} satisfies MeetingEvent);
+		socket.deliver(ACKS, { id: first, revision: 6 } satisfies Acknowledged);
+		socket.deliver(EVENTS, {
+			revision: 6,
+			origin: { userId: 1, clientId: CLIENT_ID },
+			mutation: {
+				type: "RENAME_TOPIC",
+				topic: 32,
+				position: 4,
+				length: 0,
+				value: "Q3 "
+			}
+		} satisfies MeetingEvent);
+
+		expect(JSON.parse(socket.sent[1].body)).toEqual({
+			type: "RENAME_TOPIC",
+			topic: 32,
+			position: 15,
+			length: 0,
+			value: "!",
+			base: 6
+		});
+	});
+
+	it("leaves a remote edit to other text where it is", () => {
+		MeetingWebSocketClient.send({
+			type: "RENAME_TOPIC",
+			topic: 32,
+			position: 0,
+			length: 0,
+			value: "Q3 "
+		});
+
+		socket.deliver(EVENTS, {
+			revision: 5,
+			origin: { userId: 2, clientId: OTHER_CLIENT },
+			mutation: {
+				type: "DESCRIBE_TOPIC",
+				topic: 32,
+				position: 8,
+				length: 0,
+				value: " plan"
+			}
+		} satisfies MeetingEvent);
+
+		expect(onEvent).toHaveBeenCalledWith({
+			revision: 5,
+			origin: { userId: 2, clientId: OTHER_CLIENT },
+			mutation: {
+				type: "DESCRIBE_TOPIC",
+				topic: 32,
+				position: 8,
+				length: 0,
+				value: " plan"
+			}
+		});
+	});
+
+	it("leaves a remote edit to the same field of another topic where it is", () => {
+		MeetingWebSocketClient.send({
+			type: "RENAME_TOPIC",
+			topic: 32,
+			position: 0,
+			length: 0,
+			value: "Q3 "
+		});
+
+		socket.deliver(EVENTS, {
+			revision: 5,
+			origin: { userId: 2, clientId: OTHER_CLIENT },
+			mutation: {
+				type: "RENAME_TOPIC",
+				topic: 33,
+				position: 8,
+				length: 0,
+				value: " plan"
+			}
+		} satisfies MeetingEvent);
+
+		expect(onEvent).toHaveBeenCalledWith({
+			revision: 5,
+			origin: { userId: 2, clientId: OTHER_CLIENT },
+			mutation: {
+				type: "RENAME_TOPIC",
+				topic: 33,
+				position: 8,
+				length: 0,
+				value: " plan"
+			}
+		});
+	});
+
+	it("stops moving remote edits over its own once the echo is in", () => {
+		MeetingWebSocketClient.send({
+			type: "RENAME_TOPIC",
+			topic: 32,
+			position: 0,
+			length: 0,
+			value: "Q3 "
+		});
+		socket.deliver(EVENTS, {
+			revision: 5,
+			origin: { userId: 1, clientId: CLIENT_ID },
+			mutation: {
+				type: "RENAME_TOPIC",
+				topic: 32,
+				position: 0,
+				length: 0,
+				value: "Q3 "
+			}
+		} satisfies MeetingEvent);
+
+		socket.deliver(EVENTS, {
+			revision: 6,
+			origin: { userId: 2, clientId: OTHER_CLIENT },
+			mutation: {
+				type: "RENAME_TOPIC",
+				topic: 32,
+				position: 11,
+				length: 0,
+				value: " plan"
+			}
+		} satisfies MeetingEvent);
+
+		expect(onEvent).toHaveBeenCalledWith({
+			revision: 6,
+			origin: { userId: 2, clientId: OTHER_CLIENT },
+			mutation: {
+				type: "RENAME_TOPIC",
+				topic: 32,
+				position: 11,
+				length: 0,
+				value: " plan"
+			}
+		});
 	});
 });

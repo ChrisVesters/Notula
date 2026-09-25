@@ -41,7 +41,7 @@ Checked against the code, not against the commit messages.
   event rather than one per shifted sibling.
 - **Drag-and-drop reordering.** `common/ReorderHandler` with `IconDrag` in
   `TopicAgendaView` and `BlockView`, sending `MOVE_TOPIC` / `MOVE_BLOCK`.
-- **One event envelope.** Events leave as `meeting/dto/EventDto` — `origin`
+- **One event envelope.** Events leave as `event/dto/EventDto` — `origin`
   plus a sealed `MutationDto` on one `type` discriminator — mirroring
   `ChangeDto` and matched by `frontend/src/lib/meeting/event/EventTypes.ts`.
   A cross-cutting field on an event is now one record rather than a dozen
@@ -76,10 +76,18 @@ Checked against the code, not against the commit messages.
   rather than only wait.
 - **A missed change is detected, not silently absorbed.** `meetings.revision`
   is bumped inside the change's own transaction by `meeting/MeetingLock`, rides
-  out on `EventDto` and the `/app/meetings/{id}` snapshot, and the meeting page
-  compares the two: a gap resyncs, an event that arrived before the snapshot is
-  buffered and replayed, and a repeat is dropped. `SEQUENCING.md` step 4, less
-  the acknowledgement.
+  out on `EventDto` and the `/app/meetings/{id}` snapshot, and
+  `MeetingWebSocketClient` compares the two: a gap resyncs, an event that
+  arrived before the snapshot is buffered and replayed, and a repeat is
+  dropped. `SEQUENCING.md` step 4.
+- **Every event is logged.** `event/EventService` writes each event to the
+  `events` table in the change's own transaction and broadcasts what it wrote,
+  so the log and the stream cannot disagree.
+- **Concurrent edits to the same text converge**, rather than corrupting each
+  other. Every text change carries the `base` revision its positions were
+  counted in; `ChangeService` rebases it over the logged edits to the same text
+  since then, and the page rebases a remote edit over its own unconfirmed ones.
+  `SEQUENCING.md` step 6.
 
 Known risks and open decisions
 ==
@@ -87,21 +95,18 @@ Known risks and open decisions
 These want an answer before the phases they sit in.
 
 - **One change drives the whole path; the rest still agree by construction.**
-  `MeetingChangeWebSocketTest` carries a topic move and a schedule from a STOMP
-  frame through the services to a second subscriber with nothing mocked, which
-  pins one revision per change and consecutive changes differing by one. Every
-  other operation — creates, deletes, text edits, block moves, and anything on
-  the meeting itself — is still covered only by tests that mock the services on
-  one side and assert the type on the other.
-
-- **Concurrent edits to the same text can corrupt each other.**
-  `common/domain/TextUpdate` applies an incoming edit as a raw
-  `position`/`length` splice against current server state, and nothing carries
-  a version. Two people editing one block apply each other's offsets against
-  text that has already shifted. Answer is operational transformation, a CRDT,
-  or a server revision clients rebase against; `SEQUENCING.md` is the design.
-  Scheduled in Phase 3, and it should move up the moment more than one person
-  uses a meeting at the same time in anger.
+  `MeetingChangeWebSocketTest` carries a topic move, a schedule and two
+  concurrent renames from a STOMP frame through the services to a second
+  subscriber with nothing mocked, which pins one revision per change,
+  consecutive changes differing by one, and a stale rename rebased. Every other
+  operation — creates, deletes, block moves, text blocks, and anything on the
+  meeting itself — is still covered only by tests that mock the services on one
+  side and assert the type on the other.
+- **Concurrent text editing has named gaps.** `SEQUENCING.md` step 6, *Not
+  covered even then*: an IME composition is sent at `compositionend`, so a
+  remote edit applied mid-composition lands in text nobody has described; the
+  event log is never pruned; and a reload drops unsent edits without saying so.
+  The last is *Sync status*'s to fix.
 - **A user added to an organisation cannot log in.**
   `OrganisationUserService.create` creates a `UserInfo` for an unknown email
   with no credential row, so there is no password and no way to set one.
@@ -192,16 +197,15 @@ Phase 3 — Real-time that holds up
 
 Phase 1 and 2 add data; this phase makes multi-person editing trustworthy.
 `SEQUENCING.md` is the design and its step numbering is the order to build in.
+Conflict-safe text editing has landed (above); what follows builds on its
+event log and revision.
 
-- **Conflict-safe text editing** (L) — see the risk above. Design decision
-  first, then implementation. Everything else in this phase is easier once
-  edits carry a revision.
 - **Ask for what was missed** (M) — detection has landed; recovery is still a
   full reload. A client that knows it skipped revisions should be able to ask
   for those changes rather than re-fetching the whole meeting, which is what
   makes a reconnect, a closed laptop or a redeploy cheap instead of merely
-  correct. Wants the operation log from `SEQUENCING.md` step 6 to have anything
-  to replay, so it is worth doing after it rather than before.
+  correct. The operation log from `SEQUENCING.md` step 6 is what it replays,
+  and it has landed. Designed, with the next two, in `SEQUENCING.md` step 8.
 - **Reconnect and recover** (M) — a dropped connection currently stays
   dropped: `WebSocketClient` sets `reconnectDelay: 0`, overriding the library's
   default of five seconds, so nothing retries and the tab goes quiet instead of

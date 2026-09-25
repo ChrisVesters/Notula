@@ -201,12 +201,13 @@ Step 6, the first time
 
 Concurrent text editing (`SEQUENCING.md`, step 6) was built end to end and
 worked. It was built as a `base-revision` header, an `events` log, a `Splice`
-transform on both sides, rebasing in `ChangeService`, and a client that owns
-the stream and rebases its queue. `MeetingChangeWebSocketTest` drove two
-concurrent renames through the real path, and a second subscriber saw them
-merged. The design survives, and `SEQUENCING.md` now holds it with the order to
-rebuild it in. The work itself was stashed, not committed, because of how it
-was done.
+transform on both sides, rebasing in `ChangeService`, and a client that owns the
+stream and rebases its queue. `MeetingChangeWebSocketTest` drove two concurrent
+renames through the real path, and a second subscriber saw them merged. The
+design survives, and `SEQUENCING.md` now holds it with the order to rebuild it
+in — all but the header, which the rebuild moved into the body of the text
+changes it describes. The work itself was stashed, not committed, because of how
+it was done.
 
 It was done in one piece. About sixty files across backend, frontend and four
 design documents stayed uncommitted while the work grew. Then a refactor went on
