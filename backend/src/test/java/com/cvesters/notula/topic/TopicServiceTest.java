@@ -23,6 +23,7 @@ import org.junit.jupiter.api.Test;
 import com.cvesters.notula.common.domain.Minutes;
 import com.cvesters.notula.common.domain.Origin;
 import com.cvesters.notula.common.domain.Principal;
+import com.cvesters.notula.common.domain.Splice;
 import com.cvesters.notula.common.exception.MissingEntityException;
 import com.cvesters.notula.event.EventInfoMatcher;
 import com.cvesters.notula.event.EventService;
@@ -471,15 +472,16 @@ class TopicServiceTest {
 				return true;
 			}))).thenReturn(updated);
 
-			final TopicAction.Update action = new TopicAction.UpdateName(0, 0,
-					"Project ");
+			final TopicAction.Update action = new TopicAction.UpdateName(
+					new Splice(0, 0, "Project "));
 			final TopicInfo result = topicService.update(ORIGIN, SCOPE, topicId,
 					action);
 
 			assertThat(result).isEqualTo(updated);
 
 			final var event = new EventInfo(SCOPE, ORIGIN,
-					new TopicMutation.Rename(topicId, 0, 0, "Project "));
+					new TopicMutation.Rename(topicId,
+							new Splice(0, 0, "Project ")));
 			final var matcher = new EventInfoMatcher(event);
 			verify(eventService).publish(argThat(matcher::matches));
 		}
@@ -507,14 +509,15 @@ class TopicServiceTest {
 			}))).thenReturn(updated);
 
 			final TopicAction.Update action = new TopicAction.UpdateDescription(
-					20, 0, "all ");
+					new Splice(20, 0, "all "));
 			final TopicInfo result = topicService.update(ORIGIN, SCOPE, topicId,
 					action);
 
 			assertThat(result).isEqualTo(updated);
 
 			final var event = new EventInfo(SCOPE, ORIGIN,
-					new TopicMutation.Describe(topicId, 20, 0, "all "));
+					new TopicMutation.Describe(topicId,
+							new Splice(20, 0, "all ")));
 			final var matcher = new EventInfoMatcher(event);
 			verify(eventService).publish(argThat(matcher::matches));
 		}
@@ -564,8 +567,8 @@ class TopicServiceTest {
 			when(topicStorageGateway.find(topicId))
 					.thenReturn(Optional.empty());
 
-			final TopicAction.Update action = new TopicAction.UpdateName(0, 0,
-					"Project ");
+			final TopicAction.Update action = new TopicAction.UpdateName(
+					new Splice(0, 0, "Project "));
 
 			assertThatThrownBy(
 					() -> topicService.update(ORIGIN, SCOPE, topicId, action))
@@ -579,8 +582,8 @@ class TopicServiceTest {
 		void originNull() {
 			final long topicId = TOPIC.getId();
 
-			final TopicAction.Update action = new TopicAction.UpdateName(0, 0,
-					"Project ");
+			final TopicAction.Update action = new TopicAction.UpdateName(
+					new Splice(0, 0, "Project "));
 
 			assertThatThrownBy(
 					() -> topicService.update(null, SCOPE, topicId, action))
@@ -591,8 +594,8 @@ class TopicServiceTest {
 		void scopeNull() {
 			final long topicId = TOPIC.getId();
 
-			final TopicAction.Update action = new TopicAction.UpdateName(0, 0,
-					"Project ");
+			final TopicAction.Update action = new TopicAction.UpdateName(
+					new Splice(0, 0, "Project "));
 
 			assertThatThrownBy(
 					() -> topicService.update(ORIGIN, null, topicId, action))

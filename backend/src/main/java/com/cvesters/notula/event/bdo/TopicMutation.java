@@ -2,10 +2,9 @@ package com.cvesters.notula.event.bdo;
 
 import java.util.Objects;
 
-import org.apache.commons.lang3.Validate;
-
 import com.cvesters.notula.common.domain.Minutes;
 import com.cvesters.notula.common.domain.Rank;
+import com.cvesters.notula.common.domain.Splice;
 
 public sealed interface TopicMutation extends Mutation {
 
@@ -24,23 +23,17 @@ public sealed interface TopicMutation extends Mutation {
 		}
 	}
 
-	record Rename(long topicId, int position, int length, String value)
-			implements TopicMutation {
+	record Rename(long topicId, Splice edit) implements TopicMutation {
 
 		public Rename {
-			Objects.requireNonNull(value);
-			Validate.isTrue(position >= 0);
-			Validate.isTrue(length >= 0);
+			Objects.requireNonNull(edit);
 		}
 	}
 
-	record Describe(long topicId, int position, int length, String value)
-			implements TopicMutation {
+	record Describe(long topicId, Splice edit) implements TopicMutation {
 
 		public Describe {
-			Objects.requireNonNull(value);
-			Validate.isTrue(position >= 0);
-			Validate.isTrue(length >= 0);
+			Objects.requireNonNull(edit);
 		}
 	}
 

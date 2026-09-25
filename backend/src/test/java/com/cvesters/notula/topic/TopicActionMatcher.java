@@ -42,9 +42,7 @@ public final class TopicActionMatcher {
 		}
 
 		public void assertEquals(final TopicAction.UpdateName actual) {
-			assertThat(actual.getPosition()).isEqualTo(expected.getPosition());
-			assertThat(actual.getLength()).isEqualTo(expected.getLength());
-			assertThat(actual.getValue()).isEqualTo(expected.getValue());
+			assertThat(actual.getEdit()).isEqualTo(expected.getEdit());
 		}
 	}
 
@@ -56,9 +54,7 @@ public final class TopicActionMatcher {
 		}
 
 		public void assertEquals(final TopicAction.UpdateDescription actual) {
-			assertThat(actual.getPosition()).isEqualTo(expected.getPosition());
-			assertThat(actual.getLength()).isEqualTo(expected.getLength());
-			assertThat(actual.getValue()).isEqualTo(expected.getValue());
+			assertThat(actual.getEdit()).isEqualTo(expected.getEdit());
 		}
 	}
 

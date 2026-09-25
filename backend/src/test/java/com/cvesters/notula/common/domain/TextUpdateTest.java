@@ -18,42 +18,34 @@ class TextUpdateTest {
 
 		@Test
 		void success() {
-			final var update = new MockUpdate(0, 0, "test");
+			final var edit = new Splice(0, 0, "test");
 
-			assertThat(update.getPosition()).isZero();
-			assertThat(update.getLength()).isZero();
-			assertThat(update.getValue()).isEqualTo("test");
+			final var update = new MockUpdate(edit);
+
+			assertThat(update.getEdit()).isEqualTo(edit);
 		}
 
 		@Test
-		void positionNegative() {
-			assertThatThrownBy(() -> new MockUpdate(-1, 0, "test"))
-					.isInstanceOf(IllegalArgumentException.class);
-		}
-
-		@Test
-		void lengthNegative() {
-			assertThatThrownBy(() -> new MockUpdate(0, -1, "test"))
-					.isInstanceOf(IllegalArgumentException.class);
-		}
-
-		@Test
-		void valueNull() {
-			assertThatThrownBy(() -> new MockUpdate(0, 0, null))
+		void editNull() {
+			assertThatThrownBy(() -> new MockUpdate(null))
 					.isInstanceOf(NullPointerException.class);
 		}
 
 		@Test
 		void getterNull() {
+			final var edit = new Splice(0, 0, "");
+
 			assertThatThrownBy(() -> new TextUpdate<MockObject>(null,
-					MockObject::setValue, 0, 0, "") {
+					MockObject::setValue, edit) {
 			}).isInstanceOf(NullPointerException.class);
 		}
 
 		@Test
 		void setterNull() {
+			final var edit = new Splice(0, 0, "");
+
 			assertThatThrownBy(() -> new TextUpdate<MockObject>(
-					MockObject::getValue, null, 0, 0, "") {
+					MockObject::getValue, null, edit) {
 			}).isInstanceOf(NullPointerException.class);
 		}
 	}
@@ -66,7 +58,7 @@ class TextUpdateTest {
 		@ParameterizedTest
 		@CsvSource({ "0,atest", "2,teast", "4,testa" })
 		void add(final int position, final String expected) {
-			final var update = new MockUpdate(position, 0, "a");
+			final var update = new MockUpdate(new Splice(position, 0, "a"));
 
 			update.apply(object);
 
@@ -76,7 +68,7 @@ class TextUpdateTest {
 		@ParameterizedTest
 		@CsvSource({ "0,est", "2,tet", "3,tes" })
 		void remove(final int position, final String expected) {
-			final var update = new MockUpdate(position, 1, "");
+			final var update = new MockUpdate(new Splice(position, 1, ""));
 
 			update.apply(object);
 
@@ -86,7 +78,7 @@ class TextUpdateTest {
 		@ParameterizedTest
 		@CsvSource({ "0,aest", "2,teat", "3,tesa" })
 		void replace(final int position, final String expected) {
-			final var update = new MockUpdate(position, 1, "a");
+			final var update = new MockUpdate(new Splice(position, 1, "a"));
 
 			update.apply(object);
 
@@ -96,7 +88,7 @@ class TextUpdateTest {
 
 		@Test
 		void objectNull() {
-			final var update = new MockUpdate(0, 0, "test");
+			final var update = new MockUpdate(new Splice(0, 0, "test"));
 
 			assertThatThrownBy(() -> update.apply(null))
 					.isInstanceOf(NullPointerException.class);
@@ -106,7 +98,8 @@ class TextUpdateTest {
 		@CsvSource({ "5,0,a", "4,1,''", "0,5,a" })
 		void outOfBounds(final int position, final int length,
 				final String value) {
-			final var update = new MockUpdate(position, length, value);
+			final var update = new MockUpdate(
+					new Splice(position, length, value));
 
 			assertThatThrownBy(() -> update.apply(object))
 					.isInstanceOf(IllegalArgumentException.class);
@@ -115,7 +108,7 @@ class TextUpdateTest {
 		@Test
 		void valueNull() {
 			final var object = new MockObject(null);
-			final var update = new MockUpdate(0, 0, "test");
+			final var update = new MockUpdate(new Splice(0, 0, "test"));
 
 			assertThatThrownBy(() -> update.apply(object))
 					.isInstanceOf(NullPointerException.class);
@@ -135,9 +128,8 @@ class TextUpdateTest {
 	@Getter
 	private static class MockUpdate extends TextUpdate<MockObject> {
 
-		MockUpdate(final int position, final int length, final String value) {
-			super(MockObject::getValue, MockObject::setValue, position, length,
-					value);
+		MockUpdate(final Splice edit) {
+			super(MockObject::getValue, MockObject::setValue, edit);
 		}
 	}
 }

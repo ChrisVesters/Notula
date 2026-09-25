@@ -8,11 +8,13 @@ import org.junit.jupiter.api.Test;
 
 import com.cvesters.notula.common.domain.Minutes;
 import com.cvesters.notula.common.domain.Rank;
+import com.cvesters.notula.common.domain.Splice;
 
 class TopicMutationTest {
 
 	private static final long TOPIC_ID = 32L;
 	private static final Rank RANK = new Rank("a1");
+	private static final Splice EDIT = new Splice(4, 12, "Updated");
 
 	@Nested
 	class Add {
@@ -65,50 +67,16 @@ class TopicMutationTest {
 
 		@Test
 		void success() {
-			final var mutation = new TopicMutation.Rename(TOPIC_ID, 4, 12,
-					"Updated");
+			final var mutation = new TopicMutation.Rename(TOPIC_ID, EDIT);
 
 			assertThat(mutation.topicId()).isEqualTo(TOPIC_ID);
-			assertThat(mutation.position()).isEqualTo(4);
-			assertThat(mutation.length()).isEqualTo(12);
-			assertThat(mutation.value()).isEqualTo("Updated");
+			assertThat(mutation.edit()).isEqualTo(EDIT);
 		}
 
 		@Test
-		void start() {
-			final var mutation = new TopicMutation.Rename(TOPIC_ID, 0, 12,
-					"Updated");
-
-			assertThat(mutation.position()).isEqualTo(0);
-		}
-
-		@Test
-		void insert() {
-			final var mutation = new TopicMutation.Rename(TOPIC_ID, 4, 0,
-					"Updated");
-
-			assertThat(mutation.length()).isEqualTo(0);
-		}
-
-		@Test
-		void positionNegative() {
-			assertThatThrownBy(
-					() -> new TopicMutation.Rename(TOPIC_ID, -1, 12, "Up"))
-							.isInstanceOf(IllegalArgumentException.class);
-		}
-
-		@Test
-		void lengthNegative() {
-			assertThatThrownBy(
-					() -> new TopicMutation.Rename(TOPIC_ID, 4, -1, "Up"))
-							.isInstanceOf(IllegalArgumentException.class);
-		}
-
-		@Test
-		void valueNull() {
-			assertThatThrownBy(
-					() -> new TopicMutation.Rename(TOPIC_ID, 4, 12, null))
-							.isInstanceOf(NullPointerException.class);
+		void editNull() {
+			assertThatThrownBy(() -> new TopicMutation.Rename(TOPIC_ID, null))
+					.isInstanceOf(NullPointerException.class);
 		}
 	}
 
@@ -117,50 +85,16 @@ class TopicMutationTest {
 
 		@Test
 		void success() {
-			final var mutation = new TopicMutation.Describe(TOPIC_ID, 4, 12,
-					"Updated");
+			final var mutation = new TopicMutation.Describe(TOPIC_ID, EDIT);
 
 			assertThat(mutation.topicId()).isEqualTo(TOPIC_ID);
-			assertThat(mutation.position()).isEqualTo(4);
-			assertThat(mutation.length()).isEqualTo(12);
-			assertThat(mutation.value()).isEqualTo("Updated");
+			assertThat(mutation.edit()).isEqualTo(EDIT);
 		}
 
 		@Test
-		void start() {
-			final var mutation = new TopicMutation.Describe(TOPIC_ID, 0, 12,
-					"Updated");
-
-			assertThat(mutation.position()).isEqualTo(0);
-		}
-
-		@Test
-		void insert() {
-			final var mutation = new TopicMutation.Describe(TOPIC_ID, 4, 0,
-					"Updated");
-
-			assertThat(mutation.length()).isEqualTo(0);
-		}
-
-		@Test
-		void positionNegative() {
-			assertThatThrownBy(
-					() -> new TopicMutation.Describe(TOPIC_ID, -1, 12, "Up"))
-							.isInstanceOf(IllegalArgumentException.class);
-		}
-
-		@Test
-		void lengthNegative() {
-			assertThatThrownBy(
-					() -> new TopicMutation.Describe(TOPIC_ID, 4, -1, "Up"))
-							.isInstanceOf(IllegalArgumentException.class);
-		}
-
-		@Test
-		void valueNull() {
-			assertThatThrownBy(
-					() -> new TopicMutation.Describe(TOPIC_ID, 4, 12, null))
-							.isInstanceOf(NullPointerException.class);
+		void editNull() {
+			assertThatThrownBy(() -> new TopicMutation.Describe(TOPIC_ID, null))
+					.isInstanceOf(NullPointerException.class);
 		}
 	}
 

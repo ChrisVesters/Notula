@@ -24,6 +24,7 @@ import org.mockito.InOrder;
 
 import com.cvesters.notula.common.domain.Origin;
 import com.cvesters.notula.common.domain.Principal;
+import com.cvesters.notula.common.domain.Splice;
 import com.cvesters.notula.common.exception.MissingEntityException;
 import com.cvesters.notula.event.EventInfoMatcher;
 import com.cvesters.notula.event.EventService;
@@ -212,8 +213,8 @@ class MeetingServiceTest {
 		void name() {
 			final long meetingId = MEETING.getId();
 			final MeetingInfo meetingInfo = MEETING.info();
-			final MeetingAction.Update action = new MeetingAction.UpdateName(8,
-					0, "Status ");
+			final MeetingAction.Update action = new MeetingAction.UpdateName(
+					new Splice(8, 0, "Status "));
 
 			when(meetingStorageGateway.find(meetingId))
 					.thenReturn(Optional.of(meetingInfo));
@@ -233,7 +234,7 @@ class MeetingServiceTest {
 			assertThat(result).isEqualTo(updated);
 
 			final var event = new EventInfo(SCOPE, ORIGIN,
-					new MeetingMutation.Rename(8, 0, "Status "));
+					new MeetingMutation.Rename(new Splice(8, 0, "Status ")));
 			final var matcher = new EventInfoMatcher(event);
 			verify(eventService).publish(argThat(matcher::matches));
 		}
@@ -242,8 +243,8 @@ class MeetingServiceTest {
 		void description() {
 			final long meetingId = MEETING.getId();
 			final MeetingInfo meetingInfo = MEETING.info();
-			final var action = new MeetingAction.UpdateDescription(8, 0,
-					"the ");
+			final var action = new MeetingAction.UpdateDescription(
+					new Splice(8, 0, "the "));
 
 			when(meetingStorageGateway.find(meetingId))
 					.thenReturn(Optional.of(meetingInfo));
@@ -265,7 +266,7 @@ class MeetingServiceTest {
 			assertThat(result).isEqualTo(updated);
 
 			final var event = new EventInfo(SCOPE, ORIGIN,
-					new MeetingMutation.Describe(8, 0, "the "));
+					new MeetingMutation.Describe(new Splice(8, 0, "the ")));
 			final var matcher = new EventInfoMatcher(event);
 			verify(eventService).publish(argThat(matcher::matches));
 		}
@@ -273,8 +274,8 @@ class MeetingServiceTest {
 		@Test
 		void meetingNotFound() {
 			final long meetingId = MEETING.getId();
-			final MeetingAction.Update action = new MeetingAction.UpdateName(2,
-					4, "27");
+			final MeetingAction.Update action = new MeetingAction.UpdateName(
+					new Splice(2, 4, "27"));
 
 			when(meetingStorageGateway.find(meetingId))
 					.thenReturn(Optional.empty());
@@ -286,8 +287,8 @@ class MeetingServiceTest {
 
 		@Test
 		void originNull() {
-			final MeetingAction.Update action = new MeetingAction.UpdateName(2,
-					4, "27");
+			final MeetingAction.Update action = new MeetingAction.UpdateName(
+					new Splice(2, 4, "27"));
 
 			assertThatThrownBy(() -> meetingService.update(null, SCOPE, action))
 					.isInstanceOf(NullPointerException.class);
@@ -295,8 +296,8 @@ class MeetingServiceTest {
 
 		@Test
 		void scopeNull() {
-			final MeetingAction.Update action = new MeetingAction.UpdateName(2,
-					4, "27");
+			final MeetingAction.Update action = new MeetingAction.UpdateName(
+					new Splice(2, 4, "27"));
 
 			assertThatThrownBy(
 					() -> meetingService.update(ORIGIN, null, action))

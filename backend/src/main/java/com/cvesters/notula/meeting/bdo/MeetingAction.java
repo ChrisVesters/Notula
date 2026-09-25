@@ -4,6 +4,7 @@ import java.util.Objects;
 
 import lombok.Getter;
 
+import com.cvesters.notula.common.domain.Splice;
 import com.cvesters.notula.common.domain.TextUpdate;
 
 public sealed interface MeetingAction {
@@ -28,10 +29,8 @@ public sealed interface MeetingAction {
 	final class UpdateName extends TextUpdate<MeetingInfo>
 			implements MeetingAction.Update {
 
-		public UpdateName(final int position, final int length,
-				final String value) {
-			super(MeetingInfo::getName, MeetingInfo::setName, position, length,
-					value);
+		public UpdateName(final Splice edit) {
+			super(MeetingInfo::getName, MeetingInfo::setName, edit);
 		}
 	}
 
@@ -39,10 +38,9 @@ public sealed interface MeetingAction {
 	final class UpdateDescription extends TextUpdate<MeetingInfo>
 			implements MeetingAction.Update {
 
-		public UpdateDescription(final int position, final int length,
-				final String value) {
+		public UpdateDescription(final Splice edit) {
 			super(MeetingInfo::getDescription, MeetingInfo::setDescription,
-					position, length, value);
+					edit);
 		}
 	}
 }

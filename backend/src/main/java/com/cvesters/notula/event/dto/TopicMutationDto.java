@@ -63,16 +63,14 @@ public sealed interface TopicMutationDto extends MutationDto {
 
 		private Rename(final TopicMutation.Rename mutation) {
 			final long topicId = mutation.topicId();
-			final var edit = new TextEditDto(mutation.position(),
-					mutation.length(), mutation.value());
+			final var edit = new TextEditDto(mutation.edit());
 
 			this(topicId, edit);
 		}
 
 		@Override
 		public TopicMutation toBdo() {
-			return new TopicMutation.Rename(topic, edit.position(),
-					edit.length(), edit.value());
+			return new TopicMutation.Rename(topic, edit.toBdo());
 		}
 	}
 
@@ -81,16 +79,14 @@ public sealed interface TopicMutationDto extends MutationDto {
 
 		private Describe(final TopicMutation.Describe mutation) {
 			final long topicId = mutation.topicId();
-			final var edit = new TextEditDto(mutation.position(),
-					mutation.length(), mutation.value());
+			final var edit = new TextEditDto(mutation.edit());
 
 			this(topicId, edit);
 		}
 
 		@Override
 		public TopicMutation toBdo() {
-			return new TopicMutation.Describe(topic, edit.position(),
-					edit.length(), edit.value());
+			return new TopicMutation.Describe(topic, edit.toBdo());
 		}
 	}
 

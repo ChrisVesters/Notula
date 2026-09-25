@@ -8,6 +8,7 @@ import org.junit.jupiter.api.Test;
 
 import com.cvesters.notula.common.domain.Minutes;
 import com.cvesters.notula.common.domain.Rank;
+import com.cvesters.notula.common.domain.Splice;
 import com.cvesters.notula.event.bdo.TopicMutation;
 import com.cvesters.notula.meeting.dto.TextEditDto;
 
@@ -47,8 +48,8 @@ class TopicMutationDtoTest {
 
 		@Test
 		void rename() {
-			final var mutation = new TopicMutation.Rename(TOPIC_ID, 4, 12,
-					"Updated");
+			final var mutation = new TopicMutation.Rename(TOPIC_ID,
+					new Splice(4, 12, "Updated"));
 
 			final var dto = TopicMutationDto.of(mutation);
 
@@ -59,8 +60,8 @@ class TopicMutationDtoTest {
 
 		@Test
 		void describe() {
-			final var mutation = new TopicMutation.Describe(TOPIC_ID, 4, 12,
-					"Updated");
+			final var mutation = new TopicMutation.Describe(TOPIC_ID,
+					new Splice(4, 12, "Updated"));
 
 			final var dto = TopicMutationDto.of(mutation);
 
@@ -133,8 +134,8 @@ class TopicMutationDtoTest {
 			final var edit = new TextEditDto(4, 12, "Updated");
 			final var dto = new TopicMutationDto.Rename(TOPIC_ID, edit);
 
-			final var expected = new TopicMutation.Rename(TOPIC_ID, 4, 12,
-					"Updated");
+			final var expected = new TopicMutation.Rename(TOPIC_ID,
+					new Splice(4, 12, "Updated"));
 			assertThat(dto.toBdo()).isEqualTo(expected);
 		}
 
@@ -143,8 +144,8 @@ class TopicMutationDtoTest {
 			final var edit = new TextEditDto(4, 12, "Updated");
 			final var dto = new TopicMutationDto.Describe(TOPIC_ID, edit);
 
-			final var expected = new TopicMutation.Describe(TOPIC_ID, 4, 12,
-					"Updated");
+			final var expected = new TopicMutation.Describe(TOPIC_ID,
+					new Splice(4, 12, "Updated"));
 			assertThat(dto.toBdo()).isEqualTo(expected);
 		}
 

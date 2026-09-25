@@ -11,6 +11,8 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
 
+import com.cvesters.notula.common.domain.Splice;
+
 class MeetingActionTest {
 
 	@Nested
@@ -47,13 +49,11 @@ class MeetingActionTest {
 				"0,20,'X','2026 Kickoff Meeting','X'" })
 		void success(final int position, final int length, final String value,
 				final String original, final String expected) {
-			final var action = new MeetingAction.UpdateName(position, length,
-					value);
+			final var edit = new Splice(position, length, value);
 
-			assertThat(action).isNotNull();
-			assertThat(action.getPosition()).isEqualTo(position);
-			assertThat(action.getLength()).isEqualTo(length);
-			assertThat(action.getValue()).isEqualTo(value);
+			final var action = new MeetingAction.UpdateName(edit);
+
+			assertThat(action.getEdit()).isEqualTo(edit);
 
 			final MeetingInfo meeting = mock();
 			when(meeting.getName()).thenReturn(original);
@@ -80,13 +80,11 @@ class MeetingActionTest {
 				"0,20,'X','2026 Kickoff Meeting','X'" })
 		void success(final int position, final int length, final String value,
 				final String original, final String expected) {
-			final var action = new MeetingAction.UpdateDescription(position,
-					length, value);
+			final var edit = new Splice(position, length, value);
 
-			assertThat(action).isNotNull();
-			assertThat(action.getPosition()).isEqualTo(position);
-			assertThat(action.getLength()).isEqualTo(length);
-			assertThat(action.getValue()).isEqualTo(value);
+			final var action = new MeetingAction.UpdateDescription(edit);
+
+			assertThat(action.getEdit()).isEqualTo(edit);
 
 			final MeetingInfo meeting = mock();
 			when(meeting.getDescription()).thenReturn(original);

@@ -19,6 +19,7 @@ import com.cvesters.notula.block.TestBlock;
 import com.cvesters.notula.block.bdo.BlockInfo;
 import com.cvesters.notula.common.domain.Origin;
 import com.cvesters.notula.common.domain.Principal;
+import com.cvesters.notula.common.domain.Splice;
 import com.cvesters.notula.common.exception.InvalidActionException;
 import com.cvesters.notula.event.EventInfoMatcher;
 import com.cvesters.notula.event.EventService;
@@ -80,15 +81,16 @@ class TextBlockServiceTest {
 				return true;
 			}))).thenReturn(updated);
 
-			final var action = new TextBlockAction.UpdateContent(0, 0,
-					"Project ");
+			final var action = new TextBlockAction.UpdateContent(
+					new Splice(0, 0, "Project "));
 			final TextBlockInfo result = textBlockService.update(ORIGIN, SCOPE,
 					blockId, action);
 
 			assertThat(result).isEqualTo(updated);
 
 			final var event = new EventInfo(SCOPE, ORIGIN,
-					new TextBlockMutation.Edit(blockId, 0, 0, "Project "));
+					new TextBlockMutation.Edit(blockId,
+							new Splice(0, 0, "Project ")));
 			final var matcher = new EventInfoMatcher(event);
 			verify(eventService).publish(argThat(matcher::matches));
 		}
@@ -112,15 +114,16 @@ class TextBlockServiceTest {
 				return true;
 			}))).thenReturn(updated);
 
-			final var action = new TextBlockAction.UpdateContent(0, 0,
-					"Project");
+			final var action = new TextBlockAction.UpdateContent(
+					new Splice(0, 0, "Project"));
 			final TextBlockInfo result = textBlockService.update(ORIGIN, SCOPE,
 					blockId, action);
 
 			assertThat(result).isEqualTo(updated);
 
 			final var event = new EventInfo(SCOPE, ORIGIN,
-					new TextBlockMutation.Edit(blockId, 0, 0, "Project"));
+					new TextBlockMutation.Edit(blockId,
+							new Splice(0, 0, "Project")));
 			final var matcher = new EventInfoMatcher(event);
 			verify(eventService).publish(argThat(matcher::matches));
 		}
@@ -135,8 +138,8 @@ class TextBlockServiceTest {
 			when(blockService.getById(principal, MEETING_ID, blockId))
 					.thenReturn(blockInfo);
 
-			final var action = new TextBlockAction.UpdateContent(0, 0,
-					"Project ");
+			final var action = new TextBlockAction.UpdateContent(
+					new Splice(0, 0, "Project "));
 			assertThatThrownBy(() -> textBlockService.update(ORIGIN, SCOPE,
 					blockId, action))
 							.isInstanceOf(InvalidActionException.class);
@@ -149,8 +152,8 @@ class TextBlockServiceTest {
 		void originNull() {
 			final long blockId = BLOCK.getId();
 
-			final var action = new TextBlockAction.UpdateContent(0, 0,
-					"Project ");
+			final var action = new TextBlockAction.UpdateContent(
+					new Splice(0, 0, "Project "));
 
 			assertThatThrownBy(
 					() -> textBlockService.update(null, SCOPE, blockId, action))
@@ -161,8 +164,8 @@ class TextBlockServiceTest {
 		void scopeNull() {
 			final long blockId = BLOCK.getId();
 
-			final var action = new TextBlockAction.UpdateContent(0, 0,
-					"Project ");
+			final var action = new TextBlockAction.UpdateContent(
+					new Splice(0, 0, "Project "));
 
 			assertThatThrownBy(() -> textBlockService.update(ORIGIN, null,
 					blockId, action)).isInstanceOf(NullPointerException.class);

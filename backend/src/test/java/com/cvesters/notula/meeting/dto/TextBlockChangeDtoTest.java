@@ -6,6 +6,7 @@ import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 
 import com.cvesters.notula.block.TestBlock;
+import com.cvesters.notula.common.domain.Splice;
 import com.cvesters.notula.textblock.TextBlockActionMatcher;
 import com.cvesters.notula.textblock.bdo.TextBlockAction;
 
@@ -25,8 +26,8 @@ class TextBlockChangeDtoTest {
 
 			final TextBlockAction.UpdateContent bdo = dto.toBdo();
 
-			final var expected = new TextBlockAction.UpdateContent(4, 12,
-					"Updated");
+			final var expected = new TextBlockAction.UpdateContent(
+					new Splice(4, 12, "Updated"));
 			final var matcher = new TextBlockActionMatcher.UpdateContent(
 					expected);
 			assertThat(bdo).is(matcher.equal());
