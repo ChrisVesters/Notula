@@ -30,6 +30,12 @@ export default class MeetingWebSocketClient {
 	static #buffered: Array<MeetingEvent> = [];
 
 	static #inFlight: Submission | null = null;
+	// The revision the change in flight committed at, once acknowledged. The
+	// next change names the revision it was written against, and the page only
+	// holds everything up to this one once its event has been applied. The
+	// acknowledgement and the event come on different subscriptions, so either
+	// can arrive first.
+	static #acknowledged: number | null = null;
 	static #queued: Array<Submission> = [];
 
 	public static connect(id: number, handler: MeetingEventHandler): void {
@@ -105,6 +111,9 @@ export default class MeetingWebSocketClient {
 		MeetingWebSocketClient.#buffered
 			.splice(0, MeetingWebSocketClient.#buffered.length)
 			.forEach(event => MeetingWebSocketClient.#accept(event));
+
+		MeetingWebSocketClient.#release();
+		MeetingWebSocketClient.#submit();
 	}
 
 	static #accept(event: MeetingEvent): void {
@@ -129,11 +138,11 @@ export default class MeetingWebSocketClient {
 		MeetingWebSocketClient.#revision = event.revision;
 		MeetingWebSocketClient.#streamed = true;
 
-		if (isOwnEvent(event.origin) && isText(event.mutation)) {
-			return;
+		if (!isOwnEvent(event.origin) || !isText(event.mutation)) {
+			MeetingWebSocketClient.#handler?.onEvent(event);
 		}
 
-		MeetingWebSocketClient.#handler?.onEvent(event);
+		MeetingWebSocketClient.#release();
 	}
 
 	static #acknowledge(acknowledged: Acknowledged): void {
@@ -141,13 +150,34 @@ export default class MeetingWebSocketClient {
 			return;
 		}
 
+		MeetingWebSocketClient.#acknowledged = acknowledged.revision;
+		MeetingWebSocketClient.#release();
+	}
+
+	static #release(): void {
+		const acknowledged = MeetingWebSocketClient.#acknowledged;
+		const revision = MeetingWebSocketClient.#revision;
+		if (
+			acknowledged === null ||
+			revision === undefined ||
+			revision < acknowledged
+		) {
+			return;
+		}
+
 		MeetingWebSocketClient.#inFlight = null;
+		MeetingWebSocketClient.#acknowledged = null;
 		MeetingWebSocketClient.#submit();
 	}
 
 	static #submit(): void {
 		const meetingId = MeetingWebSocketClient.#meetingId;
-		if (meetingId === null || MeetingWebSocketClient.#inFlight !== null) {
+		const revision = MeetingWebSocketClient.#revision;
+		if (
+			meetingId === null ||
+			revision === undefined ||
+			MeetingWebSocketClient.#inFlight !== null
+		) {
 			return;
 		}
 
@@ -156,16 +186,25 @@ export default class MeetingWebSocketClient {
 			return;
 		}
 
+		// Stamped as it leaves rather than when it was written: an edit
+		// waiting in the queue was typed after the one ahead of it, so its
+		// positions already hold that one, and the revision that committed it
+		// is the base they were counted in.
+		const body = isText(next.change)
+			? { ...next.change, base: revision }
+			: next.change;
+
 		MeetingWebSocketClient.#inFlight = next;
 		client().send(
 			`/app/meetings/${meetingId}/changes`,
-			JSON.stringify(next.change),
+			JSON.stringify(body),
 			{ "client-id": CLIENT_ID, "change-id": next.id }
 		);
 	}
 
 	static #clear(): void {
 		MeetingWebSocketClient.#inFlight = null;
+		MeetingWebSocketClient.#acknowledged = null;
 		MeetingWebSocketClient.#queued = [];
 	}
 
@@ -176,8 +215,8 @@ export default class MeetingWebSocketClient {
 	}
 }
 
-function isText(mutation: Mutation): boolean {
-	switch (mutation.type) {
+function isText(item: Change | Mutation): boolean {
+	switch (item.type) {
 		case "RENAME_MEETING":
 		case "DESCRIBE_MEETING":
 		case "RENAME_TOPIC":

@@ -12,13 +12,14 @@ import com.cvesters.notula.meeting.bdo.MeetingAction;
 class MeetingChangeDtoTest {
 
 	private static final TextEditDto EDIT = new TextEditDto(4, 12, "Updated");
+	private static final long BASE = 41L;
 
 	@Nested
 	class Rename {
 
 		@Test
 		void toBdo() {
-			final var dto = new MeetingChangeDto.Rename(EDIT);
+			final var dto = new MeetingChangeDto.Rename(BASE, EDIT);
 
 			final MeetingAction.UpdateName bdo = dto.toBdo();
 
@@ -34,7 +35,7 @@ class MeetingChangeDtoTest {
 
 		@Test
 		void toBdo() {
-			final var dto = new MeetingChangeDto.Describe(EDIT);
+			final var dto = new MeetingChangeDto.Describe(BASE, EDIT);
 
 			final MeetingAction.UpdateDescription bdo = dto.toBdo();
 

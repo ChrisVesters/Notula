@@ -91,6 +91,9 @@ describe("MeetingWebSocketClient", () => {
 			onEvent: vi.fn(),
 			onRejected
 		});
+		socket.deliver(`/app/meetings/${MEETING_ID}`, {
+			revision: 3
+		} as MeetingDetails);
 		socket.sent.length = 0;
 	});
 
@@ -104,15 +107,50 @@ describe("MeetingWebSocketClient", () => {
 		expect(socket.sent).toEqual([
 			{
 				destination: CHANGES,
-				body: JSON.stringify(rename("first")),
+				body: JSON.stringify({ ...rename("first"), base: 3 }),
 				headers: { "client-id": CLIENT_ID, "change-id": id }
 			}
 		]);
 	});
 
-	it("holds a change until the one before it is acknowledged", () => {
+	it("holds a change until the one before it is acknowledged and applied", () => {
 		const first = MeetingWebSocketClient.send(rename("first"));
 		MeetingWebSocketClient.send(rename("second"));
+
+		expect(changeIds()).toEqual([first]);
+
+		acknowledge(first, 4);
+
+		expect(changeIds()).toEqual([first]);
+
+		socket.deliver(`/topic/meetings/${MEETING_ID}`, {
+			revision: 4,
+			origin: { userId: 1, clientId: CLIENT_ID },
+			mutation: {
+				type: "RENAME_MEETING",
+				position: 0,
+				length: 0,
+				value: "first"
+			}
+		} satisfies MeetingEvent);
+
+		expect(values()).toEqual(["first", "second"]);
+	});
+
+	it("releases a change whose event arrives before its acknowledgement", () => {
+		const first = MeetingWebSocketClient.send(rename("first"));
+		MeetingWebSocketClient.send(rename("second"));
+
+		socket.deliver(`/topic/meetings/${MEETING_ID}`, {
+			revision: 4,
+			origin: { userId: 1, clientId: CLIENT_ID },
+			mutation: {
+				type: "RENAME_MEETING",
+				position: 0,
+				length: 0,
+				value: "first"
+			}
+		} satisfies MeetingEvent);
 
 		expect(changeIds()).toEqual([first]);
 
@@ -127,9 +165,66 @@ describe("MeetingWebSocketClient", () => {
 		MeetingWebSocketClient.send(rename("third"));
 
 		acknowledge(first, 4);
+		socket.deliver(`/topic/meetings/${MEETING_ID}`, {
+			revision: 4,
+			origin: { userId: 1, clientId: CLIENT_ID },
+			mutation: {
+				type: "RENAME_MEETING",
+				position: 0,
+				length: 0,
+				value: "first"
+			}
+		} satisfies MeetingEvent);
 		acknowledge(second, 5);
+		socket.deliver(`/topic/meetings/${MEETING_ID}`, {
+			revision: 5,
+			origin: { userId: 1, clientId: CLIENT_ID },
+			mutation: {
+				type: "RENAME_MEETING",
+				position: 0,
+				length: 0,
+				value: "second"
+			}
+		} satisfies MeetingEvent);
 
 		expect(values()).toEqual(["first", "second", "third"]);
+	});
+
+	it("stamps a text change with the revision the page holds as it leaves", () => {
+		const first = MeetingWebSocketClient.send(rename("first"));
+		MeetingWebSocketClient.send(rename("second"));
+
+		socket.deliver(`/topic/meetings/${MEETING_ID}`, {
+			revision: 4,
+			origin: {
+				userId: 2,
+				clientId: "5b2e7c91-0d4a-4f63-8e15-3a9c6d0b7f42"
+			},
+			mutation: { type: "REMOVE_TOPIC", topic: 32 }
+		} satisfies MeetingEvent);
+		acknowledge(first, 5);
+		socket.deliver(`/topic/meetings/${MEETING_ID}`, {
+			revision: 5,
+			origin: { userId: 1, clientId: CLIENT_ID },
+			mutation: {
+				type: "RENAME_MEETING",
+				position: 0,
+				length: 0,
+				value: "first"
+			}
+		} satisfies MeetingEvent);
+
+		expect(socket.sent.map(sent => JSON.parse(sent.body).base)).toEqual([
+			3, 5
+		]);
+	});
+
+	it("sends a structural change without a base", () => {
+		MeetingWebSocketClient.send({ type: "REMOVE_TOPIC", topic: 32 });
+
+		expect(socket.sent.map(sent => JSON.parse(sent.body))).toEqual([
+			{ type: "REMOVE_TOPIC", topic: 32 }
+		]);
 	});
 
 	it("keeps holding on an acknowledgement for another change", () => {
@@ -193,6 +288,18 @@ describe("MeetingWebSocketClient stream", () => {
 	afterEach(() => {
 		MeetingWebSocketClient.disconnect();
 		vi.restoreAllMocks();
+	});
+
+	it("holds a change until the first snapshot arrives", () => {
+		MeetingWebSocketClient.send(rename("first"));
+
+		expect(socket.sent).toEqual([]);
+
+		socket.deliver(SNAPSHOT, { revision: 4 } as MeetingDetails);
+
+		expect(socket.sent.map(sent => JSON.parse(sent.body))).toEqual([
+			{ ...rename("first"), base: 4 }
+		]);
 	});
 
 	it("hands on an event that follows the snapshot", () => {
