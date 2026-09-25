@@ -76,6 +76,13 @@ from `README.md`, because the frontend is configured against
 required for the backend tests — repository and WebSocket tests run against a
 real PostgreSQL through Testcontainers.
 
+**Use JDK 25 or 26, not 27.** `JAVA_HOME` is unset here, so `mvnw` takes the
+newest JDK installed, and under JDK 27 Lombok's annotation processor dies at
+compile time (`ExceptionInInitializerError: …EndPosTable`). Prefix commands with
+`JAVA_HOME=$(/usr/libexec/java_home -v 26)`. Pitest needs 26 rather than 25:
+the pom's pitest `argLine` carries `--enable-final-field-mutation`, which JDK 25
+does not recognise, so its minion refuses to start.
+
 `dependency:properties` is part of the mutation-testing command, not decoration:
 pitest cannot resolve surefire's `@{argLine}`, so the plugin sets
 `parseSurefireConfig=false` and loads the Mockito agent from the property that
@@ -103,6 +110,11 @@ Two applications behind one nginx origin: a Spring Boot 4 / Java 25 backend
   `config/WebSocketChannelInterceptor`. Destinations:
   - `/app/meetings/{id}` — `@SubscribeMapping` in `details/DetailsWebSocket`,
     replies with the full meeting snapshot to that subscriber only.
+  - `/app/meetings/{id}/events/{after}` — `@SubscribeMapping` in
+    `event/EventWebSocket`, replies to that subscriber alone with the logged
+    events after revision `after`, in order, as the same `EventDto`s the topic
+    carries. Authorised like the snapshot, through `MeetingStorageGateway`
+    rather than `MeetingService`, which depends on `EventService`.
   - `/app/meetings/{id}/changes` — the *single* inbound destination for every
     change, whatever it is about (`meeting/MeetingWebSocket`).
   - `/topic/meetings/{id}` — every resulting event, broadcast to everyone.
@@ -314,15 +326,20 @@ enforce it, in order:
 2. `meeting/MeetingLock` — a per-meeting `ReentrantLock` that **owns the lock,
    the transaction and the revision**: it acquires, bumps `meetings.revision`,
    and runs the action inside a
-   `TransactionTemplate` with a `bdo/MeetingScope` — the meeting id and the new
-   revision. **`meeting/ChangeService` is its only caller on the change path**,
-   so a change takes it exactly once; `MeetingService.delete` takes it too,
+   `TransactionTemplate` with a `bdo/MeetingScope` — the meeting id, the new
+   revision and, on the change path, the change's id, which the event log
+   records. **`meeting/ChangeService` is its only caller on the change path**,
+   so a change runs under it once, `hold` around `call`; `MeetingService.delete`
+   takes it too,
    because a meeting is deleted over REST. The entity services take a
    `MeetingScope` and cannot be reached without one, which is what replaced
    each of them locking for itself. Timing out raises
    `BusyEntityException`, which is rejected as *retryable*. `run` and `call`
-   both bump; the plain lock underneath them is private, so a non-bumping pair
-   is two lines when a read path needs one. They are not one overloaded
+   both bump. `hold` takes the same lock and transaction without bumping, for
+   what has to happen under the lock before a revision is spent —
+   `ChangeService` looks a change id up in the log inside `hold` and calls
+   `call` from within it only if the change is new; the lock is re-entrant and
+   the inner transaction joins the outer one. They are not one overloaded
    `change` because two overloads over an implicitly typed lambda are
    ambiguous.
 
@@ -425,9 +442,13 @@ round trip; `send` then returns the id of the change it joined. A refusal drops 
 the change and the queue — whatever was waiting was composed against a change
 that never happened — and reloads, because the page still shows the refused
 edit. A snapshot drops the queue too: what was waiting was written against text
-no longer on screen. Nothing
-is ever resent: whether a change in flight committed is unknowable, and a text
-edit applied twice corrupts where a lost one does not.
+no longer on screen. Nothing is resent yet. A client cannot know whether a
+change in flight committed, and a text edit applied twice corrupts where a lost
+one does not — so the server now makes a resend harmless instead: every event
+row records the `change-id` that caused it, and `ChangeService`, holding the
+meeting, answers a change whose id is already logged with an acknowledgement at
+its logged revision and does not apply it again. The client starts resending
+after a reconnect in `SEQUENCING.md` step 8.4.
 
 **A list owns its `<li>`; an item component does not render one.** Wrapping
 itself in an `<li>` ties a component to one kind of parent. `common/ReorderList`
@@ -468,19 +489,22 @@ it, with `editor/TextEdit.rebased`. The remote edit goes first at a tie
 
 `MeetingWebSocketClient` owns the event stream, and the page only applies what
 it is handed. The client checks `revision` on every event before handing it on,
-and needs **two** pieces of state to do it — `revision` and `streamed`. All events of one change
-carry that change's revision, so a second event at the current revision is the
-same change continuing and must be applied; an event at the revision a
-*snapshot* reported is already in the payload and must be dropped. One cursor
-cannot tell those apart. So: below the current revision is stale, equal is the
-same change only when `streamed`, `+ 1` is the next change, beyond that is a gap
-and resyncs. Testing `=== revision + 1` alone makes every drag look like a gap.
-Events arriving before the snapshot are buffered and replayed once the snapshot
-sets the baseline. Resync is `MeetingWebSocketClient.resync`, called by the
-client on a gap and by the page when an event names something it does not hold;
-clearing `revision` is what marks one as in flight, so the several events of one
-change resync once. A new operation needs no client-side
-plumbing to be gap-checked; it needs its events published under the change's own
+and one number is enough, because one change is one event: at or below the
+revision the page holds is already applied, `+ 1` is the next change, beyond that
+is a gap. A `streamed` flag once told a second event of the same change from a
+repeat at a snapshot's revision; it went when ranks made every change a single
+event, and a replayed event arriving beside its live copy would have been
+applied twice under it.
+
+A gap is *replayed*, not reloaded: the client subscribes once to
+`/app/meetings/{id}/events/{revision}`, buffers live events until the answer is
+in, then applies both through the same check, so the queue and the change in
+flight survive. Events arriving before the first snapshot are buffered the same
+way. `MeetingWebSocketClient.resync` still reloads the snapshot, for a refusal
+and for the page finding an event naming something it does not hold — which no
+replay repairs — and it abandons a replay in flight, or live events would stay
+buffered behind it. A new operation needs no client-side plumbing to be
+gap-checked; it needs its events published under the change's own
 `MeetingScope`, which `MeetingLock` already guarantees.
 
 **One change, one event, one revision.** This holds now that ranks removed the
@@ -628,9 +652,9 @@ Stated in `doc/LESSONS.md` and worth knowing before starting:
 
 - One WebSocket test reaches the database, and only one.
   `MeetingChangeWebSocketTest` mocks nothing below the web layer and drives a
-  topic move, a schedule and two concurrent renames to a second subscriber, so
-  lock, transaction, log, rebase, publisher and revision are exercised together
-  for those. Every other
+  topic move, a schedule and two concurrent renames to a second subscriber, and
+  replays what it logged, so lock, transaction, log, rebase, publisher, replay
+  and revision are exercised together for those. Every other
   `WebSocketTest` subclass still makes each entity service a `@MockitoBean`, so
   no other operation is covered end to end.
 - Concurrent text edits converge, with the gaps `SEQUENCING.md` step 6 names:

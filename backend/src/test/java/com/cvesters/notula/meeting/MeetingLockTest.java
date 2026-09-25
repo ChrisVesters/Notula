@@ -7,6 +7,9 @@ import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.inOrder;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import java.time.Duration;
@@ -168,6 +171,40 @@ class MeetingLockTest {
 			} finally {
 				executor.shutdownNow();
 			}
+		}
+	}
+
+	@Nested
+	class Hold {
+
+		@Test
+		void result() {
+			final MeetingStorageGateway meetings = meetings();
+			final var lock = new MeetingLock(transactions(), meetings, TIMEOUT);
+
+			final String result = lock.hold(MEETING_ID, () -> "result");
+
+			assertThat(result).isEqualTo("result");
+			verify(meetings, never()).update(any());
+		}
+
+		@Test
+		void call() {
+			final MeetingStorageGateway meetings = meetings(9);
+			final var lock = new MeetingLock(transactions(), meetings,
+					NEVER_WAITS);
+
+			final MeetingScope applied = lock.hold(MEETING_ID,
+					() -> lock.call(MEETING_ID, scope -> scope));
+
+			assertThat(applied).isEqualTo(new MeetingScope(MEETING_ID, 9));
+			verify(meetings, times(1)).update(any());
+		}
+
+		@Test
+		void actionNull() {
+			assertThatThrownBy(() -> meetingLock.hold(MEETING_ID, null))
+					.isInstanceOf(NullPointerException.class);
 		}
 	}
 

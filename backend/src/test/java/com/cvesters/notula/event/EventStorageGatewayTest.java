@@ -8,6 +8,7 @@ import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 
 import org.junit.jupiter.api.Nested;
@@ -32,6 +33,8 @@ class EventStorageGatewayTest {
 	private static final long REVISION = 18L;
 	private static final MeetingScope SCOPE = new MeetingScope(MEETING_ID,
 			REVISION);
+	private static final UUID CHANGE_ID = UUID
+			.fromString("7c6f0d54-2f70-4a1e-9f5a-1d4c8b2e0a11");
 
 	private final EventRepository eventRepository = mock();
 
@@ -105,6 +108,43 @@ class EventStorageGatewayTest {
 					REVISION);
 
 			assertThat(events).isEmpty();
+		}
+	}
+
+	@Nested
+	class FindByChangeId {
+
+		@Test
+		void success() {
+			final EventDao dao = mock();
+			final EventInfo event = mock();
+			when(dao.toBdo()).thenReturn(event);
+			when(eventRepository.findByMeetingIdAndChangeId(MEETING_ID,
+					CHANGE_ID)).thenReturn(Optional.of(dao));
+
+			final Optional<EventInfo> found = gateway.findByChangeId(MEETING_ID,
+					CHANGE_ID);
+
+			assertThat(found).contains(event);
+		}
+
+		@Test
+		void none() {
+			when(eventRepository.findByMeetingIdAndChangeId(MEETING_ID,
+					CHANGE_ID)).thenReturn(Optional.empty());
+
+			final Optional<EventInfo> found = gateway.findByChangeId(MEETING_ID,
+					CHANGE_ID);
+
+			assertThat(found).isEmpty();
+		}
+
+		@Test
+		void changeIdNull() {
+			assertThatThrownBy(() -> gateway.findByChangeId(MEETING_ID, null))
+					.isInstanceOf(NullPointerException.class);
+
+			verifyNoInteractions(eventRepository);
 		}
 	}
 }

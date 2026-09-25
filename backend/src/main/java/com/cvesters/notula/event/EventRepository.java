@@ -1,6 +1,8 @@
 package com.cvesters.notula.event;
 
 import java.util.List;
+import java.util.Optional;
+import java.util.UUID;
 
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.Repository;
@@ -18,4 +20,6 @@ public interface EventRepository extends Repository<EventDao, Long> {
 		ORDER BY e.revision
 		""")
 	List<EventDao> findAllSince(long meetingId, long revision);
+
+	Optional<EventDao> findByMeetingIdAndChangeId(long meetingId, UUID changeId);
 }

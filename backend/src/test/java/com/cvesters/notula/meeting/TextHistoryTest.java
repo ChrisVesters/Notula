@@ -67,11 +67,11 @@ class TextHistoryTest {
 			when(eventStorage.findAllSince(MEETING_ID, BASE))
 					.thenReturn(List.of(
 							new EventInfo(7L, MEETING_ID, BASE + 1, USER_ID,
-									null,
+									null, null,
 									new TextBlockMutation.Edit(BLOCK_ID,
 											OPENED)),
 							new EventInfo(8L, MEETING_ID, BASE + 2, USER_ID,
-									null, new TextBlockMutation.Edit(
+									null, null, new TextBlockMutation.Edit(
 											BLOCK_ID, TRIMMED))));
 
 			final Splice rebased = history.rebase(SCOPE, change);
@@ -85,7 +85,7 @@ class TextHistoryTest {
 					EDIT);
 			when(eventStorage.findAllSince(MEETING_ID, BASE))
 					.thenReturn(List.of(new EventInfo(7L, MEETING_ID,
-							BASE + 1, USER_ID, null,
+							BASE + 1, USER_ID, null, null,
 							new TextBlockMutation.Edit(BLOCK_ID + 1,
 									OPENED))));
 
@@ -101,13 +101,13 @@ class TextHistoryTest {
 			when(eventStorage.findAllSince(MEETING_ID, BASE))
 					.thenReturn(List.of(
 							new EventInfo(7L, MEETING_ID, BASE + 1, USER_ID,
-									null, new TopicMutation.Rename(TOPIC_ID,
-											OPENED)),
+									null, null,
+									new TopicMutation.Rename(TOPIC_ID, OPENED)),
 							new EventInfo(8L, MEETING_ID, BASE + 2, USER_ID,
-									null, new TopicMutation.Describe(
+									null, null, new TopicMutation.Describe(
 											TOPIC_ID, TRIMMED)),
 							new EventInfo(9L, MEETING_ID, BASE + 3, USER_ID,
-									null, new TopicMutation.Rename(
+									null, null, new TopicMutation.Rename(
 											TOPIC_ID + 1, TRIMMED))));
 
 			final Splice rebased = history.rebase(SCOPE, change);
@@ -122,13 +122,13 @@ class TextHistoryTest {
 			when(eventStorage.findAllSince(MEETING_ID, BASE))
 					.thenReturn(List.of(
 							new EventInfo(7L, MEETING_ID, BASE + 1, USER_ID,
-									null, new TopicMutation.Describe(
+									null, null, new TopicMutation.Describe(
 											TOPIC_ID, OPENED)),
 							new EventInfo(8L, MEETING_ID, BASE + 2, USER_ID,
-									null, new TopicMutation.Rename(TOPIC_ID,
-											TRIMMED)),
+									null, null,
+									new TopicMutation.Rename(TOPIC_ID, TRIMMED)),
 							new EventInfo(9L, MEETING_ID, BASE + 3, USER_ID,
-									null, new TopicMutation.Describe(
+									null, null, new TopicMutation.Describe(
 											TOPIC_ID + 1, TRIMMED))));
 
 			final Splice rebased = history.rebase(SCOPE, change);
@@ -142,9 +142,10 @@ class TextHistoryTest {
 			when(eventStorage.findAllSince(MEETING_ID, BASE))
 					.thenReturn(List.of(
 							new EventInfo(7L, MEETING_ID, BASE + 1, USER_ID,
-									null, new MeetingMutation.Rename(OPENED)),
+									null, null,
+									new MeetingMutation.Rename(OPENED)),
 							new EventInfo(8L, MEETING_ID, BASE + 2, USER_ID,
-									null,
+									null, null,
 									new MeetingMutation.Describe(TRIMMED))));
 
 			final Splice rebased = history.rebase(SCOPE, change);
@@ -158,10 +159,11 @@ class TextHistoryTest {
 			when(eventStorage.findAllSince(MEETING_ID, BASE))
 					.thenReturn(List.of(
 							new EventInfo(7L, MEETING_ID, BASE + 1, USER_ID,
-									null,
+									null, null,
 									new MeetingMutation.Describe(OPENED)),
 							new EventInfo(8L, MEETING_ID, BASE + 2, USER_ID,
-									null, new MeetingMutation.Rename(TRIMMED))));
+									null, null,
+									new MeetingMutation.Rename(TRIMMED))));
 
 			final Splice rebased = history.rebase(SCOPE, change);
 
@@ -174,7 +176,7 @@ class TextHistoryTest {
 					EDIT);
 			when(eventStorage.findAllSince(MEETING_ID, BASE))
 					.thenReturn(List.of(new EventInfo(7L, MEETING_ID,
-							BASE + 1, USER_ID, null,
+							BASE + 1, USER_ID, null, null,
 							new TopicMutation.Move(TOPIC_ID, new Rank("V")))));
 
 			final Splice rebased = history.rebase(SCOPE, change);

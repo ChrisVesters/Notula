@@ -57,12 +57,12 @@ class SessionOrderWebSocketTest extends WebSocketTest {
 			}
 
 			final var change = (TopicChangeDto.Remove) invocation
-					.getArgument(2);
+					.getArgument(3);
 			deleted.add(change.topic());
 			handled.countDown();
 
 			return new MeetingScope(MEETING.getId(), MEETING.getRevision());
-		}).when(changeService).apply(any(), anyLong(), any());
+		}).when(changeService).apply(any(), any(), anyLong(), any());
 
 		connect(SESSION);
 		final FrameHandler rejections = subscribeToRejections();

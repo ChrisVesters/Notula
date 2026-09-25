@@ -3,12 +3,17 @@ package com.cvesters.notula.meeting;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
+
+import java.util.Optional;
+import java.util.UUID;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
@@ -16,8 +21,11 @@ import org.junit.jupiter.api.Test;
 
 import com.cvesters.notula.block.BlockService;
 import com.cvesters.notula.block.bdo.BlockType;
+import com.cvesters.notula.common.domain.ChangeId;
 import com.cvesters.notula.common.domain.Origin;
 import com.cvesters.notula.common.domain.Splice;
+import com.cvesters.notula.event.EventStorageGateway;
+import com.cvesters.notula.event.bdo.EventInfo;
 import com.cvesters.notula.meeting.bdo.MeetingAction;
 import com.cvesters.notula.meeting.bdo.MeetingScope;
 import com.cvesters.notula.meeting.dto.BlockChangeDto;
@@ -40,8 +48,10 @@ class ChangeServiceTest {
 	private static final TestMeeting MEETING = TestMeeting.SPORER_PROJECT;
 	private static final long MEETING_ID = MEETING.getId();
 	private static final long REVISION = MEETING.getRevision();
+	private static final ChangeId CHANGE_ID = new ChangeId(
+			UUID.fromString("7c6f0d54-2f70-4a1e-9f5a-1d4c8b2e0a11"));
 	private static final MeetingScope SCOPE = new MeetingScope(MEETING_ID,
-			REVISION);
+			REVISION, CHANGE_ID.value());
 
 	private static final long TOPIC_ID = 32L;
 	private static final long BLOCK_ID = 61L;
@@ -56,9 +66,11 @@ class ChangeServiceTest {
 	private final BlockService blocks = mock();
 	private final TextBlockService texts = mock();
 	private final TextHistory history = mock();
+	private final EventStorageGateway eventStorage = mock();
 
 	private final ChangeService changeService = new ChangeService(
-			meetingLock.lock(), history, meetings, topics, blocks, texts);
+			meetingLock.lock(), history, eventStorage, meetings, topics, blocks,
+			texts);
 
 	@Nested
 	class Apply {
@@ -74,7 +86,7 @@ class ChangeServiceTest {
 					new TextEditDto(0, 3, "Renamed"));
 			when(history.rebase(SCOPE, change)).thenReturn(REBASED);
 
-			changeService.apply(ORIGIN, MEETING_ID, change);
+			changeService.apply(ORIGIN, CHANGE_ID, MEETING_ID, change);
 
 			verify(meetings).update(eq(ORIGIN), eq(SCOPE), argThat(action -> {
 				final var update = (MeetingAction.UpdateName) action;
@@ -90,7 +102,7 @@ class ChangeServiceTest {
 					new TextEditDto(0, 3, "Described"));
 			when(history.rebase(SCOPE, change)).thenReturn(REBASED);
 
-			changeService.apply(ORIGIN, MEETING_ID, change);
+			changeService.apply(ORIGIN, CHANGE_ID, MEETING_ID, change);
 
 			verify(meetings).update(eq(ORIGIN), eq(SCOPE), argThat(action -> {
 				final var update = (MeetingAction.UpdateDescription) action;
@@ -102,7 +114,7 @@ class ChangeServiceTest {
 
 		@Test
 		void addTopic() {
-			changeService.apply(ORIGIN, MEETING_ID,
+			changeService.apply(ORIGIN, CHANGE_ID, MEETING_ID,
 					new TopicChangeDto.Add(AFTER_ID, "Blockers"));
 
 			verify(topics).create(eq(ORIGIN), eq(SCOPE), argThat(action -> {
@@ -114,7 +126,7 @@ class ChangeServiceTest {
 
 		@Test
 		void moveTopic() {
-			changeService.apply(ORIGIN, MEETING_ID,
+			changeService.apply(ORIGIN, CHANGE_ID, MEETING_ID,
 					new TopicChangeDto.Move(TOPIC_ID, AFTER_ID));
 
 			verify(topics).move(eq(ORIGIN), eq(SCOPE), eq(TOPIC_ID),
@@ -130,7 +142,7 @@ class ChangeServiceTest {
 					new TextEditDto(1, 2, "Renamed"));
 			when(history.rebase(SCOPE, change)).thenReturn(REBASED);
 
-			changeService.apply(ORIGIN, MEETING_ID, change);
+			changeService.apply(ORIGIN, CHANGE_ID, MEETING_ID, change);
 
 			verify(topics).update(eq(ORIGIN), eq(SCOPE), eq(TOPIC_ID),
 					argThat(action -> {
@@ -147,7 +159,7 @@ class ChangeServiceTest {
 					new TextEditDto(1, 2, "Described"));
 			when(history.rebase(SCOPE, change)).thenReturn(REBASED);
 
-			changeService.apply(ORIGIN, MEETING_ID, change);
+			changeService.apply(ORIGIN, CHANGE_ID, MEETING_ID, change);
 
 			verify(topics).update(eq(ORIGIN), eq(SCOPE), eq(TOPIC_ID),
 					argThat(action -> {
@@ -160,7 +172,7 @@ class ChangeServiceTest {
 
 		@Test
 		void scheduleTopic() {
-			changeService.apply(ORIGIN, MEETING_ID,
+			changeService.apply(ORIGIN, CHANGE_ID, MEETING_ID,
 					new TopicChangeDto.Schedule(TOPIC_ID, 5));
 
 			verify(topics).update(eq(ORIGIN), eq(SCOPE), eq(TOPIC_ID),
@@ -170,7 +182,7 @@ class ChangeServiceTest {
 
 		@Test
 		void removeTopic() {
-			changeService.apply(ORIGIN, MEETING_ID,
+			changeService.apply(ORIGIN, CHANGE_ID, MEETING_ID,
 					new TopicChangeDto.Remove(TOPIC_ID));
 
 			verify(topics).delete(ORIGIN, SCOPE, TOPIC_ID);
@@ -178,7 +190,7 @@ class ChangeServiceTest {
 
 		@Test
 		void addBlock() {
-			changeService.apply(ORIGIN, MEETING_ID,
+			changeService.apply(ORIGIN, CHANGE_ID, MEETING_ID,
 					new BlockChangeDto.Add(TOPIC_ID, BlockType.TEXT, AFTER_ID));
 
 			verify(blocks).create(eq(ORIGIN), eq(SCOPE), argThat(action -> {
@@ -191,7 +203,7 @@ class ChangeServiceTest {
 
 		@Test
 		void moveBlock() {
-			changeService.apply(ORIGIN, MEETING_ID,
+			changeService.apply(ORIGIN, CHANGE_ID, MEETING_ID,
 					new BlockChangeDto.Move(BLOCK_ID, AFTER_ID));
 
 			verify(blocks).move(eq(ORIGIN), eq(SCOPE), eq(BLOCK_ID),
@@ -203,7 +215,7 @@ class ChangeServiceTest {
 
 		@Test
 		void removeBlock() {
-			changeService.apply(ORIGIN, MEETING_ID,
+			changeService.apply(ORIGIN, CHANGE_ID, MEETING_ID,
 					new BlockChangeDto.Remove(BLOCK_ID));
 
 			verify(blocks).delete(ORIGIN, SCOPE, BLOCK_ID);
@@ -215,7 +227,7 @@ class ChangeServiceTest {
 					new TextEditDto(4, 2, "new"));
 			when(history.rebase(SCOPE, change)).thenReturn(REBASED);
 
-			changeService.apply(ORIGIN, MEETING_ID, change);
+			changeService.apply(ORIGIN, CHANGE_ID, MEETING_ID, change);
 
 			verify(texts).update(eq(ORIGIN), eq(SCOPE), eq(BLOCK_ID),
 					argThat(action -> {
@@ -228,20 +240,47 @@ class ChangeServiceTest {
 
 		@Test
 		void scope() {
-			final MeetingScope scope = changeService.apply(ORIGIN, MEETING_ID,
-					new TopicChangeDto.Remove(TOPIC_ID));
+			final MeetingScope scope = changeService.apply(ORIGIN, CHANGE_ID,
+					MEETING_ID, new TopicChangeDto.Remove(TOPIC_ID));
 
 			assertThat(scope).isEqualTo(SCOPE);
+		}
+
+		@Test
+		void logged() {
+			final EventInfo logged = mock();
+			when(logged.getRevision()).thenReturn(REVISION - 2);
+			when(eventStorage.findByChangeId(MEETING_ID, CHANGE_ID.value()))
+					.thenReturn(Optional.of(logged));
+
+			final MeetingScope scope = changeService.apply(ORIGIN, CHANGE_ID,
+					MEETING_ID, new TopicChangeDto.Remove(TOPIC_ID));
+
+			assertThat(scope).isEqualTo(new MeetingScope(MEETING_ID,
+					REVISION - 2, CHANGE_ID.value()));
+			verify(meetingLock.lock(), never()).call(anyLong(), any());
+			verifyNoInteractions(meetings, topics, blocks, texts);
+		}
+
+		@Test
+		void unnamed() {
+			final MeetingScope scope = changeService.apply(ORIGIN,
+					ChangeId.NONE, MEETING_ID,
+					new TopicChangeDto.Remove(TOPIC_ID));
+
+			assertThat(scope).isEqualTo(new MeetingScope(MEETING_ID, REVISION));
+			verify(topics).delete(ORIGIN, scope, TOPIC_ID);
+			verifyNoInteractions(eventStorage);
 		}
 
 		@Test
 		void serialised() {
 			meetingLock.withhold();
 
-			changeService.apply(ORIGIN, MEETING_ID,
+			changeService.apply(ORIGIN, CHANGE_ID, MEETING_ID,
 					new TopicChangeDto.Remove(TOPIC_ID));
 
-			verify(meetingLock.lock()).call(eq(MEETING_ID), any());
+			verify(meetingLock.lock()).hold(eq(MEETING_ID), any());
 			verifyNoInteractions(meetings, topics, blocks, texts);
 		}
 
@@ -249,16 +288,23 @@ class ChangeServiceTest {
 		void originNull() {
 			final var change = new TopicChangeDto.Remove(TOPIC_ID);
 
+			assertThatThrownBy(() -> changeService.apply(null, CHANGE_ID,
+					MEETING_ID, change)).isInstanceOf(NullPointerException.class);
+		}
+
+		@Test
+		void changeIdNull() {
+			final var change = new TopicChangeDto.Remove(TOPIC_ID);
+
 			assertThatThrownBy(
-					() -> changeService.apply(null, MEETING_ID, change))
+					() -> changeService.apply(ORIGIN, null, MEETING_ID, change))
 							.isInstanceOf(NullPointerException.class);
 		}
 
 		@Test
 		void changeNull() {
-			assertThatThrownBy(
-					() -> changeService.apply(ORIGIN, MEETING_ID, null))
-							.isInstanceOf(NullPointerException.class);
+			assertThatThrownBy(() -> changeService.apply(ORIGIN, CHANGE_ID,
+					MEETING_ID, null)).isInstanceOf(NullPointerException.class);
 		}
 	}
 }

@@ -21,10 +21,14 @@ Authentication happens once, on the `CONNECT` frame.
 session attributes for later. Every frame after that is already authenticated,
 because the STOMP session carries the user.
 
-Five destinations:
+Six destinations:
 
 - `/app/meetings/{id}` — subscribing here returns the meeting snapshot, once, to
   the subscriber alone. A `@SubscribeMapping` reply, not a broadcast.
+- `/app/meetings/{id}/events/{after}` — subscribing here returns, once, the
+  logged events after revision `after`, in order — the same events the topic
+  carried. The client asks for it on a gap, rather than reloading the
+  meeting.
 - `/app/meetings/{id}/changes` — the single destination a client sends every
   change to, whatever the change is about.
 - `/topic/meetings/{id}` — every event for that meeting, to everyone subscribed,
@@ -69,7 +73,9 @@ own change: a text echo is dropped, because the editor already applied it.
 **`change-id`** — minted by the browser, per change in
 `MeetingWebSocketClient.send`. Rides the `change-id` header out and comes back
 as the acknowledgement's `id` or `RejectedDto.id`. Read by the client to match
-an acknowledgement to the change in flight before releasing the next one.
+an acknowledgement to the change in flight before releasing the next one, and
+recorded by the server on the change's event, so a change sent again under the
+same id is acknowledged at its logged revision rather than applied twice.
 *Load-bearing.*
 
 Their lifetimes, against the events that end them. The span is one access
@@ -212,7 +218,8 @@ builds `new Origin(principal)` — carry a null `clientId`.
 
 One change, one event, one revision. Every event of a meeting carries the
 revision its change committed at, and the client checks each against the last
-it applied: a gap reloads the meeting.
+it applied: a gap asks for the events after that revision and applies them
+before whatever arrived meanwhile.
 
 Acknowledgement — to the sender alone
 --

@@ -1,11 +1,14 @@
 package com.cvesters.notula.event;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
+import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 
 import org.junit.jupiter.api.Nested;
@@ -14,11 +17,14 @@ import org.junit.jupiter.api.Test;
 import com.cvesters.notula.common.domain.Origin;
 import com.cvesters.notula.common.domain.Splice;
 import com.cvesters.notula.common.dto.OriginDto;
+import com.cvesters.notula.common.exception.MissingEntityException;
 import com.cvesters.notula.common.messaging.TransactionalPublisher;
 import com.cvesters.notula.event.bdo.EventInfo;
 import com.cvesters.notula.event.bdo.TopicMutation;
 import com.cvesters.notula.event.dto.EventDto;
 import com.cvesters.notula.event.dto.TopicMutationDto;
+import com.cvesters.notula.meeting.MeetingStorageGateway;
+import com.cvesters.notula.meeting.TestMeeting;
 import com.cvesters.notula.meeting.bdo.MeetingScope;
 import com.cvesters.notula.meeting.dto.TextEditDto;
 import com.cvesters.notula.session.TestSession;
@@ -43,8 +49,9 @@ class EventServiceTest {
 
 	private final TransactionalPublisher publisher = mock();
 	private final EventStorageGateway eventStorage = mock();
+	private final MeetingStorageGateway meetingStorage = mock();
 	private final EventService eventService = new EventService(publisher,
-			eventStorage);
+			eventStorage, meetingStorage);
 
 	@Nested
 	class Publish {
@@ -55,7 +62,7 @@ class EventServiceTest {
 					new Splice(4, 12, "Updated"));
 			final var event = new EventInfo(SCOPE, ORIGIN, mutation);
 			final var created = new EventInfo(ID, MEETING_ID, REVISION,
-					USER_ID, CLIENT_ID, mutation);
+					USER_ID, CLIENT_ID, null, mutation);
 			when(eventStorage.create(event)).thenReturn(created);
 
 			eventService.publish(event);
@@ -72,6 +79,58 @@ class EventServiceTest {
 					.isInstanceOf(NullPointerException.class);
 
 			verifyNoInteractions(eventStorage, publisher);
+		}
+	}
+
+	@Nested
+	class FindAllSince {
+
+		@Test
+		void success() {
+			final TestMeeting meeting = TestMeeting.SPORER_PROJECT;
+			final List<EventInfo> events = List.of(mock(), mock());
+			when(meetingStorage.find(meeting.getId()))
+					.thenReturn(Optional.of(meeting.info()));
+			when(eventStorage.findAllSince(meeting.getId(), REVISION))
+					.thenReturn(events);
+
+			final List<EventInfo> found = eventService.findAllSince(
+					SESSION.principal(), meeting.getId(), REVISION);
+
+			assertThat(found).isEqualTo(events);
+		}
+
+		@Test
+		void otherOrganisation() {
+			final TestMeeting meeting = TestMeeting.GLOVER_KICKOFF_2026;
+			when(meetingStorage.find(meeting.getId()))
+					.thenReturn(Optional.of(meeting.info()));
+
+			assertThatThrownBy(() -> eventService.findAllSince(
+					SESSION.principal(), meeting.getId(), REVISION))
+							.isInstanceOf(MissingEntityException.class);
+
+			verifyNoInteractions(eventStorage);
+		}
+
+		@Test
+		void meetingNotFound() {
+			when(meetingStorage.find(MEETING_ID)).thenReturn(Optional.empty());
+
+			assertThatThrownBy(() -> eventService
+					.findAllSince(SESSION.principal(), MEETING_ID, REVISION))
+							.isInstanceOf(MissingEntityException.class);
+
+			verifyNoInteractions(eventStorage);
+		}
+
+		@Test
+		void principalNull() {
+			assertThatThrownBy(
+					() -> eventService.findAllSince(null, MEETING_ID, REVISION))
+							.isInstanceOf(NullPointerException.class);
+
+			verifyNoInteractions(meetingStorage, eventStorage);
 		}
 	}
 }

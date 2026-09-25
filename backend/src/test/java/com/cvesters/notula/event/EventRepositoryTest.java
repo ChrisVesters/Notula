@@ -4,6 +4,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 import java.util.stream.Stream;
 
@@ -47,6 +48,9 @@ class EventRepositoryTest extends RepositoryTest {
 	private static final long REVISION = MEETING.getRevision() + 1;
 	private static final MeetingScope SCOPE = new MeetingScope(MEETING.getId(),
 			REVISION);
+
+	private static final UUID CHANGE_ID = UUID
+			.fromString("7c6f0d54-2f70-4a1e-9f5a-1d4c8b2e0a11");
 
 	private static final EventInfo EVENT = new EventInfo(SCOPE, ORIGIN,
 			new TopicMutation.Remove(3L));
@@ -130,6 +134,34 @@ class EventRepositoryTest extends RepositoryTest {
 		}
 
 		@Test
+		void duplicateChangeId() {
+			eventRepository.save(new EventDao(new EventInfo(
+					new MeetingScope(MEETING.getId(), REVISION, CHANGE_ID),
+					ORIGIN, new TopicMutation.Remove(3L))));
+
+			final var dao = new EventDao(new EventInfo(
+					new MeetingScope(MEETING.getId(), REVISION + 1, CHANGE_ID),
+					ORIGIN, new TopicMutation.Remove(4L)));
+
+			assertThatThrownBy(() -> eventRepository.save(dao))
+					.isInstanceOf(DataIntegrityViolationException.class);
+		}
+
+		@Test
+		void withoutChangeIds() {
+			eventRepository.save(new EventDao(new EventInfo(
+					new MeetingScope(MEETING.getId(), REVISION), ORIGIN,
+					new TopicMutation.Remove(3L))));
+			eventRepository.save(new EventDao(new EventInfo(
+					new MeetingScope(MEETING.getId(), REVISION + 1), ORIGIN,
+					new TopicMutation.Remove(4L))));
+			entityManager.flush();
+
+			assertThat(eventRepository.findAllSince(MEETING.getId(),
+					REVISION - 1)).hasSize(2);
+		}
+
+		@Test
 		void eventNull() {
 			assertThatThrownBy(() -> eventRepository.save(null))
 					.isInstanceOf(InvalidDataAccessApiUsageException.class);
@@ -175,6 +207,53 @@ class EventRepositoryTest extends RepositoryTest {
 
 			final List<EventDao> found = eventRepository
 					.findAllSince(MEETING.getId(), REVISION);
+
+			assertThat(found).isEmpty();
+		}
+	}
+
+	@Nested
+	class FindByMeetingIdAndChangeId {
+
+		@Test
+		void success() {
+			eventRepository.save(new EventDao(new EventInfo(
+					new MeetingScope(MEETING.getId(), REVISION, CHANGE_ID),
+					ORIGIN, new TopicMutation.Remove(3L))));
+			entityManager.flush();
+			entityManager.clear();
+
+			final Optional<EventDao> found = eventRepository
+					.findByMeetingIdAndChangeId(MEETING.getId(), CHANGE_ID);
+
+			assertThat(found).get()
+					.extracting(EventDao::getRevision)
+					.isEqualTo(REVISION);
+		}
+
+		@Test
+		void otherMeeting() {
+			eventRepository.save(new EventDao(new EventInfo(
+					new MeetingScope(MEETING.getId(), REVISION, CHANGE_ID),
+					ORIGIN, new TopicMutation.Remove(3L))));
+			entityManager.flush();
+			entityManager.clear();
+
+			final Optional<EventDao> found = eventRepository
+					.findByMeetingIdAndChangeId(
+							TestMeeting.SPORER_RETRO.getId(), CHANGE_ID);
+
+			assertThat(found).isEmpty();
+		}
+
+		@Test
+		void none() {
+			eventRepository.save(new EventDao(EVENT));
+			entityManager.flush();
+			entityManager.clear();
+
+			final Optional<EventDao> found = eventRepository
+					.findByMeetingIdAndChangeId(MEETING.getId(), CHANGE_ID);
 
 			assertThat(found).isEmpty();
 		}

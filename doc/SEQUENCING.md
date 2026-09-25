@@ -949,10 +949,23 @@ says so there rather than in the console.
 
 1. The replay destination on the server, with a WebSocket test that sends
    changes, subscribes after one of them and receives the rest in order.
+   *Done*: `event/EventWebSocket` over `EventService.findAllSince`, which checks
+   the meeting's organisation first; `MeetingChangeWebSocketTest.Replay` checks
+   the reply against the frames a subscriber received live.
 2. The client replays a gap instead of reloading, and `streamed` goes; the
-   queue and the change in flight survive a gap.
+   queue and the change in flight survive a gap. *Done*: a reload abandons a
+   replay in flight, or live events would stay buffered behind it; a late answer
+   needs no guard, since it holds only committed events and the revision check
+   drops what the page already has.
 3. `change_id` on `events`; a change whose id is already logged is acknowledged
    at its logged revision without being applied, checked before the bump.
+   *Done*: the id reaches the event through `MeetingScope`, so no entity service
+   changed; `MeetingLock.hold` is the non-bumping lock, and `ChangeService`
+   calls `call` inside it only for a change not yet logged.
+   `MeetingChangeWebSocketTest.Resend` sends one rename twice under one id and
+   sees one event, two acknowledgements at one revision, and the name changed
+   once. Four existing tests had been sending two changes under one id; they
+   now use two.
 4. The one-shot snapshot, replay and resend on reconnect, and `reconnectDelay`
    back on.
 5. Sync status.

@@ -40,8 +40,10 @@ class EventDaoTest {
 
 	private static final TestMeeting MEETING = TestMeeting.SPORER_PROJECT;
 	private static final long REVISION = 18L;
+	private static final UUID CHANGE_ID = UUID
+			.fromString("7c6f0d54-2f70-4a1e-9f5a-1d4c8b2e0a11");
 	private static final MeetingScope SCOPE = new MeetingScope(MEETING.getId(),
-			REVISION);
+			REVISION, CHANGE_ID);
 
 	private static final long ID = 7L;
 
@@ -60,6 +62,7 @@ class EventDaoTest {
 			assertThat(dao.getRevision()).isEqualTo(REVISION);
 			assertThat(dao.getUserId()).isEqualTo(SESSION.principal().userId());
 			assertThat(dao.getClientId()).isEqualTo(CLIENT_ID);
+			assertThat(dao.getChangeId()).isEqualTo(CHANGE_ID);
 			assertThat(dao.getMutation()).isEqualTo(new TopicMutationDto.Rename(
 					32L, new TextEditDto(4, 2, "new")));
 		}
@@ -74,6 +77,17 @@ class EventDaoTest {
 
 			assertThat(dao.getUserId()).isEqualTo(SESSION.principal().userId());
 			assertThat(dao.getClientId()).isNull();
+		}
+
+		@Test
+		void withoutChangeId() {
+			final var scope = new MeetingScope(MEETING.getId(), REVISION);
+			final var event = new EventInfo(scope, ORIGIN,
+					new TopicMutation.Remove(32L));
+
+			final var dao = new EventDao(event);
+
+			assertThat(dao.getChangeId()).isNull();
 		}
 
 		@Test

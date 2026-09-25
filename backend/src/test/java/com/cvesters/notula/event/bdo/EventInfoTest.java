@@ -20,12 +20,14 @@ class EventInfoTest {
 	private static final Origin ORIGIN = new Origin(SESSION.principal(),
 			CLIENT_ID);
 	private static final long USER_ID = SESSION.principal().userId();
+	private static final UUID CHANGE_ID = UUID
+			.fromString("7c6f0d54-2f70-4a1e-9f5a-1d4c8b2e0a11");
 
 	private static final long ID = 7L;
 	private static final long MEETING_ID = 1L;
 	private static final long REVISION = 12L;
 	private static final MeetingScope SCOPE = new MeetingScope(MEETING_ID,
-			REVISION);
+			REVISION, CHANGE_ID);
 	private static final TopicMutation MUTATION = new TopicMutation.Remove(
 			32L);
 
@@ -42,7 +44,17 @@ class EventInfoTest {
 			assertThat(event.getRevision()).isEqualTo(REVISION);
 			assertThat(event.getUserId()).isEqualTo(USER_ID);
 			assertThat(event.getClientId()).isEqualTo(CLIENT_ID);
+			assertThat(event.getChangeId()).isEqualTo(CHANGE_ID);
 			assertThat(event.getMutation()).isEqualTo(MUTATION);
+		}
+
+		@Test
+		void withoutChangeId() {
+			final var scope = new MeetingScope(MEETING_ID, REVISION);
+
+			final var event = new EventInfo(scope, ORIGIN, MUTATION);
+
+			assertThat(event.getChangeId()).isNull();
 		}
 
 		@Test
@@ -70,20 +82,21 @@ class EventInfoTest {
 		@Test
 		void full() {
 			final var event = new EventInfo(ID, MEETING_ID, REVISION, USER_ID,
-					CLIENT_ID, MUTATION);
+					CLIENT_ID, CHANGE_ID, MUTATION);
 
 			assertThat(event.getId()).isEqualTo(ID);
 			assertThat(event.getMeetingId()).isEqualTo(MEETING_ID);
 			assertThat(event.getRevision()).isEqualTo(REVISION);
 			assertThat(event.getUserId()).isEqualTo(USER_ID);
 			assertThat(event.getClientId()).isEqualTo(CLIENT_ID);
+			assertThat(event.getChangeId()).isEqualTo(CHANGE_ID);
 			assertThat(event.getMutation()).isEqualTo(MUTATION);
 		}
 
 		@Test
 		void mutationNull() {
 			assertThatThrownBy(() -> new EventInfo(ID, MEETING_ID, REVISION,
-					USER_ID, CLIENT_ID, null))
+					USER_ID, CLIENT_ID, CHANGE_ID, null))
 							.isInstanceOf(NullPointerException.class);
 		}
 	}

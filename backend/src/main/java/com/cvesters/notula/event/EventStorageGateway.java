@@ -2,6 +2,8 @@ package com.cvesters.notula.event;
 
 import java.util.List;
 import java.util.Objects;
+import java.util.Optional;
+import java.util.UUID;
 
 import org.springframework.stereotype.Service;
 
@@ -23,6 +25,14 @@ public class EventStorageGateway {
 		final var dao = new EventDao(event);
 		final EventDao saved = eventRepository.save(dao);
 		return saved.toBdo();
+	}
+
+	public Optional<EventInfo> findByChangeId(final long meetingId,
+			final UUID changeId) {
+		Objects.requireNonNull(changeId);
+
+		return eventRepository.findByMeetingIdAndChangeId(meetingId, changeId)
+				.map(EventDao::toBdo);
 	}
 
 	public List<EventInfo> findAllSince(final long meetingId,

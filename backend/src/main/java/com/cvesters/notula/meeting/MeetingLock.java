@@ -54,6 +54,12 @@ public class MeetingLock {
 		return locked(meetingId, () -> action.apply(bump(meetingId)));
 	}
 
+	public <T> T hold(final long meetingId, final Supplier<T> action) {
+		Objects.requireNonNull(action);
+
+		return locked(meetingId, action);
+	}
+
 	private MeetingScope bump(final long meetingId) {
 		final MeetingInfo meeting = meetingStorageGateway.find(meetingId)
 				.orElseThrow(MissingEntityException::new);

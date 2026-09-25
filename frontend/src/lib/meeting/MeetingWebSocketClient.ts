@@ -28,7 +28,8 @@ export default class MeetingWebSocketClient {
 	static #handler: MeetingEventHandler | null = null;
 
 	static #revision: number | undefined = undefined;
-	static #streamed = false;
+	// The replay in flight, by destination: live events wait behind it.
+	static #replaying: string | null = null;
 	static #buffered: Array<MeetingEvent> = [];
 
 	static #inFlight: Submission | null = null;
@@ -78,9 +79,9 @@ export default class MeetingWebSocketClient {
 			return;
 		}
 
-		console.warn("Missed a change, reloading the meeting");
+		console.warn("Reloading the meeting");
 		MeetingWebSocketClient.#revision = undefined;
-		MeetingWebSocketClient.#streamed = false;
+		MeetingWebSocketClient.#abandonReplay();
 
 		client().unsubscribe(`/app/meetings/${id}`);
 		MeetingWebSocketClient.#load(id);
@@ -91,7 +92,7 @@ export default class MeetingWebSocketClient {
 		MeetingWebSocketClient.#meetingId = null;
 		MeetingWebSocketClient.#handler = null;
 		MeetingWebSocketClient.#revision = undefined;
-		MeetingWebSocketClient.#streamed = false;
+		MeetingWebSocketClient.#abandonReplay();
 		MeetingWebSocketClient.#buffered = [];
 		MeetingWebSocketClient.#clear();
 
@@ -155,7 +156,6 @@ export default class MeetingWebSocketClient {
 		MeetingWebSocketClient.#pending = false;
 
 		MeetingWebSocketClient.#revision = data.revision;
-		MeetingWebSocketClient.#streamed = false;
 		MeetingWebSocketClient.#handler?.onLoad(data);
 
 		MeetingWebSocketClient.#buffered
@@ -166,30 +166,69 @@ export default class MeetingWebSocketClient {
 		MeetingWebSocketClient.#submit();
 	}
 
+	// One change is one event and one revision, so an event at or below the
+	// revision the page holds is one it already has — whether it came from the
+	// snapshot, the stream or a replay.
 	static #accept(event: MeetingEvent): void {
 		const revision = MeetingWebSocketClient.#revision;
-		if (revision === undefined) {
+		if (revision === undefined || MeetingWebSocketClient.#replaying) {
 			MeetingWebSocketClient.#buffered.push(event);
 			return;
 		}
 
-		const seen =
-			event.revision < revision ||
-			(event.revision === revision && !MeetingWebSocketClient.#streamed);
-		if (seen) {
+		if (event.revision <= revision) {
 			return;
 		}
 
 		if (event.revision > revision + 1) {
-			MeetingWebSocketClient.resync();
+			MeetingWebSocketClient.#buffered.push(event);
+			MeetingWebSocketClient.#replay(revision);
 			return;
 		}
 
 		MeetingWebSocketClient.#revision = event.revision;
-		MeetingWebSocketClient.#streamed = true;
 
 		MeetingWebSocketClient.#receive(event);
 		MeetingWebSocketClient.#release();
+	}
+
+	// A gap asks for what was missed rather than for the whole meeting, so
+	// nothing on the page is replaced: the queue and the change in flight
+	// carry on, and the replayed events take the same path as live ones.
+	static #replay(after: number): void {
+		const id = MeetingWebSocketClient.#meetingId;
+		if (id === null) {
+			return;
+		}
+
+		console.warn("Missed a change, catching up");
+		const destination = `/app/meetings/${id}/events/${after}`;
+		MeetingWebSocketClient.#replaying = destination;
+
+		client().subscribe(destination, message =>
+			MeetingWebSocketClient.#onReplay(JSON.parse(message.body))
+		);
+	}
+
+	// A late answer, for a replay a reload has since abandoned, holds only
+	// events that committed, and the revision check drops what the page has.
+	static #onReplay(events: Array<MeetingEvent>): void {
+		MeetingWebSocketClient.#abandonReplay();
+
+		events.forEach(event => MeetingWebSocketClient.#accept(event));
+		MeetingWebSocketClient.#buffered
+			.splice(0, MeetingWebSocketClient.#buffered.length)
+			.forEach(event => MeetingWebSocketClient.#accept(event));
+	}
+
+	static #abandonReplay(): void {
+		const destination = MeetingWebSocketClient.#replaying;
+		if (destination === null) {
+			return;
+		}
+
+		MeetingWebSocketClient.#replaying = null;
+		client().unsubscribe(destination);
 	}
 
 	// Our own changes come back too. Creating, moving and deleting still

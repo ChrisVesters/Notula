@@ -414,27 +414,21 @@ describe("MeetingWebSocketClient stream", () => {
 		expect(onEvent).not.toHaveBeenCalled();
 	});
 
-	it("hands on a second event at the revision it is streaming", () => {
-		const first: MeetingEvent = {
-			revision: 5,
-			origin: { userId: 1, clientId: OTHER_CLIENT },
-			mutation: { type: "REMOVE_TOPIC", topic: 31 }
-		};
-		const second: MeetingEvent = {
+	it("drops a repeat of the event it just applied", () => {
+		const event: MeetingEvent = {
 			revision: 5,
 			origin: { userId: 1, clientId: OTHER_CLIENT },
 			mutation: { type: "REMOVE_TOPIC", topic: 32 }
 		};
 
 		socket.deliver(SNAPSHOT, { revision: 4 } as MeetingDetails);
-		socket.deliver(EVENTS, first);
-		socket.deliver(EVENTS, second);
+		socket.deliver(EVENTS, event);
+		socket.deliver(EVENTS, event);
 
-		expect(onEvent).toHaveBeenNthCalledWith(1, first);
-		expect(onEvent).toHaveBeenNthCalledWith(2, second);
+		expect(onEvent).toHaveBeenCalledTimes(1);
 	});
 
-	it("reloads the meeting when a revision is missing", () => {
+	it("asks for what was missed when a revision is missing", () => {
 		socket.deliver(SNAPSHOT, { revision: 4 } as MeetingDetails);
 		const subscribe = vi.spyOn(socket, "subscribe");
 
@@ -446,10 +440,105 @@ describe("MeetingWebSocketClient stream", () => {
 
 		expect(onEvent).not.toHaveBeenCalled();
 		expect(subscribe).toHaveBeenCalledTimes(1);
-		expect(subscribe).toHaveBeenCalledWith(SNAPSHOT, expect.any(Function));
+		expect(subscribe).toHaveBeenCalledWith(
+			`/app/meetings/${MEETING_ID}/events/4`,
+			expect.any(Function)
+		);
 	});
 
-	it("reloads once for a gap that spans several events", () => {
+	it("applies what was missed, then what arrived while asking", () => {
+		const missed: MeetingEvent = {
+			revision: 5,
+			origin: { userId: 1, clientId: OTHER_CLIENT },
+			mutation: { type: "REMOVE_TOPIC", topic: 31 }
+		};
+		const gap: MeetingEvent = {
+			revision: 6,
+			origin: { userId: 1, clientId: OTHER_CLIENT },
+			mutation: { type: "REMOVE_TOPIC", topic: 32 }
+		};
+		const later: MeetingEvent = {
+			revision: 7,
+			origin: { userId: 1, clientId: OTHER_CLIENT },
+			mutation: { type: "REMOVE_TOPIC", topic: 33 }
+		};
+
+		socket.deliver(SNAPSHOT, { revision: 4 } as MeetingDetails);
+		socket.deliver(EVENTS, gap);
+		socket.deliver(EVENTS, later);
+
+		expect(onEvent).not.toHaveBeenCalled();
+
+		socket.deliver(`/app/meetings/${MEETING_ID}/events/4`, [missed, gap]);
+
+		expect(onEvent).toHaveBeenCalledTimes(3);
+		expect(onEvent).toHaveBeenNthCalledWith(1, missed);
+		expect(onEvent).toHaveBeenNthCalledWith(2, gap);
+		expect(onEvent).toHaveBeenNthCalledWith(3, later);
+	});
+
+	it("stops listening for what was missed once it has the answer", () => {
+		socket.deliver(SNAPSHOT, { revision: 4 } as MeetingDetails);
+		socket.deliver(EVENTS, {
+			revision: 6,
+			origin: { userId: 1, clientId: OTHER_CLIENT },
+			mutation: { type: "REMOVE_TOPIC", topic: 32 }
+		} satisfies MeetingEvent);
+		const unsubscribe = vi.spyOn(socket, "unsubscribe");
+
+		socket.deliver(`/app/meetings/${MEETING_ID}/events/4`, []);
+
+		expect(unsubscribe).toHaveBeenCalledWith(
+			`/app/meetings/${MEETING_ID}/events/4`
+		);
+	});
+
+	it("applies nothing twice from an answer that arrives after a reload", () => {
+		const missed: MeetingEvent = {
+			revision: 5,
+			origin: { userId: 1, clientId: OTHER_CLIENT },
+			mutation: { type: "REMOVE_TOPIC", topic: 31 }
+		};
+
+		socket.deliver(SNAPSHOT, { revision: 4 } as MeetingDetails);
+		socket.deliver(EVENTS, {
+			revision: 6,
+			origin: { userId: 1, clientId: OTHER_CLIENT },
+			mutation: { type: "REMOVE_TOPIC", topic: 32 }
+		} satisfies MeetingEvent);
+		const replay = socket.callbacks.get(
+			`/app/meetings/${MEETING_ID}/events/4`
+		);
+		MeetingWebSocketClient.resync();
+		socket.deliver(SNAPSHOT, { revision: 6 } as MeetingDetails);
+		onEvent.mockClear();
+
+		replay?.({ body: JSON.stringify([missed]) });
+
+		expect(onEvent).not.toHaveBeenCalled();
+	});
+
+	it("hands on live events after a reload abandoned what it asked for", () => {
+		const event: MeetingEvent = {
+			revision: 7,
+			origin: { userId: 1, clientId: OTHER_CLIENT },
+			mutation: { type: "REMOVE_TOPIC", topic: 33 }
+		};
+
+		socket.deliver(SNAPSHOT, { revision: 4 } as MeetingDetails);
+		socket.deliver(EVENTS, {
+			revision: 6,
+			origin: { userId: 1, clientId: OTHER_CLIENT },
+			mutation: { type: "REMOVE_TOPIC", topic: 32 }
+		} satisfies MeetingEvent);
+		MeetingWebSocketClient.resync();
+		socket.deliver(SNAPSHOT, { revision: 6 } as MeetingDetails);
+		socket.deliver(EVENTS, event);
+
+		expect(onEvent).toHaveBeenCalledWith(event);
+	});
+
+	it("asks once for a gap that spans several events", () => {
 		socket.deliver(SNAPSHOT, { revision: 4 } as MeetingDetails);
 		const subscribe = vi.spyOn(socket, "subscribe");
 
@@ -467,6 +556,39 @@ describe("MeetingWebSocketClient stream", () => {
 		expect(subscribe).toHaveBeenCalledTimes(1);
 	});
 
+	it("keeps what it has not sent through a gap", () => {
+		socket.deliver(SNAPSHOT, { revision: 4 } as MeetingDetails);
+		const first = MeetingWebSocketClient.send({
+			type: "REMOVE_TOPIC",
+			topic: 31
+		});
+		MeetingWebSocketClient.send({ type: "REMOVE_TOPIC", topic: 32 });
+
+		socket.deliver(EVENTS, {
+			revision: 6,
+			origin: { userId: 1, clientId: CLIENT_ID },
+			mutation: { type: "REMOVE_TOPIC", topic: 31 }
+		} satisfies MeetingEvent);
+		socket.deliver(`/app/meetings/${MEETING_ID}/events/4`, [
+			{
+				revision: 5,
+				origin: { userId: 2, clientId: OTHER_CLIENT },
+				mutation: { type: "REMOVE_TOPIC", topic: 30 }
+			},
+			{
+				revision: 6,
+				origin: { userId: 1, clientId: CLIENT_ID },
+				mutation: { type: "REMOVE_TOPIC", topic: 31 }
+			}
+		] satisfies Array<MeetingEvent>);
+		socket.deliver(ACKS, { id: first, revision: 6 } satisfies Acknowledged);
+
+		expect(socket.sent.map(sent => JSON.parse(sent.body))).toEqual([
+			{ type: "REMOVE_TOPIC", topic: 31 },
+			{ type: "REMOVE_TOPIC", topic: 32 }
+		]);
+	});
+
 	it("replays events that arrive during a reload onto the new snapshot", () => {
 		const reloaded = { revision: 6 } as MeetingDetails;
 		const event: MeetingEvent = {
@@ -476,11 +598,7 @@ describe("MeetingWebSocketClient stream", () => {
 		};
 
 		socket.deliver(SNAPSHOT, { revision: 4 } as MeetingDetails);
-		socket.deliver(EVENTS, {
-			revision: 6,
-			origin: { userId: 1, clientId: OTHER_CLIENT },
-			mutation: { type: "REMOVE_TOPIC", topic: 31 }
-		} satisfies MeetingEvent);
+		MeetingWebSocketClient.resync();
 		socket.deliver(EVENTS, event);
 
 		expect(onEvent).not.toHaveBeenCalled();

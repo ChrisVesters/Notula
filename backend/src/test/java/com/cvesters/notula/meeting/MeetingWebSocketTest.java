@@ -19,6 +19,7 @@ import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 
+import com.cvesters.notula.common.domain.ChangeId;
 import com.cvesters.notula.common.domain.Origin;
 import com.cvesters.notula.common.exception.BusyEntityException;
 import com.cvesters.notula.common.exception.MissingEntityException;
@@ -53,7 +54,7 @@ class MeetingWebSocketTest extends WebSocketTest {
 	}
 
 	private void commits() {
-		when(changeService.apply(any(), anyLong(), any()))
+		when(changeService.apply(any(), any(), anyLong(), any()))
 				.thenReturn(new MeetingScope(MEETING.getId(), REVISION));
 	}
 
@@ -73,8 +74,9 @@ class MeetingWebSocketTest extends WebSocketTest {
 					}
 					"""));
 
-			verify(changeService, timeout(WAIT_TIMEOUT.toMillis()))
-					.apply(eq(ORIGIN), eq(MEETING.getId()), argThat(change -> {
+			verify(changeService, timeout(WAIT_TIMEOUT.toMillis())).apply(
+					eq(ORIGIN), eq(new ChangeId(CHANGE_ID)),
+					eq(MEETING.getId()), argThat(change -> {
 						final var add = (TopicChangeDto.Add) change;
 
 						assertThat(add.afterId()).isEqualTo(2L);
@@ -109,7 +111,7 @@ class MeetingWebSocketTest extends WebSocketTest {
 		@Test
 		void missing() throws Exception {
 			doThrow(new MissingEntityException()).when(changeService)
-					.apply(any(), anyLong(), any());
+					.apply(any(), any(), anyLong(), any());
 
 			connect(SESSION);
 			final FrameHandler rejections = subscribeToRejections();
@@ -132,7 +134,7 @@ class MeetingWebSocketTest extends WebSocketTest {
 		@Test
 		void busy() throws Exception {
 			doThrow(new BusyEntityException("Timed out")).when(changeService)
-					.apply(any(), anyLong(), any());
+					.apply(any(), any(), anyLong(), any());
 
 			connect(SESSION);
 			final FrameHandler rejections = subscribeToRejections();
@@ -186,7 +188,7 @@ class MeetingWebSocketTest extends WebSocketTest {
 						assertThat(rejected).contains(CHANGE_ID.toString());
 						assertThat(rejected).contains("\"retryable\":false");
 					});
-			verify(changeService, never()).apply(any(), anyLong(), any());
+			verify(changeService, never()).apply(any(), any(), anyLong(), any());
 		}
 
 		@Test

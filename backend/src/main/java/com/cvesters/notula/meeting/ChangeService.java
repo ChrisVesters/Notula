@@ -1,11 +1,14 @@
 package com.cvesters.notula.meeting;
 
 import java.util.Objects;
+import java.util.UUID;
 
 import org.springframework.stereotype.Service;
 
 import com.cvesters.notula.block.BlockService;
+import com.cvesters.notula.common.domain.ChangeId;
 import com.cvesters.notula.common.domain.Origin;
+import com.cvesters.notula.event.EventStorageGateway;
 import com.cvesters.notula.meeting.bdo.MeetingScope;
 import com.cvesters.notula.meeting.dto.BlockChangeDto;
 import com.cvesters.notula.meeting.dto.ChangeDto;
@@ -20,6 +23,7 @@ public class ChangeService {
 
 	private final MeetingLock meetingLock;
 	private final TextHistory history;
+	private final EventStorageGateway eventStorage;
 
 	private final MeetingService meetings;
 	private final TopicService topics;
@@ -27,23 +31,45 @@ public class ChangeService {
 	private final TextBlockService texts;
 
 	public ChangeService(final MeetingLock meetingLock,
-			final TextHistory history, final MeetingService meetings,
-			final TopicService topics, final BlockService blocks,
-			final TextBlockService texts) {
+			final TextHistory history, final EventStorageGateway eventStorage,
+			final MeetingService meetings, final TopicService topics,
+			final BlockService blocks, final TextBlockService texts) {
 		this.meetingLock = meetingLock;
 		this.history = history;
+		this.eventStorage = eventStorage;
 		this.meetings = meetings;
 		this.topics = topics;
 		this.blocks = blocks;
 		this.texts = texts;
 	}
 
-	public MeetingScope apply(final Origin origin, final long meetingId,
-			final ChangeDto change) {
+	public MeetingScope apply(final Origin origin, final ChangeId changeId,
+			final long meetingId, final ChangeDto change) {
 		Objects.requireNonNull(origin);
+		Objects.requireNonNull(changeId);
 		Objects.requireNonNull(change);
 
-		return meetingLock.call(meetingId, scope -> {
+		final UUID id = changeId.value();
+		if (id == null) {
+			return commit(origin, meetingId, null, change);
+		}
+
+		// A client resends the change it had in flight after a reconnect, not
+		// knowing whether it committed. Looking it up has to happen before the
+		// revision is bumped: a revision spent on a change that is not applied
+		// publishes nothing, and every other client would see a gap.
+		return meetingLock.hold(meetingId,
+				() -> eventStorage.findByChangeId(meetingId, id)
+						.map(logged -> new MeetingScope(meetingId,
+								logged.getRevision(), id))
+						.orElseGet(() -> commit(origin, meetingId, id, change)));
+	}
+
+	private MeetingScope commit(final Origin origin, final long meetingId,
+			final UUID changeId, final ChangeDto change) {
+		return meetingLock.call(meetingId, bumped -> {
+			final var scope = new MeetingScope(meetingId, bumped.revision(),
+					changeId);
 			dispatch(origin, scope, change);
 
 			return scope;

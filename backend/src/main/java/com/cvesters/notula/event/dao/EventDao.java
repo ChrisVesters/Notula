@@ -41,6 +41,9 @@ public class EventDao {
 	@Column(name = "client_id", updatable = false)
 	private UUID clientId;
 
+	@Column(name = "change_id", updatable = false)
+	private UUID changeId;
+
 	@JdbcTypeCode(SqlTypes.JSON)
 	@Column(nullable = false, updatable = false)
 	private MutationDto mutation;
@@ -52,6 +55,7 @@ public class EventDao {
 		this.revision = event.getRevision();
 		this.userId = event.getUserId();
 		this.clientId = event.getClientId();
+		this.changeId = event.getChangeId();
 		this.mutation = MutationDto.of(event.getMutation());
 	}
 
@@ -59,6 +63,6 @@ public class EventDao {
 		Validate.validState(id != null);
 
 		return new EventInfo(id, meetingId, revision, userId, clientId,
-				mutation.toBdo());
+				changeId, mutation.toBdo());
 	}
 }

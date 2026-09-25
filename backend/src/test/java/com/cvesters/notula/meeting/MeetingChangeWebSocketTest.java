@@ -45,6 +45,9 @@ public class MeetingChangeWebSocketTest extends WebSocketTest {
 	private static final UUID CHANGE_ID = UUID
 			.fromString("6f2a9c18-3b5d-4e07-9a61-8c4d2e0b7f35");
 
+	private static final UUID SECOND_CHANGE_ID = UUID
+			.fromString("2d8e4f60-9a1b-4c37-b5e2-6f0a3d9c1b84");
+
 	private static final UUID REFUSED_CHANGE_ID = UUID
 			.fromString("b0d7e6a4-1c39-4f52-8e7b-2a5f9c3d04e8");
 
@@ -89,7 +92,7 @@ public class MeetingChangeWebSocketTest extends WebSocketTest {
 						"afterId": %d
 					}
 					""".formatted(TIMELINE.getId(), BLOCKERS.getId())));
-			send(author, CHANGES, CHANGE_ID, payload("""
+			send(author, CHANGES, SECOND_CHANGE_ID, payload("""
 					{
 						"type": "SCHEDULE_TOPIC",
 						"topic": %d,
@@ -119,7 +122,7 @@ public class MeetingChangeWebSocketTest extends WebSocketTest {
 						"afterId": null
 					}
 					""".formatted(TIMELINE.getId())));
-			send(author, CHANGES, CHANGE_ID, payload("""
+			send(author, CHANGES, SECOND_CHANGE_ID, payload("""
 					{
 						"type": "SCHEDULE_TOPIC",
 						"topic": %d,
@@ -156,7 +159,7 @@ public class MeetingChangeWebSocketTest extends WebSocketTest {
 						"value": "Q3 "
 					}
 					""".formatted(TIMELINE.getId(), base)));
-			send(author, CHANGES, CHANGE_ID, payload("""
+			send(author, CHANGES, SECOND_CHANGE_ID, payload("""
 					{
 						"type": "RENAME_TOPIC",
 						"topic": %d,
@@ -195,6 +198,95 @@ public class MeetingChangeWebSocketTest extends WebSocketTest {
 					"SELECT name FROM topics WHERE id = ?", String.class,
 					TIMELINE.getId());
 			assertThat(name).isEqualTo("Q3 Timeline plan");
+		}
+	}
+
+	@Nested
+	class Replay {
+
+		@Test
+		void afterChange() throws Exception {
+			final FrameHandler events = observing();
+			final StompSession author = connect(SESSION);
+
+			send(author, CHANGES, CHANGE_ID, payload("""
+					{
+						"type": "MOVE_TOPIC",
+						"topic": %d,
+						"afterId": null
+					}
+					""".formatted(TIMELINE.getId())));
+			send(author, CHANGES, SECOND_CHANGE_ID, payload("""
+					{
+						"type": "SCHEDULE_TOPIC",
+						"topic": %d,
+						"minutes": 5
+					}
+					""".formatted(DELIVERABLES.getId())));
+			final List<String> received = events.await(2, EVENT_TIMEOUT);
+			assertThat(received).hasSize(2);
+
+			final FrameHandler replay = subscribe(author,
+					"/app/meetings/" + MEETING.getId() + "/events/" + REVISION);
+
+			assertThat(replay.getResponse()).succeedsWithin(EVENT_TIMEOUT)
+					.satisfies(replayed -> assertThat(replayed)
+							.isEqualToIgnoringWhitespace(
+									"[" + received.get(1) + "]"));
+		}
+
+		@Test
+		void otherOrganisation() throws Exception {
+			final StompSession author = connect(SESSION);
+			final FrameHandler rejections = subscribeToRejections(author);
+
+			subscribe(author, "/app/meetings/"
+					+ TestMeeting.GLOVER_KICKOFF_2026.getId() + "/events/0");
+
+			assertThat(rejections.getResponse()).succeedsWithin(EVENT_TIMEOUT)
+					.satisfies(rejected -> assertThat(rejected)
+							.contains("\"retryable\":false"));
+		}
+	}
+
+	@Nested
+	class Resend {
+
+		@Test
+		void logged() throws Exception {
+			final FrameHandler events = observing();
+			final StompSession author = connect(SESSION);
+			final FrameHandler acks = subscribeToAcknowledgements(author);
+			final FrameHandler snapshot = subscribe(author, SNAPSHOT);
+			assertThat(snapshot.getResponse()).succeedsWithin(EVENT_TIMEOUT);
+			final String rename = """
+					{
+						"type": "RENAME_TOPIC",
+						"topic": %d,
+						"base": %d,
+						"position": 0,
+						"length": 0,
+						"value": "Q3 "
+					}
+					""".formatted(TIMELINE.getId(), MEETING.getRevision());
+
+			send(author, CHANGES, CHANGE_ID, payload(rename));
+			send(author, CHANGES, CHANGE_ID, payload(rename));
+
+			final List<String> acknowledged = acks.await(2, EVENT_TIMEOUT);
+			assertThat(acknowledged).hasSize(2);
+			assertThat(acknowledged.get(0)).isEqualToIgnoringWhitespace(
+					acknowledged(CHANGE_ID, REVISION));
+			assertThat(acknowledged.get(1)).isEqualToIgnoringWhitespace(
+					acknowledged(CHANGE_ID, REVISION));
+
+			final List<String> received = events.await(2, EVENT_TIMEOUT);
+			assertThat(received).hasSize(1);
+
+			final String name = jdbcTemplate.queryForObject(
+					"SELECT name FROM topics WHERE id = ?", String.class,
+					TIMELINE.getId());
+			assertThat(name).isEqualTo("Q3 Timeline");
 		}
 	}
 

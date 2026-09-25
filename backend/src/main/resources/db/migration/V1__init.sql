@@ -118,10 +118,12 @@ CREATE TABLE events(
 	revision BIGINT NOT NULL,
 	user_id BIGINT NOT NULL,
 	client_id UUID,
+	change_id UUID,
 	mutation JSONB NOT NULL,
 
 	PRIMARY KEY(id),
 	FOREIGN KEY(meeting_id) REFERENCES meetings(id) ON DELETE CASCADE,
 	FOREIGN KEY(user_id) REFERENCES users(id) ON DELETE CASCADE,
-	UNIQUE(meeting_id, revision)
+	UNIQUE(meeting_id, revision),
+	UNIQUE(meeting_id, change_id)
 );

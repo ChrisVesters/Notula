@@ -17,6 +17,7 @@ public class EventInfoMatcher extends Matcher<EventInfo> {
 		assertThat(actual.getRevision()).isEqualTo(expected.getRevision());
 		assertThat(actual.getUserId()).isEqualTo(expected.getUserId());
 		assertThat(actual.getClientId()).isEqualTo(expected.getClientId());
+		assertThat(actual.getChangeId()).isEqualTo(expected.getChangeId());
 		assertThat(actual.getMutation()).isEqualTo(expected.getMutation());
 	}
 }

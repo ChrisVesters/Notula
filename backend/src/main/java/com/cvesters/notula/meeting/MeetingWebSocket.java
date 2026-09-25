@@ -30,7 +30,7 @@ public class MeetingWebSocket {
 	public AcknowledgedDto submit(final Origin origin, final ChangeId changeId,
 			@DestinationVariable final long id,
 			@Payload @Valid final ChangeDto change) {
-		final MeetingScope scope = changes.apply(origin, id, change);
+		final MeetingScope scope = changes.apply(origin, changeId, id, change);
 
 		return AcknowledgedDto.of(changeId, scope.revision());
 	}
