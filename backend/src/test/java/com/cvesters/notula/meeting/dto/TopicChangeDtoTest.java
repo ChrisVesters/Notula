@@ -60,10 +60,11 @@ class TopicChangeDtoTest {
 			final var dto = new TopicChangeDto.Rename(TOPIC.getId(), BASE,
 					EDIT);
 
-			final TopicAction.UpdateName bdo = dto.toBdo();
+			final var rebased = new Splice(6, 12, "Updated");
 
-			final var expected = new TopicAction.UpdateName(
-					new Splice(4, 12, "Updated"));
+			final TopicAction.UpdateName bdo = dto.toBdo(rebased);
+
+			final var expected = new TopicAction.UpdateName(rebased);
 			final var matcher = new TopicActionMatcher.UpdateName(expected);
 			assertThat(bdo).is(matcher.equal());
 		}
@@ -77,10 +78,11 @@ class TopicChangeDtoTest {
 			final var dto = new TopicChangeDto.Describe(TOPIC.getId(), BASE,
 					EDIT);
 
-			final TopicAction.UpdateDescription bdo = dto.toBdo();
+			final var rebased = new Splice(6, 12, "Updated");
 
-			final var expected = new TopicAction.UpdateDescription(
-					new Splice(4, 12, "Updated"));
+			final TopicAction.UpdateDescription bdo = dto.toBdo(rebased);
+
+			final var expected = new TopicAction.UpdateDescription(rebased);
 			final var matcher = new TopicActionMatcher.UpdateDescription(
 					expected);
 			assertThat(bdo).is(matcher.equal());

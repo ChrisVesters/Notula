@@ -3,6 +3,7 @@ package com.cvesters.notula.event;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
+import java.util.List;
 import java.util.UUID;
 import java.util.stream.Stream;
 
@@ -132,6 +133,50 @@ class EventRepositoryTest extends RepositoryTest {
 		void eventNull() {
 			assertThatThrownBy(() -> eventRepository.save(null))
 					.isInstanceOf(InvalidDataAccessApiUsageException.class);
+		}
+	}
+
+	@Nested
+	class FindAllSince {
+
+		@Test
+		void success() {
+			final long meetingId = MEETING.getId();
+			final long otherMeetingId = TestMeeting.SPORER_RETRO.getId();
+			eventRepository.save(new EventDao(new EventInfo(
+					new MeetingScope(meetingId, REVISION + 2), ORIGIN,
+					new TopicMutation.Remove(5L))));
+			eventRepository.save(new EventDao(new EventInfo(
+					new MeetingScope(meetingId, REVISION), ORIGIN,
+					new TopicMutation.Remove(3L))));
+			eventRepository.save(new EventDao(new EventInfo(
+					new MeetingScope(meetingId, REVISION + 1), ORIGIN,
+					new TopicMutation.Remove(4L))));
+			eventRepository.save(new EventDao(new EventInfo(
+					new MeetingScope(otherMeetingId, REVISION + 1), ORIGIN,
+					new TopicMutation.Remove(6L))));
+			entityManager.flush();
+			entityManager.clear();
+
+			final List<EventDao> found = eventRepository.findAllSince(meetingId,
+					REVISION);
+
+			assertThat(found).extracting(EventDao::getRevision)
+					.containsExactly(REVISION + 1, REVISION + 2);
+			assertThat(found).extracting(EventDao::getMeetingId)
+					.containsOnly(meetingId);
+		}
+
+		@Test
+		void none() {
+			eventRepository.save(new EventDao(EVENT));
+			entityManager.flush();
+			entityManager.clear();
+
+			final List<EventDao> found = eventRepository
+					.findAllSince(MEETING.getId(), REVISION);
+
+			assertThat(found).isEmpty();
 		}
 	}
 }

@@ -8,6 +8,7 @@ import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
+import static org.mockito.Mockito.when;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
@@ -17,7 +18,7 @@ import com.cvesters.notula.block.BlockService;
 import com.cvesters.notula.block.bdo.BlockType;
 import com.cvesters.notula.common.domain.Origin;
 import com.cvesters.notula.common.domain.Splice;
-import com.cvesters.notula.common.domain.TextUpdate;
+import com.cvesters.notula.meeting.bdo.MeetingAction;
 import com.cvesters.notula.meeting.bdo.MeetingScope;
 import com.cvesters.notula.meeting.dto.BlockChangeDto;
 import com.cvesters.notula.meeting.dto.MeetingChangeDto;
@@ -26,6 +27,7 @@ import com.cvesters.notula.meeting.dto.TextEditDto;
 import com.cvesters.notula.meeting.dto.TopicChangeDto;
 import com.cvesters.notula.session.TestSession;
 import com.cvesters.notula.textblock.TextBlockService;
+import com.cvesters.notula.textblock.bdo.TextBlockAction;
 import com.cvesters.notula.topic.TopicService;
 import com.cvesters.notula.topic.bdo.TopicAction;
 
@@ -45,6 +47,7 @@ class ChangeServiceTest {
 	private static final long BLOCK_ID = 61L;
 	private static final Long AFTER_ID = 7L;
 	private static final long BASE = REVISION - 1;
+	private static final Splice REBASED = new Splice(5, 2, "Rebased");
 
 	private final TestMeetingLock meetingLock = new TestMeetingLock();
 
@@ -52,9 +55,10 @@ class ChangeServiceTest {
 	private final TopicService topics = mock();
 	private final BlockService blocks = mock();
 	private final TextBlockService texts = mock();
+	private final TextHistory history = mock();
 
 	private final ChangeService changeService = new ChangeService(
-			meetingLock.lock(), meetings, topics, blocks, texts);
+			meetingLock.lock(), history, meetings, topics, blocks, texts);
 
 	@Nested
 	class Apply {
@@ -68,14 +72,30 @@ class ChangeServiceTest {
 		void renameMeeting() {
 			final var change = new MeetingChangeDto.Rename(BASE,
 					new TextEditDto(0, 3, "Renamed"));
+			when(history.rebase(SCOPE, change)).thenReturn(REBASED);
 
 			changeService.apply(ORIGIN, MEETING_ID, change);
 
 			verify(meetings).update(eq(ORIGIN), eq(SCOPE), argThat(action -> {
-				final var update = (TextUpdate<?>) action;
+				final var update = (MeetingAction.UpdateName) action;
 
-				assertThat(update.getEdit())
-						.isEqualTo(new Splice(0, 3, "Renamed"));
+				assertThat(update.getEdit()).isEqualTo(REBASED);
+				return true;
+			}));
+		}
+
+		@Test
+		void describeMeeting() {
+			final var change = new MeetingChangeDto.Describe(BASE,
+					new TextEditDto(0, 3, "Described"));
+			when(history.rebase(SCOPE, change)).thenReturn(REBASED);
+
+			changeService.apply(ORIGIN, MEETING_ID, change);
+
+			verify(meetings).update(eq(ORIGIN), eq(SCOPE), argThat(action -> {
+				final var update = (MeetingAction.UpdateDescription) action;
+
+				assertThat(update.getEdit()).isEqualTo(REBASED);
 				return true;
 			}));
 		}
@@ -108,15 +128,32 @@ class ChangeServiceTest {
 		void renameTopic() {
 			final var change = new TopicChangeDto.Rename(TOPIC_ID, BASE,
 					new TextEditDto(1, 2, "Renamed"));
+			when(history.rebase(SCOPE, change)).thenReturn(REBASED);
 
 			changeService.apply(ORIGIN, MEETING_ID, change);
 
 			verify(topics).update(eq(ORIGIN), eq(SCOPE), eq(TOPIC_ID),
 					argThat(action -> {
-						final var update = (TextUpdate<?>) action;
+						final var update = (TopicAction.UpdateName) action;
 
-						assertThat(update.getEdit())
-								.isEqualTo(new Splice(1, 2, "Renamed"));
+						assertThat(update.getEdit()).isEqualTo(REBASED);
+						return true;
+					}));
+		}
+
+		@Test
+		void describeTopic() {
+			final var change = new TopicChangeDto.Describe(TOPIC_ID, BASE,
+					new TextEditDto(1, 2, "Described"));
+			when(history.rebase(SCOPE, change)).thenReturn(REBASED);
+
+			changeService.apply(ORIGIN, MEETING_ID, change);
+
+			verify(topics).update(eq(ORIGIN), eq(SCOPE), eq(TOPIC_ID),
+					argThat(action -> {
+						final var update = (TopicAction.UpdateDescription) action;
+
+						assertThat(update.getEdit()).isEqualTo(REBASED);
 						return true;
 					}));
 		}
@@ -128,6 +165,7 @@ class ChangeServiceTest {
 
 			verify(topics).update(eq(ORIGIN), eq(SCOPE), eq(TOPIC_ID),
 					argThat(TopicAction.UpdateDuration.class::isInstance));
+			verifyNoInteractions(history);
 		}
 
 		@Test
@@ -175,15 +213,15 @@ class ChangeServiceTest {
 		void editTextBlock() {
 			final var change = new TextBlockChangeDto.Edit(BLOCK_ID, BASE,
 					new TextEditDto(4, 2, "new"));
+			when(history.rebase(SCOPE, change)).thenReturn(REBASED);
 
 			changeService.apply(ORIGIN, MEETING_ID, change);
 
 			verify(texts).update(eq(ORIGIN), eq(SCOPE), eq(BLOCK_ID),
 					argThat(action -> {
-						final var update = (TextUpdate<?>) action;
+						final var update = (TextBlockAction.UpdateContent) action;
 
-						assertThat(update.getEdit())
-								.isEqualTo(new Splice(4, 2, "new"));
+						assertThat(update.getEdit()).isEqualTo(REBASED);
 						return true;
 					}));
 		}

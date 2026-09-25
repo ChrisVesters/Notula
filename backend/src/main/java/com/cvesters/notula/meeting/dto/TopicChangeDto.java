@@ -8,6 +8,7 @@ import jakarta.validation.constraints.PositiveOrZero;
 import com.fasterxml.jackson.annotation.JsonUnwrapped;
 
 import com.cvesters.notula.common.domain.Minutes;
+import com.cvesters.notula.common.domain.Splice;
 import com.cvesters.notula.topic.bdo.TopicAction;
 
 public sealed interface TopicChangeDto extends ChangeDto {
@@ -26,31 +27,24 @@ public sealed interface TopicChangeDto extends ChangeDto {
 		}
 	}
 
-	sealed interface Update extends TopicChangeDto {
-
-		long topic();
-
-		TopicAction.Update toBdo();
-	}
-
 	record Rename(long topic, @PositiveOrZero long base,
 			@NotNull @Valid @JsonUnwrapped TextEditDto edit)
-			implements TopicChangeDto.Update {
-		public TopicAction.UpdateName toBdo() {
-			return new TopicAction.UpdateName(edit.toBdo());
+			implements TopicChangeDto, TextChangeDto {
+		public TopicAction.UpdateName toBdo(final Splice rebased) {
+			return new TopicAction.UpdateName(rebased);
 		}
 	}
 
 	record Describe(long topic, @PositiveOrZero long base,
 			@NotNull @Valid @JsonUnwrapped TextEditDto edit)
-			implements TopicChangeDto.Update {
-		public TopicAction.UpdateDescription toBdo() {
-			return new TopicAction.UpdateDescription(edit.toBdo());
+			implements TopicChangeDto, TextChangeDto {
+		public TopicAction.UpdateDescription toBdo(final Splice rebased) {
+			return new TopicAction.UpdateDescription(rebased);
 		}
 	}
 
 	record Schedule(long topic, @PositiveOrZero Integer minutes)
-			implements TopicChangeDto.Update {
+			implements TopicChangeDto {
 		public TopicAction.UpdateDuration toBdo() {
 			return new TopicAction.UpdateDuration(
 					minutes == null ? null : new Minutes(minutes));

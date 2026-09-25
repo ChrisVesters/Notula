@@ -26,10 +26,11 @@ class TextBlockChangeDtoTest {
 			final var dto = new TextBlockChangeDto.Edit(BLOCK.getId(), BASE,
 					EDIT);
 
-			final TextBlockAction.UpdateContent bdo = dto.toBdo();
+			final var rebased = new Splice(6, 12, "Updated");
 
-			final var expected = new TextBlockAction.UpdateContent(
-					new Splice(4, 12, "Updated"));
+			final TextBlockAction.UpdateContent bdo = dto.toBdo(rebased);
+
+			final var expected = new TextBlockAction.UpdateContent(rebased);
 			final var matcher = new TextBlockActionMatcher.UpdateContent(
 					expected);
 			assertThat(bdo).is(matcher.equal());

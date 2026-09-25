@@ -7,6 +7,7 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
+import java.util.List;
 import java.util.UUID;
 
 import org.junit.jupiter.api.Nested;
@@ -72,6 +73,38 @@ class EventStorageGatewayTest {
 					.isInstanceOf(NullPointerException.class);
 
 			verifyNoInteractions(eventRepository);
+		}
+	}
+
+	@Nested
+	class FindAllSince {
+
+		@Test
+		void success() {
+			final EventDao first = mock();
+			final EventDao second = mock();
+			final EventInfo firstInfo = mock();
+			final EventInfo secondInfo = mock();
+			when(first.toBdo()).thenReturn(firstInfo);
+			when(second.toBdo()).thenReturn(secondInfo);
+			when(eventRepository.findAllSince(MEETING_ID, REVISION))
+					.thenReturn(List.of(first, second));
+
+			final List<EventInfo> events = gateway.findAllSince(MEETING_ID,
+					REVISION);
+
+			assertThat(events).containsExactly(firstInfo, secondInfo);
+		}
+
+		@Test
+		void none() {
+			when(eventRepository.findAllSince(MEETING_ID, REVISION))
+					.thenReturn(List.of());
+
+			final List<EventInfo> events = gateway.findAllSince(MEETING_ID,
+					REVISION);
+
+			assertThat(events).isEmpty();
 		}
 	}
 }

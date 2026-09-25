@@ -138,6 +138,67 @@ public class MeetingChangeWebSocketTest extends WebSocketTest {
 	}
 
 	@Nested
+	class Rebase {
+
+		@Test
+		void concurrent() throws Exception {
+			final FrameHandler events = observing();
+			final StompSession author = connect(SESSION);
+			final long base = MEETING.getRevision();
+
+			send(author, CHANGES, CHANGE_ID, payload("""
+					{
+						"type": "RENAME_TOPIC",
+						"topic": %d,
+						"base": %d,
+						"position": 0,
+						"length": 0,
+						"value": "Q3 "
+					}
+					""".formatted(TIMELINE.getId(), base)));
+			send(author, CHANGES, CHANGE_ID, payload("""
+					{
+						"type": "RENAME_TOPIC",
+						"topic": %d,
+						"base": %d,
+						"position": 8,
+						"length": 0,
+						"value": " plan"
+					}
+					""".formatted(TIMELINE.getId(), base)));
+
+			final List<String> received = events.await(2, EVENT_TIMEOUT);
+
+			assertThat(received).hasSize(2);
+			assertThat(received.get(0)).isEqualToIgnoringWhitespace(
+					event(REVISION, """
+							{
+								"type": "RENAME_TOPIC",
+								"topic": %d,
+								"position": 0,
+								"length": 0,
+								"value": "Q3 "
+							}
+							""".formatted(TIMELINE.getId())));
+			assertThat(received.get(1)).isEqualToIgnoringWhitespace(
+					event(REVISION + 1, """
+							{
+								"type": "RENAME_TOPIC",
+								"topic": %d,
+								"position": 11,
+								"length": 0,
+								"value": " plan"
+							}
+							""".formatted(TIMELINE.getId())));
+
+			final String name = jdbcTemplate.queryForObject(
+					"SELECT name FROM topics WHERE id = ?", String.class,
+					TIMELINE.getId());
+			assertThat(name).isEqualTo("Q3 Timeline plan");
+		}
+	}
+
+	@Nested
 	class Acknowledge {
 
 		@Test

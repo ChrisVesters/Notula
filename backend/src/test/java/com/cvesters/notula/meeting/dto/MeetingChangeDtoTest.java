@@ -21,10 +21,11 @@ class MeetingChangeDtoTest {
 		void toBdo() {
 			final var dto = new MeetingChangeDto.Rename(BASE, EDIT);
 
-			final MeetingAction.UpdateName bdo = dto.toBdo();
+			final var rebased = new Splice(6, 12, "Updated");
 
-			final var expected = new MeetingAction.UpdateName(
-					new Splice(4, 12, "Updated"));
+			final MeetingAction.UpdateName bdo = dto.toBdo(rebased);
+
+			final var expected = new MeetingAction.UpdateName(rebased);
 			final var matcher = new MeetingActionMatcher.UpdateName(expected);
 			assertThat(bdo).is(matcher.equal());
 		}
@@ -37,10 +38,11 @@ class MeetingChangeDtoTest {
 		void toBdo() {
 			final var dto = new MeetingChangeDto.Describe(BASE, EDIT);
 
-			final MeetingAction.UpdateDescription bdo = dto.toBdo();
+			final var rebased = new Splice(6, 12, "Updated");
 
-			final var expected = new MeetingAction.UpdateDescription(
-					new Splice(4, 12, "Updated"));
+			final MeetingAction.UpdateDescription bdo = dto.toBdo(rebased);
+
+			final var expected = new MeetingAction.UpdateDescription(rebased);
 			final var matcher = new MeetingActionMatcher.UpdateDescription(
 					expected);
 			assertThat(bdo).is(matcher.equal());
