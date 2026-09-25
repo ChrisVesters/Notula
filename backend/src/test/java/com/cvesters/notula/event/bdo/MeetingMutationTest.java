@@ -38,6 +38,20 @@ class MeetingMutationTest {
 		}
 
 		@Test
+		void start() {
+			final var mutation = new MeetingMutation.Rename(0, 12, "Updated");
+
+			assertThat(mutation.position()).isEqualTo(0);
+		}
+
+		@Test
+		void insert() {
+			final var mutation = new MeetingMutation.Rename(4, 0, "Updated");
+
+			assertThat(mutation.length()).isEqualTo(0);
+		}
+
+		@Test
 		void positionNegative() {
 			assertThatThrownBy(() -> new MeetingMutation.Rename(-1, 12, "Up"))
 					.isInstanceOf(IllegalArgumentException.class);
@@ -67,6 +81,21 @@ class MeetingMutationTest {
 			assertThat(mutation.position()).isEqualTo(4);
 			assertThat(mutation.length()).isEqualTo(12);
 			assertThat(mutation.value()).isEqualTo("Updated");
+		}
+
+		@Test
+		void start() {
+			final var mutation = new MeetingMutation.Describe(0, 12,
+					"Updated");
+
+			assertThat(mutation.position()).isEqualTo(0);
+		}
+
+		@Test
+		void insert() {
+			final var mutation = new MeetingMutation.Describe(4, 0, "Updated");
+
+			assertThat(mutation.length()).isEqualTo(0);
 		}
 
 		@Test

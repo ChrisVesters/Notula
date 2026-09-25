@@ -419,6 +419,18 @@ class BlockServiceTest {
 		}
 
 		@Test
+		void self() {
+			final var action = new BlockAction.Move(BLOCK.getId());
+
+			assertThatThrownBy(() -> blockService.move(ORIGIN, SCOPE,
+					BLOCK.getId(), action))
+							.isInstanceOf(MissingEntityException.class);
+
+			verify(blockStorageGateway, never()).update(any());
+			verifyNoInteractions(eventService);
+		}
+
+		@Test
 		void unknownBlock() {
 			when(blockStorageGateway.find(anyLong()))
 					.thenReturn(Optional.empty());
