@@ -145,7 +145,9 @@ A text change also carries `base` in its body — `{"type":"RENAME_TOPIC",
 "topic":32,"base":41,"position":4,"length":2,"value":"new"}` — the meeting
 revision the tab held when the change left its queue, which its positions were
 counted in. It is part of the change rather than a header because nothing but
-a text edit reads it; the server does not read it yet either.
+a text edit reads it. The server rebases the edit over whatever was logged for
+the same text after that revision, and refuses a base that is not below the
+revision the change is committing at.
 
 The ids are headers rather than body fields because a refusal has to name the
 change even when the body is what went wrong. Read out of the body, the one case
@@ -163,17 +165,22 @@ What the frame passes through, in order:
    advice touches raw headers.
 4. `@Valid` on the payload converts and validates the body into a `ChangeDto`.
    `meeting/MeetingWebSocket.submit` catches nothing.
-5. `meeting/ChangeService` takes `meeting/MeetingLock` for the meeting, which
-   owns the lock, the transaction and the revision, and hands back the
-   `MeetingScope` — the meeting id and the revision this change commits at.
-6. Inside the lock, a text change is rebased by `meeting/TextHistory` over the
+5. `meeting/ChangeService` takes `meeting/MeetingLock` for the meeting with
+   `hold`, which owns the lock and the transaction, and looks the `change-id`
+   up in the event log. A change already logged is not applied again: the
+   handler acknowledges it at the revision it was logged at.
+6. Otherwise `call`, re-entering the same lock and transaction, bumps the
+   meeting's revision and hands out the `MeetingScope` — the meeting id, the
+   revision this change commits at, and the change id.
+7. Inside the lock, a text change is rebased by `meeting/TextHistory` over the
    edits to the same text logged since its `base`, and every change is
    dispatched to the service that owns its rule, which writes it and publishes
    one event.
-7. `event/EventService` logs the event in the same transaction, and
-   `common/messaging/TransactionalPublisher` holds the broadcast until
-   `afterCommit`, so nobody is told about a change that later rolled back.
-8. The handler returns the acknowledgement, `{id, revision}`, to the sender.
+8. `event/EventService` logs the event, with its change id, in the same
+   transaction, and `common/messaging/TransactionalPublisher` holds the
+   broadcast until `afterCommit`, so nobody is told about a change that later
+   rolled back.
+9. The handler returns the acknowledgement, `{id, revision}`, to the sender.
 
 What comes back
 ==
@@ -188,16 +195,22 @@ sequenceDiagram
     participant B as Tab B
     participant I as Interceptors
     participant H as MeetingWebSocket
-    participant L as MeetingLock
+    participant C as ChangeService
+    participant E as EventService
     participant P as TransactionalPublisher
 
     A->>I: SEND /app/meetings/42/changes<br/>client-id, change-id
     I->>I: SessionOrder.acquire(session)
     I->>H: Origin + ChangeId + @Valid ChangeDto
-    H->>L: ChangeService.apply
+    H->>C: apply — MeetingLock.hold
+    C->>C: change-id already logged?
 
-    alt change applies
-        L->>P: log and stage the event inside the transaction
+    alt already logged — a resend
+        H-->>A: /user/queue/acks<br/>{id, logged revision}
+    else change applies
+        C->>C: MeetingLock.call — bump revision,<br/>rebase a text edit, dispatch
+        C->>E: publish(EventInfo)
+        E->>P: log, and stage the broadcast
         P-->>A: /topic/meetings/42
         P-->>B: /topic/meetings/42
         Note over P,B: sent only after commit —<br/>the sender gets its own event too
@@ -228,6 +241,10 @@ Acknowledgement — to the sender alone
 committed at. It arrives on a different subscription from the change's event,
 so either can come first; the client releases its next change only when it
 holds both, and stamps that change's `base` with the revision it then holds.
+
+A change sent again under a `change-id` the log already holds is acknowledged
+at the revision it was logged at and not applied twice, and publishes nothing.
+The client does not resend yet; that is `SEQUENCING.md` step 8.4.
 
 Failure — a rejection on the user queue
 --
@@ -332,7 +349,12 @@ reactivates with the new token. If the identity changed rather than just the
 token, it discards the client and builds a new one instead.
 
 - Subscriptions are re-established on `onConnect` from a map the client keeps,
-  so the tab is resubscribed without the caller doing anything.
+  so the tab is resubscribed without the caller doing anything. That map still
+  holds `/app/meetings/{id}`, so a reconnect re-fires the snapshot and replaces
+  the page, dropping the queue; making it one-shot is `SEQUENCING.md` step 8.4.
+- A connection that drops by itself is **not** reconnected: `WebSocketClient`
+  sets `reconnectDelay: 0`. Only the deliberate reconnect on a token refresh
+  happens.
 - Sends issued while disconnected are queued and flushed on reconnect, which
   means a change can arrive on a *different* STOMP session than the one it was
   written on. Another reason nothing durable is keyed to that id.
@@ -356,8 +378,10 @@ server.
 
 **`change-id` — keep.** The client matches an acknowledgement to the change in
 flight by it, and releases nothing on an acknowledgement for another change.
-None of the call sites keeps the returned id, and `onRejected` does not read
-`rejected.id`: a refusal clears the queue and reloads whichever change it names.
+The server records it on the change's event, `UNIQUE` per meeting, which is
+what makes a resend harmless. None of the call sites keeps the returned id,
+and `onRejected` does not read `rejected.id`: a refusal clears the queue and
+reloads whichever change it names.
 
 **`client-id` — keep.** It is how a tab recognises the echo of its own change,
 and text echoes must be dropped because the editor applied them already.
@@ -369,7 +393,8 @@ The one that could go
 --
 
 `client-id` and `change-id` answer questions a single identifier could answer.
-If events echoed the originating `change-id` in their `origin`, a tab holding
+The log already stores the `change-id`, but `EventDto` does not carry it. If
+events echoed the originating `change-id` in their `origin`, a tab holding
 its own outstanding change ids — which it must hold anyway, to correlate
 refusals — could recognise its own events from that set. The tab identity would
 fall out of the change identity, and one client-minted UUID would do both jobs.

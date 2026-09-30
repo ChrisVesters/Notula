@@ -39,8 +39,9 @@ Checked against the code, not against the commit messages.
   move and the meeting page applies it. The old
   `// TODO: publish move action/event!!` is gone, and since ranks there is one
   event rather than one per shifted sibling.
-- **Drag-and-drop reordering.** `common/ReorderHandler` with `IconDrag` in
-  `TopicAgendaView` and `BlockView`, sending `MOVE_TOPIC` / `MOVE_BLOCK`.
+- **Drag-and-drop reordering.** `common/ReorderList` renders the list and owns
+  the drag (`common/ReorderHandler`), turning a drop into an `afterId` for
+  `MOVE_TOPIC` / `MOVE_BLOCK`; items mark a `data-reorder-handle`.
 - **One event envelope.** Events leave as `event/dto/EventDto` — `origin`
   plus a sealed `MutationDto` on one `type` discriminator — mirroring
   `ChangeDto` and matched by `frontend/src/lib/meeting/event/EventTypes.ts`.
@@ -88,17 +89,29 @@ Checked against the code, not against the commit messages.
   counted in; `ChangeService` rebases it over the logged edits to the same text
   since then, and the page rebases a remote edit over its own unconfirmed ones.
   `SEQUENCING.md` step 6.
+- **Keystrokes are batched.** A text edit typed while a change is in flight
+  joins the edit waiting behind it (`editor/TextEdit.composed`), so a fast
+  typist sends one change per round trip. `SEQUENCING.md` step 7.
+- **A missed change is replayed, not reloaded.** `/app/meetings/{id}/events/{after}`
+  answers from the event log, and `MeetingWebSocketClient` asks it on a gap and
+  applies the answer like live events, so the queue and the change in flight
+  survive. `SEQUENCING.md` step 8.2.
+- **A change sent twice is applied once.** Each event records its `change-id`;
+  `ChangeService` acknowledges a change whose id is already logged at its
+  logged revision without applying it, before any revision is spent.
+  `SEQUENCING.md` step 8.3 — the server half of resending after a reconnect.
 
 Known risks and open decisions
 ==
 
 These want an answer before the phases they sit in.
 
-- **One change drives the whole path; the rest still agree by construction.**
+- **A few changes drive the whole path; the rest still agree by construction.**
   `MeetingChangeWebSocketTest` carries a topic move, a schedule and two
   concurrent renames from a STOMP frame through the services to a second
   subscriber with nothing mocked, which pins one revision per change,
-  consecutive changes differing by one, and a stale rename rebased. Every other
+  consecutive changes differing by one, a stale rename rebased, a replay
+  matching what was broadcast, and a resend applied once. Every other
   operation — creates, deletes, block moves, text blocks, and anything on the
   meeting itself — is still covered only by tests that mock the services on one
   side and assert the type on the other.
@@ -197,27 +210,23 @@ Phase 3 — Real-time that holds up
 
 Phase 1 and 2 add data; this phase makes multi-person editing trustworthy.
 `SEQUENCING.md` is the design and its step numbering is the order to build in.
-Conflict-safe text editing has landed (above); what follows builds on its
-event log and revision.
+Conflict-safe text editing, replaying a gap and applying a resend once have
+landed (above); what follows builds on the event log and revision.
 
-- **Ask for what was missed** (M) — detection has landed; recovery is still a
-  full reload. A client that knows it skipped revisions should be able to ask
-  for those changes rather than re-fetching the whole meeting, which is what
-  makes a reconnect, a closed laptop or a redeploy cheap instead of merely
-  correct. The operation log from `SEQUENCING.md` step 6 is what it replays,
-  and it has landed. Designed, with the next two, in `SEQUENCING.md` step 8.
-- **Reconnect and recover** (M) — a dropped connection currently stays
-  dropped: `WebSocketClient` sets `reconnectDelay: 0`, overriding the library's
-  default of five seconds, so nothing retries and the tab goes quiet instead of
-  silently rebaselining over what the sender never managed to send. That is a
-  holding position, not an answer. Recovery is: reconnect deliberately,
-  re-establish the subscriptions, and decide what becomes of the change that
-  was in flight and the queue behind it — replaying them wants step 6's base
-  versions, discarding them wants *Sync status* to say so. Note that the
-  deliberate reconnect on token refresh already goes through the same gap:
-  `Session.start` calls `WebSocketClient.reconnect`, and an acknowledgement
-  lost in that window leaves the tab's queue stuck until the page is reloaded.
-  Do these two together.
+- **Reconnect and recover** (M) — `SEQUENCING.md` step 8.4, and the server half
+  is in place. A dropped connection currently stays dropped: `WebSocketClient`
+  sets `reconnectDelay: 0`, overriding the library's default of five seconds,
+  so nothing retries and the tab goes quiet instead of silently rebaselining
+  over what the sender never managed to send. That is a holding position, not
+  an answer. What is left is client work: make the snapshot subscription
+  one-shot so a reconnect does not replay it, ask for the events after the
+  page's revision on reconnect, resend the change in flight (the server now
+  applies a resend once), and only then turn `reconnectDelay` back on. Note
+  that the deliberate reconnect on token refresh already goes through the same
+  gap: `Session.start` calls `WebSocketClient.reconnect`, which re-fires the
+  snapshot and drops the queue, and an acknowledgement lost in that window
+  leaves the change in flight stuck until the page is reloaded. Do this with
+  *Sync status*.
 - **Sync status** (M) — one place in the UI that says whether the meeting is
   in sync, syncing, or disconnected. Today that state exists and is never
   shown: `MeetingWebSocketClient` holds one change in flight and a queue behind
@@ -226,11 +235,12 @@ event log and revision.
   that their edits are not being saved by noticing that nobody else's are
   arriving either. The indicator is the fix, not a dialog: `window.alert`
   would fire on every transient drop, for something stompjs recovers from in
-  five seconds. Bigger than the notice, though: this is the surface that later
-  carries "catching up" once step 6's base versions let the client replay what
-  was outstanding instead of discarding it, so build it as connection state
-  rather than as an error message. Pairs with presence and subsumes the
-  discarded-changes half of *Real error handling in the frontend*.
+  five seconds. Bigger than the notice, though: this is the surface that
+  carries "catching up" while a replay or a reload is in flight, so build it as
+  connection state rather than as an error message — live, catching up,
+  offline, and the number of changes not yet acknowledged (`SEQUENCING.md`
+  step 8.5). Pairs with presence and subsumes the discarded-changes half of
+  *Real error handling in the frontend*.
 - **Presence** (M) — who is in the meeting right now, as avatars.
   `DetailsWebSocket` already has the subscribe hook to hang this on.
 - **Authorship attribution** (M) — who wrote which note. Nothing in `blocks`
@@ -239,16 +249,17 @@ event log and revision.
   and revisions exist.
 - **Shared current-topic pointer** (S) — highlight the topic under discussion
   for everyone, over the existing WebSocket. Pairs with the Phase 1 timer.
-- **Meeting history and replay** (M) — once the operation log from
-  `SEQUENCING.md` step 6 exists, "what did this meeting look like at 14:05"
-  and a diff since I last looked are almost free. Also what undo/redo and
+- **Meeting history and replay** (M) — the event log from `SEQUENCING.md`
+  step 6 exists and records every change with its author, so "what did this
+  meeting look like at 14:05" and a diff since I last looked are mostly a read
+  path over it. It records no timestamp yet. Also what undo/redo and
   attribution both want kept.
 - **Comments and @mentions** (L) — threaded follow-up on a topic or block.
   Mentions pair with action items and want notifications behind them.
 - **Offline editing** (L) — a decision, not a task. `SEQUENCING.md` argues for
   transformation over a CRDT and names offline as the case that reverses it.
-  If taking notes on a train is a requirement, decide it before step 6 is
-  written, not after.
+  Step 6 has been built on transformation, so offline editing now means either
+  a long-lived queue rebased on return or revisiting that choice.
 
 Phase 4 — Fits into how people already work
 ==
@@ -359,7 +370,7 @@ Robustness
   page is still told only a reason, and every `send` call site drops the id it
   gets back, so a refusal still cannot be undone or retried where it happened.
 - Out-of-order resilience is handled for events, not for the rest of the page.
-  Events now carry a revision the page checks, buffers against and resyncs on,
+  Events carry a revision the client checks, buffers against and replays on,
   but `REMOVE_MEETING` still navigates away with no message, and an unknown
   `blockType` only logs.
 
@@ -383,13 +394,14 @@ Accounts and administration
 Quality
 ===
 
-- End-to-end coverage beyond the one operation `MeetingChangeWebSocketTest`
+- End-to-end coverage beyond the few operations `MeetingChangeWebSocketTest`
   carries. `WebSocketTest` can now open several sessions and `FrameHandler` can
   await a sequence of frames, so the cost of the next one is the fixtures, not
   the harness.
-- Frontend tests. Seven files cover three form components, one client, one
-  editor component, the text-edit splice and the change queue, against 1052
-  backend tests.
+- Frontend tests. Seven files and 95 tests cover three form components, one
+  API client, one editor component, the text-edit splice, rebase and compose,
+  and `MeetingWebSocketClient`'s queue and event stream, against 1,239 backend
+  tests. The meeting page's `mutate` is untested.
 - Mutation testing is configured (`org.pitest:pitest-maven`) but is not part
   of any routine.
 

@@ -57,9 +57,11 @@ unrelated question. **A framework's behaviour is not obvious from its API.**
 Print the thread, count the queries, throw the exception and watch where it
 goes.
 
-This eventually became a habit worth keeping: `MeetingCostTest` counts prepared
-statements per change and asserts exact numbers, so a read path that quietly
-multiplies queries fails in the suite rather than in production.
+This was meant to become a habit: a `MeetingCostTest` counting prepared
+statements per change, asserting exact numbers, so a read path that quietly
+multiplies queries fails in the suite rather than in production. It is
+described here, but it was never committed — no such test is in the tree or in
+its history. Nothing pins per-change query cost today.
 
 Never trust an incremental build
 ==
@@ -171,30 +173,38 @@ Worth keeping, not just the failures:
 - **Testing the claim the design rests on.** Eight writers released from a
   barrier through the real service and Postgres, asserting revisions 1–8 with no
   duplicates. The ordering guarantee is a row lock, so it cannot be tested with
-  anything mocked.
+  anything mocked. *That test, like `MeetingCostTest`, did not make it into a
+  commit.* What is committed instead is `MeetingLockTest`, against a mocked
+  gateway, and `MeetingChangeWebSocketTest.Rebase.concurrent`, which sends two
+  renames at once through the real path.
 - **Deleting rather than accumulating.** 161 files removed. The rewrite is
   smaller than what it replaced: 36 backend classes for the meeting, against
   four entity packages before.
 
+**A lesson about this document:** two of the tests above were written up here
+as existing, and did not. A design doc that names a test is a claim about the
+tree; check it with `git log -S` before trusting it.
+
 Where it ended up
 ==
 
-Backend rewritten and green — 428 tests, `mvn clean test`. Frontend rewritten
-around one connection and one change stream. Per-change database cost pinned by
-a test, and independent of meeting size.
-
-Still open, and stated plainly rather than buried:
+At the end of the rewrite: backend green at 428 tests, frontend rewritten
+around one connection and one change stream, and these open —
 
 - **The account layer is untouched.** Organisations, users, credentials and
   sessions are still the original shape; the schema was kept compatible with
-  them deliberately.
-- **No WebSocket integration test.** The change service and storage are covered
-  against real Postgres, but nothing drives a STOMP frame end to end.
-- **Text conflicts fail rather than merge.** An edit composed against an older
-  version of a block is refused with a retryable rejection. That is strictly
-  better than silent corruption, and it is not the transformation the product
-  needs. It is the seam that one plugs into.
-- **The frontend has no tests at all.**
+  them deliberately. *Still true.*
+- **No WebSocket integration test.** *Since closed in part:*
+  `MeetingChangeWebSocketTest` drives STOMP frames end to end against real
+  Postgres for a move, a schedule, concurrent renames, a replay and a resend;
+  the other operations are still covered only with the services mocked.
+- **Text conflicts fail rather than merge.** *Since closed:* text changes
+  carry a base revision and are rebased (`SEQUENCING.md` step 6).
+- **The frontend has no tests at all.** *Since improved:* 95 tests in seven
+  files, most of them on `MeetingWebSocketClient` and `editor/TextEdit`.
+
+Now: 1,239 backend tests from `mvn clean test` (one `@Disabled`), and
+`SEQUENCING.md` steps 1–7 and 8.1–8.3 built.
 
 Step 6, the first time
 ==

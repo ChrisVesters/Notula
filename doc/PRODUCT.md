@@ -70,15 +70,22 @@ The nouns, and what is actually true of them today.
 | Credential | user | password hash (Argon2) |
 | Organisation membership | organisation + user | role: `ADMIN` or `MEMBER` |
 | Session | user, organisation | refresh token, active until |
-| Meeting | organisation | name, description |
-| Topic | meeting | order, name, description, duration (minutes, optional) |
-| Block | topic | order, type (`TEXT` only) |
+| Meeting | organisation | name, description, revision |
+| Topic | meeting | rank, name, description, duration (minutes, optional) |
+| Block | topic | rank, type (`TEXT` only) |
 | Text block | block | content |
+| Event | meeting | revision, who and which tab caused it, the change id, what changed |
+
+Order is a **rank**, a fractional index the server computes, so moving or
+inserting one topic or block never touches its siblings. A meeting's
+**revision** counts the changes made to it, one per change, and every event is
+logged under the revision its change committed at.
 
 Relationships are strict containment: an organisation has meetings, a meeting
 has topics, a topic has blocks, a block has its typed content. Every row below
 the organisation also carries `organisation_id` directly, so authorisation never
-needs to walk up the tree.
+needs to walk up the tree. Events are the exception: they are only ever read
+by meeting, inside a change or a replay already authorised against it.
 
 A block's content lives in a per-type table keyed by block id. `BlockType` has
 one value today, but the split exists so that action items and decisions can be
@@ -142,8 +149,10 @@ refresh, logout), `users`, `organisations`, `organisation-users`, and `meetings`
 (list, create, delete).
 
 **A live connection** for everything inside a meeting: subscribe to a meeting to
-receive its current state and then a stream of changes; send changes to topics,
-blocks, text blocks and the meeting itself.
+receive its current state and then a stream of changes; ask for the changes
+after a revision; send every change — to topics, blocks, text blocks and the
+meeting itself — to one destination, and hear back an acknowledgement or a
+refusal. `WEBSOCKETS.md` is the protocol.
 
 **Screens**: register; select organisation; meetings list; the meeting page
 (info, agenda, notes); organisation settings and users for admins.
@@ -151,13 +160,14 @@ blocks, text blocks and the meeting itself.
 Current stack
 ==
 
-Java 25 / Spring Boot (webmvc, security with OAuth2 resource server, JPA,
-WebSocket with STOMP), PostgreSQL with Flyway migrations, Lombok, Testcontainers
-for tests. SvelteKit 5 with runes, `@stomp/stompjs`, `sveltekit-i18n` (English
-only so far), Vite, Vitest with Playwright.
+Java 25 / Spring Boot 4 (webmvc, security with OAuth2 resource server, JPA,
+WebSocket with STOMP, Jackson 3), PostgreSQL with Flyway migrations, Lombok,
+Testcontainers for tests. SvelteKit 2 / Svelte 5 with runes, `@stomp/stompjs`,
+`sveltekit-i18n` (English only so far), Vite, Vitest with Playwright.
 
-The test suite is thorough — over a thousand backend tests — and that
-expectation should carry into anything that replaces it.
+The backend test suite is thorough — 1,239 tests from `mvn clean test` — and that
+expectation should carry into anything that replaces it. The frontend one is
+not yet: 95 tests in seven files.
 
 What we learned building the first version
 ==
@@ -207,8 +217,8 @@ that still works if more than one server instance is involved.
 Decided since
 ==
 
-Questions the rewrite has answered. `SEQUENCING.md` step 6 holds the design and
-the alternatives it turned down.
+Questions the rewrite has answered. `SEQUENCING.md` steps 6 and 8 hold the
+design and the alternatives it turned down.
 
 - **How text merges.** Operational transformation on splices, against the
   meeting revision rather than a per-block version. Every text change carries
@@ -221,9 +231,17 @@ the alternatives it turned down.
   becomes a requirement.
 - **What happens to changes queued behind one that failed.** They are dropped,
   and the page reloads: the page shows the refused edit and whatever was
-  written after it, none of which the server will hold. Nothing is resent,
-  because whether a change in flight committed is unknowable, and a text edit
-  applied twice corrupts where a lost one does not.
+  written after it, none of which the server will hold.
+- **How a missed change is recovered.** The client asks for the logged events
+  after the last revision it applied, and applies them like live ones; the
+  change it has in flight and the queue behind it survive. Only divergence the
+  page finds itself reloads the whole meeting.
+- **How a change is made safe to send twice.** The client cannot know whether
+  a change in flight committed, and a text edit applied twice corrupts where a
+  lost one does not. So the server decides: every event records the id of the
+  change that caused it, and a change whose id is already logged is
+  acknowledged at its logged revision and not applied again. The client does
+  not resend yet; that comes with reconnecting.
 
 Not decided yet
 ==

@@ -14,6 +14,10 @@ Notula is multi-tenant: users belong to one or more organisations, and all
 meetings, agendas and notes live inside an organisation.
 
 Where the project is heading is described in [doc/ROADMAP.md](doc/ROADMAP.md).
+The design is in [doc/](doc/): [PRODUCT.md](doc/PRODUCT.md) for the domain and
+its constraints, [WEBSOCKETS.md](doc/WEBSOCKETS.md) for the live protocol, and
+[SEQUENCING.md](doc/SEQUENCING.md) for ordering, versioning and conflict
+handling.
 
 Features
 ==
@@ -32,7 +36,10 @@ Features
 - **Real-time collaboration** — meetings, agendas and notes are edited over a
   WebSocket connection. Edits are sent as incremental text updates
   (position/length/value) rather than whole documents, and are broadcast to
-  everyone subscribed to the meeting.
+  everyone subscribed to the meeting. Two people typing into the same text at
+  once converge: each edit carries the revision it was written against and is
+  rebased over what happened since. A client that misses a change asks for it
+  again rather than drifting.
 - **Accounts and sessions** — registration with email and password, JWT access
   tokens with a refresh token in an HTTP-only cookie.
 - **Internationalisation** — all UI text goes through translation files
@@ -52,11 +59,20 @@ Java 25 / Spring Boot 4 application, built with Maven.
 - REST API under `/api/*` for the request/response parts: `users`, `sessions`,
   `organisations`, `organisation-users` and `meetings`.
 - STOMP over WebSocket on `/ws` for everything that happens inside a meeting.
-  Clients send to `/app/meetings/{meetingId}/...` (topics, blocks, text blocks)
-  and subscribe to `/topic/meetings/{meetingId}` to receive the resulting
-  events. Subscribing to a meeting also returns its full current state.
-- PostgreSQL for persistence, with Flyway migrations in
-  `src/main/resources/db/migration`.
+  Every change, whatever it is about, is sent to one destination,
+  `/app/meetings/{meetingId}/changes`, as one JSON envelope keyed on `type`.
+  Clients subscribe to `/topic/meetings/{meetingId}` for the resulting events,
+  to `/app/meetings/{meetingId}` for the current state, and to
+  `/app/meetings/{meetingId}/events/{after}` for the events after a revision.
+  The sender alone hears back on `/user/queue/acks` or
+  `/user/queue/rejections`. [doc/WEBSOCKETS.md](doc/WEBSOCKETS.md) has the
+  details.
+- Changes to one meeting are applied one at a time under a per-meeting lock,
+  each bumping the meeting's revision, and every resulting event is logged in
+  the same transaction and broadcast after it commits.
+- PostgreSQL for persistence, with a single Flyway migration,
+  `src/main/resources/db/migration/V1__init.sql`, which is edited in place
+  until something is deployed.
 - Layering is explicit and consistent: controllers/websockets → `*Service` →
   `*StorageGateway` → Spring Data repository, with separate DTO (transport),
   BDO (domain) and DAO (JPA entity) types per package.
@@ -81,20 +97,103 @@ SvelteKit 2 / Svelte 5 application in TypeScript, built with Vite.
 Data model
 ==
 
+The schema in `V1__init.sql`. Every key is a server-assigned `BIGINT`;
+every delete cascades down the tree.
+
+```mermaid
+erDiagram
+    users ||--o{ credentials : "logs in with"
+    users ||--o{ sessions : has
+    users ||--o{ organisation_users : "is member through"
+    organisations ||--o{ organisation_users : has
+    organisations ||--o{ meetings : holds
+    meetings ||--o{ topics : "agenda of"
+    topics ||--o{ blocks : "notes of"
+    blocks ||--o| text_blocks : "content of"
+    meetings ||--o{ events : logs
+    users ||--o{ events : caused
+
+    users {
+        bigint id PK
+        text email UK
+    }
+    credentials {
+        bigint id PK
+        bigint user_id FK
+        text password "Argon2 hash"
+    }
+    organisations {
+        bigint id PK
+        text name
+    }
+    organisation_users {
+        bigint id PK
+        bigint organisation_id FK
+        bigint user_id FK
+        smallint role "ADMIN or MEMBER"
+    }
+    sessions {
+        bigint id PK
+        bigint user_id FK
+        bigint organisation_id "nullable until chosen"
+        text refresh_token
+        timestamptz active_until
+    }
+    meetings {
+        bigint id PK
+        bigint organisation_id FK
+        text name
+        text description
+        bigint revision "one per change"
+    }
+    topics {
+        bigint id PK
+        bigint organisation_id FK
+        bigint meeting_id FK
+        text rank "fractional index"
+        text name
+        text description
+        int duration "minutes, nullable"
+    }
+    blocks {
+        bigint id PK
+        bigint organisation_id FK
+        bigint topic_id FK
+        text rank "fractional index"
+        int type "TEXT"
+    }
+    text_blocks {
+        bigint block_id PK
+        text content
+    }
+    events {
+        bigint id PK
+        bigint meeting_id FK
+        bigint revision "unique per meeting"
+        bigint user_id FK
+        uuid client_id "null over REST"
+        uuid change_id "unique per meeting"
+        jsonb mutation
+    }
 ```
-organisation
- ├── users (role: ADMIN | MEMBER)
- └── meetings
-      └── topics (name, description, optional duration)
-           └── blocks (ordered; type TEXT)
-                └── content
-```
+
+- Every row below the organisation carries `organisation_id`, so
+  authorisation is a direct check. `events` does not: it is only read by
+  meeting, inside a change or replay already authorised.
+- `rank` is a base-62 fractional index, compared as text; siblings sort by
+  `(rank, id)`. A move writes one row.
+- `events` is the log of everything broadcast for a meeting, with the
+  `MutationDto` the clients received as `JSONB`. It is what text edits are
+  rebased against, what a client that missed something is replayed from, and
+  where a change sent twice is recognised by its `change_id`.
 
 Running locally
 ==
 
-Prerequisites: JDK 25, Node.js, Docker (for PostgreSQL, nginx and the backend
-integration tests).
+Prerequisites: JDK 25 or 26 (not 27: Lombok's annotation processor fails to
+start under it), Node.js, Docker (for PostgreSQL, nginx and the backend
+integration tests). With several JDKs installed, point `JAVA_HOME` at one, e.g.
+`JAVA_HOME=$(/usr/libexec/java_home -v 26) ./mvnw …` on macOS.
 
 1. Start PostgreSQL and create a `notula` database. The defaults the backend
    expects are in `backend/src/main/resources/application.properties`
@@ -105,14 +204,15 @@ integration tests).
    cd backend
    ./mvnw spring-boot:run
    ```
-   Tests: `./mvnw verify`
+   Tests: `./mvnw clean test`, or `./mvnw clean verify` for the JaCoCo report
 3. Frontend (Vite dev server on port 5173):
    ```
    cd frontend
    npm install
    npm run dev
    ```
-   Tests: `npm test` — formatting: `npm run format` / `npm run lint`
+   Tests: `npm test` — types: `npm run check` — formatting: `npm run format` /
+   `npm run lint`
 4. Start the nginx container described under [Setup](#setup) and open
    <https://localhost:4443>.
 
@@ -179,3 +279,31 @@ docker run --name notula-nginx \
 
 Note: currently you still may have to update the ip addres the host.docker.internal binds to.
 Note: on Linux, add the host mapping: `--add-host=host.docker.internal:host-gateway`
+
+Notes
+==
+
+I have decided to (temporarly) abandon this project. The main reason is that it seems to have gotten away from me.
+I had some idea/design in my head, but it didn't work out, and as I used more and more AI, it grew in complexity to the point where I no longer see a clear design.
+This is not the fault of AI, every step, every small piece of added complexity made sense, and I approved id and agreed with it.
+
+The main cause of the complexity is the combination of websockets and structured data.
+I underestimated the complexity of websockets and real-time collaboration.
+This complexity it managable when your data structure is simple, like Google Docs.
+
+If you combine this with structured data, you end up with ugly mixed up complexity.
+For example: the revision on the meeting with all the changes causing to revert to the previous version, but changes may be irrelevant.
+
+It was a valuable lesson, and I did learn a lot.
+If I would do it again, I would do it differently.
+First of all, do we really need the real-time collaboration? Maybe not!
+Instead of the real-time submission of events, I would do it with an actual trigger (save button)
+Note: this is for instance how Jira and Confluence do it.
+By doing this, you don't even need websockets for the submission of data.
+History is no longer needed to handle conflicts, and just becomes a feature to be added if wanted.
+The history can then become more specific (on the topic or block)
+Version for the entire meeting is no longer required.
+But you may want to have a system to lock a part while editing (or use versions to signal conflicts).
+
+In the end, all of this would allow the application to become a more basic REST application.
+Websockets can still be used, but would only be used to send updated (just the subscription) or just signal a new version.

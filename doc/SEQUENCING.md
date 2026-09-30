@@ -11,8 +11,29 @@ what order, and why each step has to come before the next.
 Sizes are the same scale as the roadmap: **S** = a day or two, **M** = about a
 week, **L** = multiple weeks.
 
+Where it stands
+==
+
+| Step | State |
+| --- | --- |
+| 1 — Survive a reconnect | Done |
+| 2 — Serialise a meeting's changes | Done; the lock is now taken once, by `ChangeService` |
+| 3 — Make the order visible | Done |
+| 4 — Stream position and acknowledgement | Done |
+| 5 — Fractional ranks | Done |
+| 6 — Event log, base revision, rebase | Done, with the gaps it names |
+| 7 — Compose buffered edits | Done |
+| 8 — Replay, then reconnect | 8.1–8.3 done: the replay destination, replaying a gap, and a resend applied once. 8.4 (reconnect) and 8.5 (sync status) are open |
+
+Each step below was written before it was built, and then amended with what
+landed. Where a later step overtook an earlier one, the earlier text says so
+rather than being rewritten, because the reasons it gives still hold.
+
 The problem
 ==
+
+*This is the state the design started from, kept for the reasoning. Every
+item in it has since been answered by one of the steps below.*
 
 Nothing in the system carries a version. Not `meetings`, not the events, not the
 actions. An action that says *replace 0 characters at position 7 with "a"* has
@@ -38,17 +59,21 @@ Four separate problems are tangled together underneath that.
   header and had no queue or throttle at all.
 
   **Solved.** `config/SessionOrder` now serialises a session's frames and
-  `meeting/MeetingLock` serialises a meeting's, both on the server. A frame
-  whose turn never comes is refused with a retryable rejection rather than run
-  out of order.
+  `meeting/MeetingLock` serialises a meeting's, both on the server. The
+  session gate waits without bound and never refuses; a change that waits too
+  long for the *meeting* is refused as retryable (step 3).
 - **Clients cannot tell that they missed something.** Events carry
   `{target, id, mutation, origin}` and nothing else. Every *out of sync?* TODO
   in the meeting page is this gap; today the answer is `console.error` and carry
   on with a view that has quietly diverged.
+
+  **Solved** by step 4's revision, and by step 8's replay of what was missed.
 - **Ordering is stored densely.** `topics.sequence_id` and `blocks.sequence_id`
   are contiguous integers, so inserting or moving one row rewrites every row
   between the old and the new position, and publishes an event for each. Two
   concurrent moves scramble the list.
+
+  **Solved** by step 5's fractional ranks.
 - **Remote text edits corrupt each other rather than being ignored.**
 
   **Changed.** The meeting page now applies name, description and content
@@ -56,6 +81,8 @@ Four separate problems are tangled together underneath that.
   divergence this section used to describe is gone, and what is left is the
   real conflict: two edits composed against the same base, spliced in the order
   they arrive. That is step 6.
+
+  **Solved** by step 6: text changes carry a base and are rebased.
 
 Where versions belong
 ==
@@ -79,6 +106,11 @@ meeting is already the subscription unit, so it is the natural thing to number.
 
 The hot-row objection is real but bounded by the product: the writers on one
 meeting are the people in one room, tens rather than thousands.
+
+*Overtaken by step 6*, which uses the meeting revision as the base as well:
+an edit that is rebased rather than refused is only moved over edits to its
+own text, so the objection below applies to a compare-and-set and not to what
+was built. The paragraph is kept because it is the reasoning step 6 answers.
 
 **The conflict token has to be fine.** Transformation only ever happens between
 operations on the same string, so a splice in one block can never invalidate a
@@ -163,9 +195,15 @@ time, in a defined order.
 
 `meeting/MeetingLock` is the lock: one `ReentrantLock` per meeting id, held in a
 map that is reference-counted so an entry is dropped once nothing holds or waits
-for it, with the wait bounded by `meeting.lock.timeout`. Every mutating service
-method resolves its meeting — from the action for a create, by walking up from
-the element otherwise — and hands its body to `call` or `run`.
+for it, with the wait bounded by `meeting.lock.timeout` (10s). Every mutating
+service method resolved its meeting — from the action for a create, by walking
+up from the element otherwise — and handed its body to `call` or `run`.
+
+*Since step 4*, that is no longer where the lock is taken. The meeting id comes
+from the destination, `meeting/ChangeService` takes the lock once per change,
+and the entity services take the `MeetingScope` it hands out instead of locking
+for themselves. `MeetingService.delete` is the one other caller, because a
+meeting is deleted over REST.
 
 The lock opens the transaction rather than the service method declaring one.
 This is the surprising part of the code and the reason `@Transactional` is
@@ -194,6 +232,10 @@ split from it: step 6 gives `text_blocks` a version, and a compare-and-set on
 that version is optimistic concurrency needing no lock at all. Fine granularity
 arrives there, as a consequence of the version, rather than as locking
 machinery here.
+
+*Overtaken by step 6:* text stayed inside the lock. The rebase reads the event
+log since the change's base, and the lock is what guarantees nothing is logged
+between that read and the write. There is no per-block version.
 
 *Why here:* it is the only step that makes correctness independent of how
 clients behave. Everything below assumes the server applies one action at a time
@@ -317,11 +359,9 @@ point the two readings converge anyway.
 
 **`MeetingLock` bumps it.** The lock already has the meeting id, already owns
 the transaction and already runs once per change, which makes it the one place
-a new operation cannot forget the bump — the same argument that puts the
-acknowledgement in an interceptor rather than in every handler. A `MeetingLock`
-that only locks is still available: `run` and `call` bump because every caller
-today is a change, and the plain path underneath them is one private method, so
-a non-bumping pair is two lines the day a read path wants one.
+a new operation cannot forget the bump. `run` and `call` bump. `hold` takes the
+same lock and transaction without bumping; step 8.3 added it, for the lookup
+that has to happen before a revision is spent.
 
 **The bump belongs to the meeting, not to the row.** `MeetingInfo.bumpRevision`
 decides what the next number is and `MeetingDao.update` carries it to storage
@@ -339,16 +379,17 @@ revisions rather than storing meetings.
 
 *Landed.* `meetings.revision` is in `V1__init.sql`, and `MeetingLock` hands the
 action a `MeetingScope` — the meeting id and the revision the change is
-committing at — which travels down to `EventPublisher` as one parameter where
-the meeting id used to travel alone. Re-reading the number at publish time was
+committing at, and since step 8.3 the change's id — which travels down to
+`event/EventService` as one parameter where the meeting id used to travel
+alone. Re-reading the number at publish time was
 the alternative and does not work: `REMOVE_MEETING` deletes the row it came
 from. `EventDto` and `MeetingDetailsDto` both carry it, and `DetailsService.get`
 became one `REPEATABLE READ` transaction, since a snapshot assembled from N+1
 separate reads can report a revision the payload has already passed.
 
 `MeetingScope` is the scope a change runs in, which is what every service
-method needed both halves of anyway; `Origin` and `ChangeId` are the candidates
-to join it. It is handed down, not bound into a publisher the action calls —
+method needed both halves of anyway; the change id has since joined it, and
+`Origin` is the remaining candidate. It is handed down, not bound into a publisher the action calls —
 see below. The pair that hands it out stays named `run` and `call` rather than
 one overloaded `change`, because two overloads taking an implicitly typed
 lambda are ambiguous whatever their return types.
@@ -376,7 +417,8 @@ wants a common type over four deliberately unrelated `bdo` records, and a
 has no `module-info`, so `javac` refuses — *class Event in unnamed module
 cannot extend a sealed class in a different package*. What is left is a
 non-sealed marker interface, a union with no exhaustiveness, bought for
-plumbing.
+plumbing. (Step 6 did get a sealed `Mutation`, by moving all the mutations
+into one package, `event/bdo`; the four event records went.)
 
 *Landed.* A change enters through one service. `meeting/ChangeService.apply`
 takes the lock, dispatches on the sealed `ChangeDto` inside it and returns the
@@ -436,6 +478,13 @@ missed something, and `MeetingWebSocketClient.resync` unsubscribes and
 resubscribes `/app/meetings/{id}` for a fresh snapshot rather than continuing on
 a diverged view. Destinations stay inside that client; the page asks for a
 reload and never names one.
+
+*Since then:* the revision moved from the page into `MeetingWebSocketClient`
+(step 6.6), a gap is replayed from the log rather than reloaded (step 8.2), and
+`streamed` below is gone — step 5 made one change one event, so one number is
+enough after all. The next paragraphs are the reasoning for a state that no
+longer exists; they are kept because they explain why *one change, one event,
+one revision* matters.
 
 **One number is not enough, and this is the part that is easy to get wrong.**
 Two different events can carry the revision the page is currently on, and they
@@ -502,11 +551,10 @@ has never surfaced, but that is read from behaviour rather than demonstrated,
 and redelivery is exactly the duplicate the equality case waves through.
 
 **So the invariant to hold going forward is one change, one event, one
-revision.** It is not true today only because dense `sequence_id`s make a move
-shift its siblings, and step 5 removes that — after it, the revision numbers a
-single event and the blindness has nowhere to live. Until then, an operation
-that publishes several events per change is tolerated, not endorsed: adding a
-new one is the moment to ask whether it can write a single row instead. An event
+revision.** It was not true at the time only because dense `sequence_id`s made
+a move shift its siblings, and step 5 removed that — the revision now numbers a
+single event and the blindness has nowhere to live. An operation that wants to
+publish several events per change is a question, not a judgement call. An event
 index and count on `EventDto` would make a partial change detectable sooner, and
 was considered and set aside — it carries a field on the wire that step 5
 deletes, and it detects the duplicate without fixing it.
@@ -525,8 +573,9 @@ authorisation check inside `getById`.
 The publishers no longer pay a walk either. `BlockPublisher` and
 `TextBlockPublisher` each re-read the topic on *every* published event — so a
 move paid one lookup per shifted sibling — purely to work out the destination.
-The four publishers are now one `meeting/EventPublisher` taking the meeting id
-as a parameter, sourced from the destination like the lock key.
+The four publishers became one `EventPublisher` taking the meeting id as a
+parameter, sourced from the destination like the lock key, and that in turn
+became step 6's `event/EventService`, which reads it off the `EventInfo`.
 
 *Why here:* it turns divergence from invisible into detectable, which is the
 precondition for trusting anything below. It also replaces the current
@@ -555,8 +604,9 @@ outstanding change safe rather than hopeful. Step 8 is that design.
 Step 5 — Fractional ranks instead of dense sequence ids (M)
 --
 
-*Landed.* `topics.sequence_id` and `blocks.sequence_id` are a `rank TEXT`,
-backfilled by `V2__ranks.sql` from the sequence they replaced.
+*Landed.* `topics.sequence_id` and `blocks.sequence_id` are a `rank TEXT`. A
+`V2__ranks.sql` backfilled them at first and was folded into `V1__init.sql`,
+since nothing is deployed yet.
 `common/domain/Rank` is the whole algorithm: base-62 digits in ASCII order, so
 lexicographic comparison *is* the ordering, and `Rank.between(lower, upper)`
 answers for every pair, with either end open. A rank may not end in the first
@@ -670,8 +720,9 @@ a refusal has to name the change even when the body is unreadable, but a body
 that cannot be read has nothing to rebase.
 
 **Log every event, as sent.** An `events` table —
-`(meeting_id, revision, user_id, client_id, mutation)`,
-`UNIQUE(meeting_id, revision)`, which is also the index the rebase query needs — written by
+`(meeting_id, revision, user_id, client_id, change_id, mutation)`,
+`UNIQUE(meeting_id, revision)`, which is also the index the rebase query needs,
+and `UNIQUE(meeting_id, change_id)` since step 8.3 — written by
 `event/EventService` in the change's own transaction, so the log and the broadcast
 cannot disagree and a new operation is logged without anyone writing code for
 it. The origin is two columns, the principal's user and the client, and there
@@ -967,8 +1018,9 @@ says so there rather than in the console.
    once. Four existing tests had been sending two changes under one id; they
    now use two.
 4. The one-shot snapshot, replay and resend on reconnect, and `reconnectDelay`
-   back on.
-5. Sync status.
+   back on. *Open.* Today the snapshot subscription stays in the subscription
+   map, the change in flight is never resent, and `reconnectDelay` is 0.
+5. Sync status. *Open.*
 
 *Not covered:* a replay the log can no longer answer, because nothing prunes it
 yet — when pruning lands, the reply has to be able to say *too far back*, and
@@ -1004,11 +1056,10 @@ Open questions
   whatever was written after it. Rebasing them over the refusal was the
   alternative, and there is nothing to rebase over — the refused edit never
   happened on the server, and the page's text is the thing that is wrong.
-- **Should a rank be computed by the client or the server?** The client knows
-  the neighbours it dropped between; the server would have to be told them
-  anyway. Client-computed is simpler and standard, and the `(rank, id)` sort
-  makes a collision harmless — but it does mean trusting a client-supplied
-  ordering key.
+- **Should a rank be computed by the client or the server?** Settled: the
+  server, inside the lock (step 5). Two clients dropping into one gap would
+  compute the same string, and nothing could ever be inserted between them.
 - **Moving a block between topics** does not exist yet: `BlockAction.Move`
-  carries only a sequence id. Ranks handle it as a one-row write once it does,
-  which is a good reason not to scope any version to a topic.
+  carries only the `afterId` of a sibling in the same topic. Ranks handle it as
+  a one-row write once it does, which is a good reason not to scope any version
+  to a topic.

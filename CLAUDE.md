@@ -374,8 +374,8 @@ enforce it, in order:
    belong to a state the payload has already moved past.
 
    The meeting id comes from the destination and is **passed down** — to
-   `ChangeService.apply(origin, meetingId, change)`, and below the lock as the
-   `MeetingScope` — so the lock is taken before anything is read. Do not
+   `ChangeService.apply(origin, changeId, meetingId, change)`, and below the
+   lock as the `MeetingScope` — so the lock is taken before anything is read. Do not
    reintroduce a `getMeetingId` that derives it from the entity: that read
    happens outside the lock. The tree walk stays, as
    the *authorisation* check inside `getById(principal, meetingId, entityId)`.
@@ -652,9 +652,10 @@ Stated in `doc/LESSONS.md` and worth knowing before starting:
 
 - One WebSocket test reaches the database, and only one.
   `MeetingChangeWebSocketTest` mocks nothing below the web layer and drives a
-  topic move, a schedule and two concurrent renames to a second subscriber, and
-  replays what it logged, so lock, transaction, log, rebase, publisher, replay
-  and revision are exercised together for those. Every other
+  topic move, a schedule and two concurrent renames to a second subscriber,
+  replays what it logged, and applies a resend once, so lock, transaction, log,
+  rebase, publisher, replay, resend and revision are exercised together for
+  those. Every other
   `WebSocketTest` subclass still makes each entity service a `@MockitoBean`, so
   no other operation is covered end to end.
 - Concurrent text edits converge, with the gaps `SEQUENCING.md` step 6 names:
@@ -662,8 +663,8 @@ Stated in `doc/LESSONS.md` and worth knowing before starting:
   mid-composition lands in text nobody has described; the event log is never
   pruned; and a reload that drops unsent edits says nothing.
 - The frontend has almost no tests: `frontend/tests/` covers a few form
-  components, one API client, one editor component, the text-edit splice and
-  rebase, and `MeetingWebSocketClient`'s queue and event stream, and nothing
+  components, one API client, one editor component, the text-edit splice,
+  rebase and compose, and `MeetingWebSocketClient`'s queue and event stream, and nothing
   else of the meeting path — the page's `mutate` is untested.
   Configuration has stopped the suite twice, so treat any frontend coverage
   claim as unverified until you have run `npm test` and read the file count it
